@@ -5,30 +5,60 @@ export type SiteSettingsWithCards = SiteSettings & {
   whyChooseUsCards: WhyChooseUsCard[];
 };
 
-export type Locale = "en" | "ml";
+import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
+export { pickLocalizedText, type Locale };
+
+// Mirrors prisma/seed.ts SiteSettings values so a degraded render (missing row or
+// transient DB error) shows the same numbers as a freshly-seeded production DB.
+const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
+  id: "default",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  yearsInOperation: "20+",
+  studentsTrained: "15000+",
+  centresWorldwide: "120+",
+  affiliations: "50+",
+  countries: "23",
+  aboutBodyEn:
+    "G-TEC EDUCATION Thodupuzha is a premier skill development and computer education centre.",
+  aboutBodyMl:
+    "ജി-ടെക് എഡ്യൂക്കേഷൻ തൊടുപുഴ ഒരു പ്രമുഖ കമ്പ്യൂട്ടർ വിദ്യാഭ്യാസ സ്ഥാപനമാണ്.",
+  aboutPhotoUrl: null,
+  address:
+    "G-TEC Education, Near Municipal Office, Thodupuzha, Idukki District, Kerala - 685584",
+  mapEmbedUrl: null,
+  mapsUrl:
+    "https://maps.google.com/?q=G-TEC+Computer+Education,+East+End,+Thodupuzha-Udumbanoor+Rd,+near+De+Paul+Public+School,+Thodupuzha,+Kerala+685585",
+  whatsappNumber: "919544229992",
+  facebookUrl: "https://www.facebook.com/gtectdpa",
+  instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
+  youtubeUrl: null,
+  linkedinUrl: null,
+  googleReviewsUrl:
+    "https://www.google.com/maps/search/?api=1&query=G-TEC+Computer+Education+Thodupuzha+reviews",
+  whyChooseUsCards: [],
+};
 
 export async function getSiteSettings(): Promise<SiteSettingsWithCards> {
-  const settings = await prisma.siteSettings.findFirst({
-    include: {
-      whyChooseUsCards: {
-        orderBy: { sortOrder: "asc" },
+  try {
+    const settings = await prisma.siteSettings.findFirst({
+      include: {
+        whyChooseUsCards: {
+          orderBy: { sortOrder: "asc" },
+        },
       },
-    },
-  });
+    });
 
-  if (!settings) {
-    throw new Error("Site settings have not been initialized.");
+    if (!settings) {
+      return DEFAULT_SITE_SETTINGS;
+    }
+
+    return settings;
+  } catch {
+    return DEFAULT_SITE_SETTINGS;
   }
-
-  return settings;
 }
 
-export function pickLocalizedText(
-  localized: { en: string; ml?: string | null },
-  locale: Locale,
-): string {
-  return locale === "ml" && localized.ml ? localized.ml : localized.en;
-}
 
 export function getAtAGlanceStats(settings: SiteSettingsWithCards) {
   return [

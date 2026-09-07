@@ -100,7 +100,7 @@ export default async function TimetablePage({ params }: Props) {
                       {e.contentText}
                     </p>
                     {e.createdAt && (
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         {t("updated", { date: e.createdAt.toISOString().slice(0, 10) })}
                       </p>
                     )}

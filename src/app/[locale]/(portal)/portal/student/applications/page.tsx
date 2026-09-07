@@ -117,12 +117,12 @@ export default async function StudentApplicationsPage({ params }: PageProps) {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${badgeStyle}`}
                   >
                     {app.status}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {sa("applied", { date: new Date(app.appliedAt).toLocaleDateString() })}
                 </p>
               </div>

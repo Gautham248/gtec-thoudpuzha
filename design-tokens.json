@@ -52,7 +52,7 @@
       "24": { "$value": "6rem", "$type": "dimension" }
     },
     "fontSize": {
-      "xs":   { "$value": "0.75rem", "$type": "dimension" },
+      "xs":   { "$value": "0.875rem", "$type": "dimension" },
       "sm":   { "$value": "0.875rem", "$type": "dimension" },
       "base": { "$value": "1rem", "$type": "dimension" },
       "lg":   { "$value": "1.125rem", "$type": "dimension" },
@@ -239,7 +239,7 @@
       "radius":      { "$value": "{primitive.radius.full}", "$type": "dimension" },
       "padding-x":   { "$value": "{primitive.spacing.3}", "$type": "dimension" },
       "padding-y":   { "$value": "{primitive.spacing.1}", "$type": "dimension" },
-      "font-size":   { "$value": "{primitive.fontSize.xs}", "$type": "dimension" },
+      "font-size":   { "$value": "{primitive.fontSize.sm}", "$type": "dimension" },
       "font-weight": { "$value": "{primitive.fontWeight.semibold}", "$type": "number" }
     },
     "link": {

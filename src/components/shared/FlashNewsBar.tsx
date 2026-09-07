@@ -2,6 +2,7 @@ import { getLocale } from "next-intl/server";
 import { getActiveFlashNews } from "@/lib/flash-news";
 import type { PublicFlashNewsItem } from "@/lib/flash-news";
 
+
 type Locale = "en" | "ml";
 
 export async function FlashNewsBar({
@@ -18,49 +19,54 @@ export async function FlashNewsBar({
 
   return (
     <div
-      className="relative w-full max-w-full overflow-x-hidden bg-primary text-primary-foreground py-2 text-sm font-medium"
+      className="relative w-full max-w-full overflow-x-hidden bg-primary/95 text-primary-foreground py-2 text-sm font-medium border-b border-primary-foreground/10 shadow-xs backdrop-blur-sm"
       aria-label="Flash news"
       role="region"
     >
-      <div className="flash-marquee flex items-center whitespace-nowrap will-change-transform max-w-full">
-        <span className="inline-flex items-center gap-8 px-4">
-          {items.map((item) => (
-            <span key={item.id} className="inline-flex items-center">
-              {item.link ? (
-                <a
-                  href={item.link}
-                  className="underline underline-offset-2 hover:opacity-90"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {item.text}
-                </a>
-              ) : (
-                item.text
-              )}
-            </span>
-          ))}
-          <span aria-hidden="true">•</span>
-          <span aria-hidden="true">
+      <div className="flex items-center">
+        <div className="flash-marquee flex items-center whitespace-nowrap will-change-transform max-w-full">
+          <span className="inline-flex items-center gap-8 px-4">
             {items.map((item) => (
-              <span key={`dup-${item.id}`} className="inline-flex items-center">
+              <span key={item.id} className="inline-flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-amber-300 shrink-0 inline-block animate-pulse" />
                 {item.link ? (
                   <a
                     href={item.link}
-                    className="underline underline-offset-2 hover:opacity-90"
-                    tabIndex={-1}
-                    aria-hidden="true"
+                    className="underline underline-offset-4 decoration-primary-foreground/40 hover:decoration-primary-foreground transition-all hover:opacity-95"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     {item.text}
                   </a>
                 ) : (
-                  item.text
+                  <span>{item.text}</span>
                 )}
               </span>
             ))}
+            <span aria-hidden="true" className="opacity-40">•</span>
+            <span aria-hidden="true">
+              {items.map((item) => (
+                <span key={`dup-${item.id}`} className="inline-flex items-center gap-1.5 ml-8">
+                  <span className="size-1.5 rounded-full bg-amber-300 shrink-0 inline-block animate-pulse" />
+                  {item.link ? (
+                    <a
+                      href={item.link}
+                      className="underline underline-offset-4 decoration-primary-foreground/40 hover:decoration-primary-foreground transition-all hover:opacity-95"
+                      tabIndex={-1}
+                      aria-hidden="true"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <span>{item.text}</span>
+                  )}
+                </span>
+              ))}
+            </span>
           </span>
-        </span>
+        </div>
       </div>
     </div>
   );
 }
+

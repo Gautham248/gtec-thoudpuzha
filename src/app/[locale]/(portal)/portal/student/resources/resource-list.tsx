@@ -117,7 +117,7 @@ export async function ResourceList({ type, title, locale }: ResourceListProps) {
                         <span className="font-medium">{r.title}</span>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {r.uploadedAt.toISOString().slice(0, 10)}
                     </span>
                   </div>

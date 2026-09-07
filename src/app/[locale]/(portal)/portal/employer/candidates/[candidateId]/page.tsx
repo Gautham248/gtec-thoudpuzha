@@ -71,7 +71,7 @@ export default async function CandidateDetailPage({ params }: PageProps) {
             {candidate.fullName ?? ct("unnamed")}
           </h1>
           {candidate.isVerifiedStudent && (
-            <span className="mt-1 inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
+            <span className="mt-1 inline-block rounded-full bg-primary/10 px-3 py-0.5 text-sm font-medium text-primary">
               {ct("verifiedStudent")}
             </span>
           )}
@@ -140,7 +140,7 @@ export default async function CandidateDetailPage({ params }: PageProps) {
                   {candidate.skillIds.map((id) => (
                     <span
                       key={id}
-                      className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary"
+                      className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm text-primary"
                     >
                       {skillMap.get(id) ?? id}
                     </span>
@@ -157,7 +157,7 @@ export default async function CandidateDetailPage({ params }: PageProps) {
                   {candidate.languagesKnown.map((lang) => (
                     <span
                       key={lang}
-                      className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary"
+                      className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm text-primary"
                     >
                       {lang}
                     </span>

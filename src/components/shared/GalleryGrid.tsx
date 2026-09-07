@@ -348,7 +348,7 @@ export function GalleryGrid({
               )}
               {itemCaption && (
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                  <p className="truncate text-xs text-white">
+                  <p className="truncate text-sm font-medium text-white">
                     {itemCaption}
                   </p>
                 </div>

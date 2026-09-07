@@ -152,7 +152,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                               ↓
                             </Button>
                           </form>
-                          <span className="ml-2 text-xs">{item.sortOrder}</span>
+                          <span className="ml-2 text-sm">{item.sortOrder}</span>
                         </div>
                       </td>
                       <td className="border border-border px-3 py-2">{item.textEn}</td>
@@ -196,7 +196,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                           <>
                             {formatLocalDateTime(item.expiresAt)}
                             {isExpired(item.expiresAt) && (
-                              <span className="ml-2 text-xs text-destructive">
+                              <span className="ml-2 text-sm text-destructive">
                                 expired
                               </span>
                             )}
@@ -208,27 +208,27 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-2">
                           <details className="relative">
-                            <summary className="cursor-pointer text-xs text-primary font-medium">Edit</summary>
+                            <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
                             <form action={updateFlashNews} className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={item.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Text (English) *</label>
-                                <input name="textEn" defaultValue={item.textEn} required className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Text (English) *</label>
+                                <input name="textEn" defaultValue={item.textEn} required className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Text (Malayalam)</label>
-                                <input name="textMl" defaultValue={item.textMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Text (Malayalam)</label>
+                                <input name="textMl" defaultValue={item.textMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Link URL</label>
-                                <input name="link" type="url" defaultValue={item.link ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Link URL</label>
+                                <input name="link" type="url" defaultValue={item.link ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Expires At</label>
-                                <input name="expiresAt" type="datetime-local" defaultValue={item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Expires At</label>
+                                <input name="expiresAt" type="datetime-local" defaultValue={item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
-                              <label className="flex items-center gap-2 text-xs pt-1">
+                              <label className="flex items-center gap-2 text-sm pt-1">
                                 <input type="checkbox" name="active" defaultChecked={item.active} />
                                 Active
                               </label>
@@ -262,7 +262,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                   <div className="flex items-start justify-between gap-2 border-b pb-2">
                     <div className="min-w-0 flex-1">
                       <span className="font-semibold text-foreground text-sm block leading-snug">{item.textEn}</span>
-                      {item.textMl && <span className="text-xs text-muted-foreground block">ML: {item.textMl}</span>}
+                      {item.textMl && <span className="text-sm text-muted-foreground block">ML: {item.textMl}</span>}
                     </div>
                     <form action={toggleFlashNewsActive} className="shrink-0">
                       <input type="hidden" name="id" value={item.id} />
@@ -272,14 +272,14 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                         type="submit"
                         size="xs"
                         variant={item.active ? "default" : "outline"}
-                        className="shrink-0 whitespace-nowrap text-xs font-semibold uppercase tracking-wider"
+                        className="shrink-0 whitespace-nowrap text-sm font-semibold uppercase tracking-wider"
                       >
                         {item.active ? "Active" : "Inactive"}
                       </Button>
                     </form>
                   </div>
 
-                  <div className="text-xs space-y-1 text-muted-foreground">
+                  <div className="text-sm space-y-1 text-muted-foreground">
                     <div className="flex justify-between">
                       <span className="font-medium text-foreground">Link:</span>
                       {item.link ? (
@@ -301,7 +301,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
 
                   <div className="pt-2 border-t space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1 text-xs">
+                      <div className="flex items-center gap-1 text-sm">
                         <span className="text-muted-foreground mr-1">Order ({item.sortOrder}):</span>
                         <form action={moveFlashNews}>
                           <input type="hidden" name="id" value={item.id} />
@@ -327,27 +327,27 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                     </div>
 
                     <details className="pt-1 border-t">
-                      <summary className="cursor-pointer text-xs font-medium text-primary py-1">Edit</summary>
+                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
                       <form action={updateFlashNews} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Text (English) *</label>
-                          <input name="textEn" defaultValue={item.textEn} required className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Text (English) *</label>
+                          <input name="textEn" defaultValue={item.textEn} required className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Text (Malayalam)</label>
-                          <input name="textMl" defaultValue={item.textMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Text (Malayalam)</label>
+                          <input name="textMl" defaultValue={item.textMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Link URL</label>
-                          <input name="link" type="url" defaultValue={item.link ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Link URL</label>
+                          <input name="link" type="url" defaultValue={item.link ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Expires At</label>
-                          <input name="expiresAt" type="datetime-local" defaultValue={item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Expires At</label>
+                          <input name="expiresAt" type="datetime-local" defaultValue={item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
-                        <label className="flex items-center gap-2 text-xs pt-1">
+                        <label className="flex items-center gap-2 text-sm pt-1">
                           <input type="checkbox" name="active" defaultChecked={item.active} />
                           Active
                         </label>

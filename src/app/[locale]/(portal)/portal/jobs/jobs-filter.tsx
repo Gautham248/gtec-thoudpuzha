@@ -60,7 +60,7 @@ export function JobsFilter({ skills }: JobsFilterProps) {
       className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/50 p-4"
     >
       <div className="flex flex-col gap-1">
-        <label htmlFor="jobType" className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="jobType" className="text-sm font-medium text-muted-foreground">
           {t("filterJobType")}
         </label>
         <Select name="jobType" defaultValue={currentJobType}>
@@ -78,7 +78,7 @@ export function JobsFilter({ skills }: JobsFilterProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="skillId" className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="skillId" className="text-sm font-medium text-muted-foreground">
           {t("filterSkill")}
         </label>
         <Select name="skillId" defaultValue={currentSkillId}>
@@ -96,7 +96,7 @@ export function JobsFilter({ skills }: JobsFilterProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="location" className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="location" className="text-sm font-medium text-muted-foreground">
           {t("filterLocation")}
         </label>
         <Input

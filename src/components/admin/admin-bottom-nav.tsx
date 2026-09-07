@@ -60,13 +60,13 @@ export function AdminBottomNav({
               key={route.href}
               href={route.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-1 text-xs",
+                "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-1 text-sm",
                 "text-muted-foreground transition-colors hover:text-foreground",
                 active && "font-semibold text-primary",
               )}
             >
               <route.icon className="size-5 shrink-0" />
-              <span className="truncate max-w-full text-[11px] leading-tight">
+              <span className="truncate max-w-full text-sm leading-tight">
                 {route.label}
               </span>
             </Link>
@@ -76,7 +76,7 @@ export function AdminBottomNav({
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             className={cn(
-              "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-1 text-xs",
+              "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-1 text-sm",
               "text-muted-foreground transition-colors hover:text-foreground",
               visibleRoutes.some(
                 (r) => !primaryRoutes.includes(r) && isRouteActive(r.href, pathname, allHrefs),
@@ -84,7 +84,7 @@ export function AdminBottomNav({
             )}
           >
             <Menu className="size-5 shrink-0" />
-            <span className="truncate max-w-full text-[11px] leading-tight">
+            <span className="truncate max-w-full text-sm leading-tight">
               More
             </span>
           </SheetTrigger>

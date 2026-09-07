@@ -35,6 +35,8 @@ vi.mock("@/lib/certification-partners", () => ({
 vi.mock("@/lib/news-events", () => ({
   getHomepageTeaser: vi.fn(() => Promise.resolve({ newsItems: [], nextEvent: null, flashNews: [], featuredNews: null })),
   getCachedHomepageTeaser: vi.fn(() => Promise.resolve({ newsItems: [], nextEvent: null, flashNews: [], featuredNews: null })),
+  getUpcomingEvents: vi.fn(() => Promise.resolve([])),
+  getCachedUpcomingEvents: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("@/lib/site-settings", async () => {
@@ -77,12 +79,11 @@ test("homepage renders without throwing", async () => {
   expect(html).toBeTruthy();
 });
 
-test("(public) homepage renders main element and form labels", async () => {
+test("(public) homepage renders main elements and sections", async () => {
   const html = await renderHomePage();
   // Structure check (translated strings come from dictionaries)
   expect(html).toContain("Build Your Career With G-TEC Thodupuzha");
   expect(html).toContain("Apply Now");
-  // EnquiryForm uses aria-label for form — check its structure
-  expect(html).toContain("enquiry-fullName-");
-  expect(html).toContain("enquiry-phone-");
+  expect(html).toContain("Years of Operation");
+  expect(html).toContain("About");
 });

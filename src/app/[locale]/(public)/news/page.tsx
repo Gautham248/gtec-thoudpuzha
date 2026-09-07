@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { getPublishedNews } from "@/lib/news-events";
-import { pickLocalizedText, type Locale } from "@/lib/site-settings";
+import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 
 interface NewsPageProps {
   params: Promise<{ locale: string }>;
@@ -36,26 +36,26 @@ export default async function NewsPage({ params }: NewsPageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <h1 className="mb-8 text-3xl font-bold">{t("heading")}</h1>
+    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <h1 className="mb-6 text-2xl sm:text-3xl font-extrabold tracking-tight">{t("heading")}</h1>
 
       {newsItems.length > 0 && (
-        <section className="mb-12">
-          <h2 className="mb-4 text-xl font-semibold">{t("latestNews")}</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="mb-10">
+          <h2 className="mb-4 text-lg sm:text-xl font-bold">{t("latestNews")}</h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {newsItems.map((item) => (
               <Link
                 key={item.id}
                 href={`/news/${item.slug}`}
-                className="block rounded border border-border p-4 transition-shadow hover:shadow-md"
+                className="block rounded-2xl border border-border p-5 transition-all hover:shadow-md hover:border-primary/40"
               >
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-semibold text-muted-foreground">
                   {formatDate(item.publishedAt)}
                 </p>
-                <h3 className="mt-1 text-lg font-medium">
+                <h3 className="mt-1.5 text-base sm:text-lg font-bold">
                   {pickLocalizedText({ en: item.titleEn, ml: item.titleMl }, loc)}
                 </h3>
-                <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+                <p className="mt-2 line-clamp-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
                   {pickLocalizedText({ en: item.bodyEn, ml: item.bodyMl }, loc)}
                 </p>
               </Link>
@@ -66,23 +66,23 @@ export default async function NewsPage({ params }: NewsPageProps) {
 
       {eventItems.length > 0 && (
         <section>
-          <h2 className="mb-4 text-xl font-semibold">{t("upcomingEvents")}</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className="mb-4 text-lg sm:text-xl font-bold">{t("upcomingEvents")}</h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {eventItems.map((item) => (
               <Link
                 key={item.id}
                 href={`/news/${item.slug}`}
-                className="block rounded border border-border p-4 transition-shadow hover:shadow-md"
+                className="block rounded-2xl border border-border p-5 transition-all hover:shadow-md hover:border-primary/40"
               >
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-semibold text-muted-foreground">
                   {item.eventDate
                     ? formatDate(item.eventDate)
                     : formatDate(item.publishedAt)}
                 </p>
-                <h3 className="mt-1 text-lg font-medium">
+                <h3 className="mt-1.5 text-base sm:text-lg font-bold">
                   {pickLocalizedText({ en: item.titleEn, ml: item.titleMl }, loc)}
                 </h3>
-                <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+                <p className="mt-2 line-clamp-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
                   {pickLocalizedText({ en: item.bodyEn, ml: item.bodyMl }, loc)}
                 </p>
               </Link>

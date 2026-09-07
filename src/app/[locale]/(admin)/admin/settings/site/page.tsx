@@ -228,6 +228,19 @@ export default async function SiteSettingsPage({
               />
             </div>
             <div className="space-y-1 sm:col-span-2">
+              <label htmlFor="mapsUrl" className="text-sm font-medium">
+                Google Maps URL
+              </label>
+              <input
+                id="mapsUrl"
+                name="mapsUrl"
+                type="url"
+                placeholder="https://maps.google.com/?q=..."
+                defaultValue={settings.mapsUrl ?? ""}
+                className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
               <label htmlFor="mapEmbedUrl" className="text-sm font-medium">
                 Google Maps Embed URL
               </label>
@@ -237,6 +250,19 @@ export default async function SiteSettingsPage({
                 type="url"
                 placeholder="https://www.google.com/maps/embed?pb=..."
                 defaultValue={settings.mapEmbedUrl ?? ""}
+                className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="whatsappNumber" className="text-sm font-medium">
+                WhatsApp Number / URL
+              </label>
+              <input
+                id="whatsappNumber"
+                name="whatsappNumber"
+                type="text"
+                placeholder="e.g. 919544229992 or https://wa.me/..."
+                defaultValue={settings.whatsappNumber ?? ""}
                 className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
               />
             </div>

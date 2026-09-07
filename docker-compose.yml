@@ -47,9 +47,12 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./prisma:/app/prisma
+      - ./next.config.ts:/app/next.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./postcss.config.mjs:/app/postcss.config.mjs
+      - ./prisma.config.ts:/app/prisma.config.ts
 volumes:
   pgdata:

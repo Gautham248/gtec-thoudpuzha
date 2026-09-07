@@ -33,7 +33,7 @@ export function EmployerShell({ children }: EmployerShellProps) {
           <span className="font-semibold text-base">Employer Portal</span>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
           >
             <Home className="size-3.5" />
             Website Home

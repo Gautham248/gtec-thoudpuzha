@@ -95,7 +95,7 @@ export default async function EmployerDashboardPage({ params }: EmployerDashboar
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${
                       posting.status === "PENDING" ? "bg-accent/10 text-accent" :
                       posting.status === "APPROVED" ? "bg-primary/10 text-primary" :
                       posting.status === "REJECTED" ? "bg-destructive/10 text-destructive" :
@@ -105,7 +105,7 @@ export default async function EmployerDashboardPage({ params }: EmployerDashboar
                     {sb(posting.status)}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span>{t("posted", { date: new Date(posting.createdAt).toLocaleDateString() })}</span>
                   <span>{t("applicantCount", { count: posting._count.applications })}</span>
                 </div>

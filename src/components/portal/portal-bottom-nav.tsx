@@ -26,13 +26,13 @@ export function PortalBottomNav({ routes }: PortalBottomNavProps) {
               key={route.href}
               href={route.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-1 text-xs",
+                "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-1 text-sm",
                 "text-muted-foreground transition-colors hover:text-foreground",
                 active && "font-semibold text-primary",
               )}
             >
               <route.icon className="size-5 shrink-0" />
-              <span className="text-[11px] leading-tight max-w-full truncate">
+              <span className="text-sm leading-tight max-w-full truncate">
                 {route.label}
               </span>
             </Link>
@@ -42,7 +42,7 @@ export function PortalBottomNav({ routes }: PortalBottomNavProps) {
           <UserButton
             appearance={{ elements: { avatarBox: "size-7" } }}
           />
-          <span className="text-[11px] leading-tight text-muted-foreground">
+          <span className="text-sm leading-tight text-muted-foreground">
             Account
           </span>
         </div>

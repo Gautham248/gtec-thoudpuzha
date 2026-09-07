@@ -67,7 +67,11 @@ export async function getPlacementGalleryData(): Promise<{
   slug: string;
   items: PublicGalleryCategory["items"];
 } | null> {
-  const category = await getGalleryCategoryBySlug(PLACEMENT_SLUG, DISPLAY_LIMIT);
-  if (!category) return null;
-  return { slug: category.slug, items: category.items };
+  try {
+    const category = await getGalleryCategoryBySlug(PLACEMENT_SLUG, DISPLAY_LIMIT);
+    if (!category) return null;
+    return { slug: category.slug, items: category.items };
+  } catch {
+    return null;
+  }
 }

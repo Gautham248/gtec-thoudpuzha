@@ -195,7 +195,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                           name="email"
                           required
                           placeholder="student@example.com"
-                          className="w-40 rounded border border-accent/30 bg-accent/5 px-2 py-1 text-xs"
+                          className="w-40 rounded border border-accent/30 bg-accent/5 px-2 py-1 text-sm"
                         />
                         <Button type="submit" size="sm" variant="outline">
                           Add
@@ -218,7 +218,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                   <td className="border border-border px-3 py-2">
                     <Link
                       href={`/${locale}/admin/students/${record.id}`}
-                      className="inline-block rounded bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                      className="inline-block rounded bg-primary/10 px-2.5 py-1 text-sm font-medium text-primary hover:bg-primary/20"
                     >
                       View Student →
                     </Link>
@@ -235,7 +235,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
             <div key={record.id} className="rounded-lg border border-border bg-card p-4 space-y-2 shadow-xs">
               <div className="flex items-center justify-between border-b pb-2">
                 <span className="font-semibold text-foreground">{record.fullName}</span>
-                <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs font-medium text-foreground">
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-sm font-medium text-foreground">
                   {record.studentId}
                 </span>
               </div>
@@ -247,17 +247,17 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Status:</span>
                   {record.linkedUserId ? (
-                    <span className="text-primary font-medium text-xs">Verified</span>
+                    <span className="text-primary font-medium text-sm">Verified</span>
                   ) : !record.email ? (
-                    <span className="text-accent font-medium text-xs">Blocked — no email</span>
+                    <span className="text-accent font-medium text-sm">Blocked — no email</span>
                   ) : (
-                    <span className="text-accent font-medium text-xs">Pending</span>
+                    <span className="text-accent font-medium text-sm">Pending</span>
                   )}
                 </div>
                 <div className="pt-1">
                   <span className="font-medium text-foreground block mb-1">Email:</span>
                   {record.email ? (
-                    <span className="text-foreground text-xs font-mono break-all">{record.email}</span>
+                    <span className="text-foreground text-sm font-mono break-all">{record.email}</span>
                   ) : (
                     <form
                       action={updateStudentEmail}
@@ -270,7 +270,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                         name="email"
                         required
                         placeholder="student@example.com"
-                        className="flex-1 rounded border border-accent/30 bg-accent/5 px-2 py-1 text-xs"
+                        className="flex-1 rounded border border-accent/30 bg-accent/5 px-2 py-1 text-sm"
                       />
                       <Button type="submit" size="sm" variant="outline">
                         Add
@@ -279,12 +279,12 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                   )}
                 </div>
                 <div className="pt-2 border-t flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     Created: {new Date(record.createdAt).toLocaleDateString()}
                   </span>
                   <Link
                     href={`/${locale}/admin/students/${record.id}`}
-                    className="inline-block rounded bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
+                    className="inline-block rounded bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/20"
                   >
                     View Student →
                   </Link>

@@ -56,6 +56,8 @@ describe("Admin forms show bilingual inputs", () => {
     aboutPhotoUrl: null,
     address: null,
     mapEmbedUrl: null,
+    mapsUrl: null,
+    whatsappNumber: null,
     facebookUrl: null,
     instagramUrl: null,
     youtubeUrl: null,

@@ -60,7 +60,7 @@ export function Preloader() {
         <span className="text-3xl font-bold tracking-tight text-white">
           GTEC
         </span>
-        <span className="text-xs font-medium uppercase tracking-[0.2em] text-[#5b86b9]">
+        <span className="text-sm font-medium uppercase tracking-[0.2em] text-[#5b86b9]">
           Thodupuzha
         </span>
       </div>

@@ -98,7 +98,7 @@ export default async function SkillsTaxonomyPage({
                       </td>
                       <td className="border border-border px-3 py-2">
                         <span
-                          className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${
                             skill.status === "APPROVED"
                               ? "bg-primary/10 text-primary"
                               : "bg-yellow-100 text-yellow-800"
@@ -130,10 +130,10 @@ export default async function SkillsTaxonomyPage({
                           <form action={mergeSkill} className="flex items-center gap-1">
                             <input type="hidden" name="sourceId" value={skill.id} />
                             <input type="hidden" name="locale" value={locale} />
-                            <span className="text-xs text-muted-foreground">merge into</span>
+                            <span className="text-sm text-muted-foreground">merge into</span>
                             <select
                               name="targetId"
-                              className="max-w-[120px] rounded border border-border bg-background px-1 py-0.5 text-xs"
+                              className="max-w-[120px] rounded border border-border bg-background px-1 py-0.5 text-sm"
                               required
                             >
                               <option value="">Select...</option>
@@ -175,7 +175,7 @@ export default async function SkillsTaxonomyPage({
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="font-semibold text-foreground text-sm">{skill.label}</span>
                     <span
-                      className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                      className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${
                         skill.status === "APPROVED"
                           ? "bg-primary/10 text-primary"
                           : "bg-yellow-100 text-yellow-800"
@@ -185,7 +185,7 @@ export default async function SkillsTaxonomyPage({
                     </span>
                   </div>
 
-                  <div className="text-xs space-y-1 text-muted-foreground">
+                  <div className="text-sm space-y-1 text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Candidate refs:</span>
                       <span className="font-medium text-foreground">{skill.candidateCount}</span>
@@ -212,11 +212,11 @@ export default async function SkillsTaxonomyPage({
                     <form action={mergeSkill} className="flex flex-col gap-1.5 bg-muted/30 p-2 rounded border border-border/50">
                       <input type="hidden" name="sourceId" value={skill.id} />
                       <input type="hidden" name="locale" value={locale} />
-                      <label className="text-xs font-medium text-muted-foreground">Merge into target skill:</label>
+                      <label className="text-sm font-medium text-muted-foreground">Merge into target skill:</label>
                       <div className="flex items-center gap-2">
                         <select
                           name="targetId"
-                          className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs"
+                          className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
                           required
                         >
                           <option value="">Select Target...</option>

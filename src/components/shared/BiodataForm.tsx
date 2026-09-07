@@ -464,7 +464,7 @@ export function BiodataForm({
               information will be shared with employers who express interest.
               You can change this setting at any time.
             </p>
-            <p className="mt-2 text-xs">
+            <p className="mt-2 text-sm text-primary/80 dark:text-primary-foreground/80">
               Your data is handled in accordance with our{" "}
               <Link href="/privacy" className="underline hover:no-underline">
                 Privacy Policy

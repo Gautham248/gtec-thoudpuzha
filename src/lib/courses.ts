@@ -34,7 +34,7 @@ export async function getPublishedCourses(): Promise<PublicCourse[]> {
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   }).catch((err) => {
     logger.exception("courses", "Failed to fetch published courses", err);
-    throw err;
+    return [];
   });
 
   return courses.map(

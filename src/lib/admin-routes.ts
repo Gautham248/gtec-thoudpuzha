@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Calendar,
   Settings,
+  PanelBottom,
   ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -128,6 +129,12 @@ export const ADMIN_ROUTES: AdminRoute[] = [
     href: "/admin/settings/site",
     label: "Site Settings",
     icon: Settings,
+    superAdminOnly: true,
+  },
+  {
+    href: "/admin/settings/footer",
+    label: "Footer Settings",
+    icon: PanelBottom,
     superAdminOnly: true,
   },
   {

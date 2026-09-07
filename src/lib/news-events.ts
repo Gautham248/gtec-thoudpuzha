@@ -46,39 +46,66 @@ export async function getNewsEventBySlug(
 }
 
 export async function getHomepageTeaser() {
-  const [newsItems, nextEvent] = await Promise.all([
-    prisma.newsEvent.findMany({
-      where: { publishedAt: { not: null }, type: "NEWS" },
-      orderBy: { publishedAt: "desc" },
-      select: {
-        id: true,
-        type: true,
-        titleEn: true,
-        titleMl: true,
-        slug: true,
-        publishedAt: true,
-        eventDate: true,
-      },
-      take: 3,
-    }),
-    prisma.newsEvent.findFirst({
+  try {
+    const [newsItems, nextEvent] = await Promise.all([
+      prisma.newsEvent.findMany({
+        where: { publishedAt: { not: null }, type: "NEWS" },
+        orderBy: { publishedAt: "desc" },
+        select: {
+          id: true,
+          type: true,
+          titleEn: true,
+          titleMl: true,
+          slug: true,
+          publishedAt: true,
+          eventDate: true,
+        },
+        take: 3,
+      }),
+      prisma.newsEvent.findFirst({
+        where: { publishedAt: { not: null }, type: "EVENT" },
+        orderBy: { eventDate: "asc" },
+        select: {
+          id: true,
+          type: true,
+          titleEn: true,
+          titleMl: true,
+          slug: true,
+          publishedAt: true,
+          eventDate: true,
+        },
+      }),
+    ]);
+
+    return { newsItems, nextEvent };
+  } catch {
+    return { newsItems: [], nextEvent: null };
+  }
+}
+
+export async function getUpcomingEvents(limit: number = 3): Promise<PublicNewsEvent[]> {
+  try {
+    return await prisma.newsEvent.findMany({
       where: {
         publishedAt: { not: null },
         type: "EVENT",
-        eventDate: { gte: new Date() },
       },
       orderBy: { eventDate: "asc" },
+      take: limit,
       select: {
         id: true,
         type: true,
         titleEn: true,
         titleMl: true,
+        bodyEn: true,
+        bodyMl: true,
+        coverImageUrl: true,
+        eventDate: true,
         slug: true,
         publishedAt: true,
-        eventDate: true,
       },
-    }),
-  ]);
-
-  return { newsItems, nextEvent };
+    });
+  } catch {
+    return [];
+  }
 }

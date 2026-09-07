@@ -61,7 +61,7 @@ export default async function MyProgressPage({ params }: Props) {
             key={e.id}
             className="rounded border border-border p-4"
           >
-            <div className="mb-1 text-xs text-muted-foreground">
+            <div className="mb-1 text-sm text-muted-foreground">
               {e.course.titleEn} &middot;{" "}
               {e.recordedAt.toISOString().slice(0, 10)}
             </div>

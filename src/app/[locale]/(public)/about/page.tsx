@@ -46,13 +46,13 @@ export default async function AboutPage({ params }: AboutPageProps) {
           aria-hidden="true"
         />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/20">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-3.5 py-1 text-sm font-semibold text-primary ring-1 ring-inset ring-primary/20">
             {aboutPageT("badge")}
           </span>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
             {aboutPageT("title")}
           </h1>
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl leading-relaxed">
+          <p className="mx-auto mt-4 max-w-3xl text-base text-muted-foreground leading-relaxed">
             {aboutPageT("subtitle")}
           </p>
 
@@ -192,7 +192,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
                   <div className="flex flex-col items-center gap-2">
                     <MapPin className="h-8 w-8 text-primary/60" />
                     <p className="text-sm font-medium">G-TEC Education Centre</p>
-                    <p className="text-xs">Temple Bypass Road, Thodupuzha</p>
+                    <p className="text-sm text-muted-foreground">Temple Bypass Road, Thodupuzha</p>
                   </div>
                 </div>
               )}

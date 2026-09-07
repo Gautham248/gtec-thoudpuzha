@@ -21,18 +21,18 @@ export default async function PlacementPage({ params }: PlacementPageProps) {
         <div className="mb-8">
           <h1
             id="placement-heading"
-            className="text-3xl font-bold"
+            className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight"
           >
             {t("heading")}
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground">
             {t("description")}
           </p>
         </div>
 
         {recent.length === 0 ? (
           <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-            <p>{t("noPositions")}</p>
+            <p className="text-base">{t("noPositions")}</p>
             <p className="mt-1 text-sm">
               {t("noPositionsHint")}
             </p>
@@ -42,18 +42,18 @@ export default async function PlacementPage({ params }: PlacementPageProps) {
             {recent.map((posting) => (
               <div
                 key={posting.id}
-                className="rounded-lg border p-5 transition-colors hover:bg-muted/50"
+                className="rounded-2xl border p-5 transition-colors hover:bg-muted/50"
               >
-                <h2 className="font-semibold">{posting.title}</h2>
+                <h2 className="font-bold text-base sm:text-lg">{posting.title}</h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {posting.employer.companyName}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-medium text-primary">
                     {jt(posting.jobType)}
                   </span>
                   {posting.employer.companyAddress && (
-                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-sm font-medium text-foreground">
                       {posting.employer.companyAddress}
                     </span>
                   )}
@@ -63,11 +63,11 @@ export default async function PlacementPage({ params }: PlacementPageProps) {
           </div>
         )}
 
-        <div className="mt-10 rounded-xl bg-primary/10 p-8 text-center">
-          <h2 className="text-xl font-semibold">
+        <div className="mt-10 rounded-2xl bg-primary/10 p-7 sm:p-9 text-center">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
             {t("ctaHeading")}
           </h2>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground">
             {t("ctaText")}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-4">

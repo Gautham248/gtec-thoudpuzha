@@ -258,7 +258,7 @@ function CandidateCard({
             {candidate.languagesKnown.slice(0, 4).map((lang) => (
               <span
                 key={lang}
-                className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary"
+                className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm text-primary"
               >
                 {lang}
               </span>

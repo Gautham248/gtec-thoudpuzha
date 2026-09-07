@@ -49,6 +49,8 @@ export async function updateSiteSettings(formData: FormData) {
       aboutPhotoUrl: getNullableString(formData, "aboutPhotoUrl"),
       address: getNullableString(formData, "address"),
       mapEmbedUrl: getNullableString(formData, "mapEmbedUrl"),
+      mapsUrl: getNullableString(formData, "mapsUrl"),
+      whatsappNumber: getNullableString(formData, "whatsappNumber"),
       facebookUrl: getNullableString(formData, "facebookUrl"),
       instagramUrl: getNullableString(formData, "instagramUrl"),
       youtubeUrl: getNullableString(formData, "youtubeUrl"),

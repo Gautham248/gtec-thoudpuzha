@@ -39,6 +39,8 @@ function createSettings() {
     aboutPhotoUrl: null,
     address: null,
     mapEmbedUrl: null,
+    mapsUrl: null,
+    whatsappNumber: null,
     facebookUrl: null,
     instagramUrl: null,
     youtubeUrl: null,

@@ -164,7 +164,7 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${badgeStyle}`}
                   >
                     {app.status}
                   </span>

@@ -58,7 +58,7 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
           <p className="text-sm font-mono text-muted-foreground">ID: {record.studentId}</p>
         </div>
         <span
-          className={`shrink-0 whitespace-nowrap self-start sm:self-auto rounded px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${
+          className={`shrink-0 whitespace-nowrap self-start sm:self-auto rounded px-2.5 py-1 text-sm font-semibold uppercase tracking-wider ${
             record.linkedUserId
               ? "bg-primary/10 text-primary"
               : !record.email
@@ -74,28 +74,28 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
         <h2 className="text-lg font-semibold border-b pb-2 text-foreground">Contact & Identification</h2>
         <div className="grid gap-4 sm:grid-cols-2 text-sm min-w-0">
           <div className="min-w-0">
-            <span className="text-muted-foreground block text-xs font-medium">Full Name</span>
+            <span className="text-muted-foreground block text-sm font-medium">Full Name</span>
             <span className="font-medium text-foreground break-words">{record.fullName}</span>
           </div>
           <div className="min-w-0">
-            <span className="text-muted-foreground block text-xs font-medium">Student ID</span>
+            <span className="text-muted-foreground block text-sm font-medium">Student ID</span>
             <span className="font-mono text-foreground break-all">{record.studentId}</span>
           </div>
           <div className="min-w-0">
-            <span className="text-muted-foreground block text-xs font-medium">Phone Number</span>
+            <span className="text-muted-foreground block text-sm font-medium">Phone Number</span>
             <a href={`tel:${record.phone}`} className="text-primary font-mono hover:underline break-all block">{record.phone}</a>
           </div>
           <div className="min-w-0">
-            <span className="text-muted-foreground block text-xs font-medium">Email Address</span>
+            <span className="text-muted-foreground block text-sm font-medium">Email Address</span>
             <span className="font-mono text-foreground break-all block">{record.email || "Not provided"}</span>
           </div>
           <div className="min-w-0">
-            <span className="text-muted-foreground block text-xs font-medium">Created On</span>
+            <span className="text-muted-foreground block text-sm font-medium">Created On</span>
             <span className="text-foreground">{new Date(record.createdAt).toLocaleDateString()}</span>
           </div>
           <div className="min-w-0">
-            <span className="text-muted-foreground block text-xs font-medium">Linked Account ID</span>
-            <span className="font-mono text-xs text-foreground break-all block">{record.linkedUserId || "None"}</span>
+            <span className="text-muted-foreground block text-sm font-medium">Linked Account ID</span>
+            <span className="font-mono text-sm text-foreground break-all block">{record.linkedUserId || "None"}</span>
           </div>
         </div>
       </section>
@@ -106,33 +106,33 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
             <h2 className="text-lg font-semibold border-b pb-2 text-foreground">Profile Details</h2>
             <div className="grid gap-4 sm:grid-cols-2 text-sm min-w-0">
               <div className="min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Educational Qualification</span>
+                <span className="text-muted-foreground block text-sm font-medium">Educational Qualification</span>
                 <span className="text-foreground break-words">{candidate.educationalQualification || "—"}</span>
               </div>
               <div className="min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Year of Passing</span>
+                <span className="text-muted-foreground block text-sm font-medium">Year of Passing</span>
                 <span className="text-foreground">{candidate.yearOfPassing || "—"}</span>
               </div>
               <div className="min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Address</span>
+                <span className="text-muted-foreground block text-sm font-medium">Address</span>
                 <span className="text-foreground break-words">{candidate.address || "—"}</span>
               </div>
               <div className="min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Preferred Job Location</span>
+                <span className="text-muted-foreground block text-sm font-medium">Preferred Job Location</span>
                 <span className="text-foreground break-words">{candidate.preferredJobLocation || "—"}</span>
               </div>
               <div className="min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Preferred Job Type</span>
+                <span className="text-muted-foreground block text-sm font-medium">Preferred Job Type</span>
                 <span className="text-foreground">{candidate.preferredJobType || "—"}</span>
               </div>
               <div className="min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Languages Known</span>
+                <span className="text-muted-foreground block text-sm font-medium">Languages Known</span>
                 <span className="text-foreground break-words">{candidate.languagesKnown.join(", ") || "—"}</span>
               </div>
             </div>
             {candidate.careerObjective && (
               <div className="pt-2 border-t text-sm min-w-0">
-                <span className="text-muted-foreground block text-xs font-medium">Career Objective</span>
+                <span className="text-muted-foreground block text-sm font-medium">Career Objective</span>
                 <p className="mt-1 text-foreground break-words">{candidate.careerObjective}</p>
               </div>
             )}
@@ -145,7 +145,7 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
                 {candidate.enrollments.map((e) => (
                   <div key={e.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 p-3 rounded border border-border bg-muted/20 text-sm min-w-0">
                     <span className="font-medium text-foreground leading-snug break-words">{e.course.titleEn}</span>
-                    <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">Enrolled: {new Date(e.enrolledAt).toLocaleDateString()}</span>
+                    <span className="text-sm text-muted-foreground shrink-0 whitespace-nowrap">Enrolled: {new Date(e.enrolledAt).toLocaleDateString()}</span>
                   </div>
                 ))}
               </div>

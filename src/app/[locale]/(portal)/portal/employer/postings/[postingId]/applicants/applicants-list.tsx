@@ -83,25 +83,25 @@ function ApplicantRow({
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
             {applicant.candidateProfile.email && (
               <div>
-                <span className="text-xs text-muted-foreground">{t("email")}</span>
+                <span className="text-sm font-medium text-muted-foreground">{t("email")}</span>
                 <p>{applicant.candidateProfile.email}</p>
               </div>
             )}
             {applicant.candidateProfile.phone && (
               <div>
-                <span className="text-xs text-muted-foreground">{t("phone")}</span>
+                <span className="text-sm font-medium text-muted-foreground">{t("phone")}</span>
                 <p>{applicant.candidateProfile.phone}</p>
               </div>
             )}
             {applicant.candidateProfile.educationalQualification && (
               <div>
-                <span className="text-xs text-muted-foreground">{t("qualification")}</span>
+                <span className="text-sm font-medium text-muted-foreground">{t("qualification")}</span>
                 <p>{applicant.candidateProfile.educationalQualification.replace(/_/g, " ")}</p>
               </div>
             )}
             {applicant.candidateProfile.preferredJobLocation && (
               <div>
-                <span className="text-xs text-muted-foreground">{t("location")}</span>
+                <span className="text-sm font-medium text-muted-foreground">{t("location")}</span>
                 <p>{applicant.candidateProfile.preferredJobLocation}</p>
               </div>
             )}
@@ -116,7 +116,7 @@ function ApplicantRow({
 
         <div className="flex flex-col items-end gap-3">
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${badgeStyle}`}
           >
             {applicant.status}
           </span>
@@ -132,7 +132,7 @@ function ApplicantRow({
                     name="status"
                     value={nextStatus}
                     disabled={pending}
-                    className="rounded bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                    className="rounded bg-muted px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                   >
                     {nextStatus}
                   </button>

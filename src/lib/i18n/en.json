@@ -399,7 +399,19 @@
     "verifyCertificate": "Verify Certificate",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "allRightsReserved": "All rights reserved."
+    "allRightsReserved": "All rights reserved.",
+    "location": "Location",
+    "findOurCampus": "Find Our Campus",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "whatsapp": "WhatsApp",
+    "googleReviews": "Google Reviews",
+    "openGoogleMaps": "Open in Google Maps",
+    "chatOnWhatsapp": "Chat on WhatsApp",
+    "readReviews": "Read Google Reviews",
+    "topRated": "4.9 ★ Rated",
+    "followUs": "Follow Us",
+    "officialPage": "Official Page"
   },
   "portalDashboard": {
     "heading": "Welcome, {role}",

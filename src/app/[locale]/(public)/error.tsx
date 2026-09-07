@@ -26,7 +26,7 @@ export default function PublicError({
         </h1>
         <p className="text-muted-foreground text-sm">{t("description")}</p>
         {error.digest && (
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className="text-sm text-muted-foreground font-mono">
             Error ID: {error.digest}
           </p>
         )}

@@ -57,10 +57,10 @@ export default async function EmployersPage({
 
       {/* Status filter */}
       <section className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground mr-1">Filter:</span>
+        <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
         <a
           href={`/${locale}/admin/employers`}
-          className={`rounded px-3 py-1 text-xs font-medium ${!filterStatus ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+          className={`rounded px-3 py-1 text-sm font-medium ${!filterStatus ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
         >
           All
         </a>
@@ -68,7 +68,7 @@ export default async function EmployersPage({
           <a
             key={s}
             href={`/${locale}/admin/employers?status=${s}`}
-            className={`rounded px-3 py-1 text-xs font-medium ${filterStatus === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+            className={`rounded px-3 py-1 text-sm font-medium ${filterStatus === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
           >
             {STATUS_LABELS[s]}
           </a>
@@ -140,7 +140,7 @@ export default async function EmployersPage({
                       </td>
                       <td className="border border-border px-3 py-2">
                         <span
-                          className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${
                             ep.status === "APPROVED"
                               ? "bg-primary/10 text-primary"
                               : ep.status === "REJECTED"
@@ -151,7 +151,7 @@ export default async function EmployersPage({
                           {STATUS_LABELS[ep.status]}
                         </span>
                         {ep.rejectionReason && (
-                          <p className="mt-1 text-xs text-destructive break-all">
+                          <p className="mt-1 text-sm text-destructive break-all">
                             {ep.rejectionReason}
                           </p>
                         )}
@@ -176,7 +176,7 @@ export default async function EmployersPage({
                                 />
                                 <button
                                   type="submit"
-                                  className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
+                                  className="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90"
                                 >
                                   Approve
                                 </button>
@@ -191,14 +191,14 @@ export default async function EmployersPage({
                                 />
                                 <button
                                   type="submit"
-                                  className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
+                                  className="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90"
                                 >
                                   Approve + Trust
                                 </button>
                               </form>
 
                               <details className="inline-block">
-                                <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-xs text-white hover:bg-destructive/90">
+                                <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90">
                                   Reject
                                 </summary>
                                 <form
@@ -219,11 +219,11 @@ export default async function EmployersPage({
                                     name="rejectionReason"
                                     placeholder="Reason (required)"
                                     required
-                                    className="w-40 rounded border border-border px-2 py-1 text-xs"
+                                    className="w-40 rounded border border-border px-2 py-1 text-sm"
                                   />
                                   <button
                                     type="submit"
-                                    className="rounded bg-destructive px-2 py-1 text-xs text-white hover:bg-destructive/90"
+                                    className="rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90"
                                   >
                                     Submit
                                   </button>
@@ -242,7 +242,7 @@ export default async function EmployersPage({
                               />
                               <button
                                 type="submit"
-                                className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
+                                className="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90"
                               >
                                 Re-approve
                               </button>
@@ -259,7 +259,7 @@ export default async function EmployersPage({
                               />
                               <button
                                 type="submit"
-                                className={`rounded px-2 py-1 text-xs text-white ${ep.autoPublishTrusted ? "bg-accent/80 hover:bg-accent/90" : "bg-primary hover:bg-primary/90"}`}
+                                className={`rounded px-2 py-1 text-sm text-white ${ep.autoPublishTrusted ? "bg-accent/80 hover:bg-accent/90" : "bg-primary hover:bg-primary/90"}`}
                               >
                                 {ep.autoPublishTrusted
                                   ? "Remove Trust"
@@ -282,10 +282,10 @@ export default async function EmployersPage({
                   <div className="flex items-start justify-between border-b pb-2 gap-2">
                     <div className="min-w-0 flex-1">
                       <span className="font-semibold text-foreground text-sm block break-all">{ep.companyName}</span>
-                      <span className="text-xs text-muted-foreground">{ep.contactPersonName}</span>
+                      <span className="text-sm text-muted-foreground">{ep.contactPersonName}</span>
                     </div>
                     <span
-                      className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${
+                      className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-sm font-semibold uppercase tracking-wider ${
                         ep.status === "APPROVED"
                           ? "bg-primary/10 text-primary"
                           : ep.status === "REJECTED"
@@ -297,7 +297,7 @@ export default async function EmployersPage({
                     </span>
                   </div>
 
-                  <div className="text-xs space-y-1.5 text-muted-foreground">
+                  <div className="text-sm space-y-1.5 text-muted-foreground">
                     <div className="flex justify-between items-center gap-2">
                       <span className="font-medium text-foreground shrink-0">Phone:</span>
                       <a href={`tel:${ep.phone}`} className="text-primary font-mono hover:underline">{ep.phone}</a>
@@ -335,7 +335,7 @@ export default async function EmployersPage({
                               <input type="hidden" name="profileId" value={ep.id} />
                               <button
                                 type="submit"
-                                className="w-full rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                                className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                               >
                                 Approve
                               </button>
@@ -346,7 +346,7 @@ export default async function EmployersPage({
                               <input type="hidden" name="profileId" value={ep.id} />
                               <button
                                 type="submit"
-                                className="w-full rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                                className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                               >
                                 Approve + Trust
                               </button>
@@ -354,24 +354,24 @@ export default async function EmployersPage({
                           </div>
 
                           <details className="w-full">
-                            <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-xs font-medium text-white hover:bg-destructive/90">
+                            <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/90">
                               Reject Registration
                             </summary>
                             <form action={rejectEmployer} className="mt-2 space-y-2">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="profileId" value={ep.id} />
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-1">Rejection Reason *</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">Rejection Reason *</label>
                                 <input
                                   name="rejectionReason"
                                   placeholder="Specify reason..."
                                   required
-                                  className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background"
+                                  className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
                                 />
                               </div>
                               <button
                                 type="submit"
-                                className="w-full rounded bg-destructive px-2 py-1.5 text-xs font-medium text-white hover:bg-destructive/90"
+                                className="w-full rounded bg-destructive px-2 py-1.5 text-sm font-medium text-white hover:bg-destructive/90"
                               >
                                 Submit Rejection
                               </button>
@@ -386,7 +386,7 @@ export default async function EmployersPage({
                           <input type="hidden" name="profileId" value={ep.id} />
                           <button
                             type="submit"
-                            className="w-full rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                            className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                           >
                             Re-approve Employer
                           </button>
@@ -399,7 +399,7 @@ export default async function EmployersPage({
                           <input type="hidden" name="profileId" value={ep.id} />
                           <button
                             type="submit"
-                            className={`w-full rounded px-3 py-1.5 text-xs font-medium text-white ${ep.autoPublishTrusted ? "bg-accent/80 hover:bg-accent/90" : "bg-primary hover:bg-primary/90"}`}
+                            className={`w-full rounded px-3 py-1.5 text-sm font-medium text-white ${ep.autoPublishTrusted ? "bg-accent/80 hover:bg-accent/90" : "bg-primary hover:bg-primary/90"}`}
                           >
                             {ep.autoPublishTrusted ? "Remove Trust Status" : "Mark as Trusted Employer"}
                           </button>

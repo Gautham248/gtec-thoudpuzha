@@ -480,7 +480,19 @@
     "verifyCertificate": "സർട്ടിഫിക്കറ്റ് പരിശോധിക്കുക",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "allRightsReserved": "എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം."
+    "allRightsReserved": "എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.",
+    "location": "ലൊക്കേഷൻ",
+    "findOurCampus": "ഞങ്ങളുടെ ക്യാമ്പസ് കണ്ടെത്തുക",
+    "instagram": "ഇൻസ്റ്റാഗ്രാം",
+    "facebook": "ഫേസ്ബുക്ക്",
+    "whatsapp": "വാട്ട്സ്ആപ്പ്",
+    "googleReviews": "ഗൂഗിൾ റിവ്യൂകൾ",
+    "openGoogleMaps": "ഗൂഗിൾ മാപ്സിൽ കാണുക",
+    "chatOnWhatsapp": "വാട്ട്സ്ആപ്പിൽ ബന്ധപ്പെടുക",
+    "readReviews": "റിവ്യൂകൾ വായിക്കുക",
+    "topRated": "4.9 ★ റേറ്റിംഗ്",
+    "followUs": "ഫോളോ ചെയ്യുക",
+    "officialPage": "ഔദ്യോഗിക പേജ്"
   },
   "portalDashboard": {
     "heading": "സ്വാഗതം, {role}",

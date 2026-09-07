@@ -9,20 +9,24 @@ export interface PublicFlashNewsItem {
 export async function getActiveFlashNews(
   locale: "en" | "ml",
 ): Promise<PublicFlashNewsItem[]> {
-  const now = new Date();
-  const items = await prisma.flashNewsItem.findMany({
-    where: {
-      active: true,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-    },
-    orderBy: { sortOrder: "asc" },
-  });
+  try {
+    const now = new Date();
+    const items = await prisma.flashNewsItem.findMany({
+      where: {
+        active: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      orderBy: { sortOrder: "asc" },
+    });
 
-  return items.map((item) => ({
-    id: item.id,
-    text: locale === "ml" && item.textMl ? item.textMl : item.textEn,
-    link: item.link,
-  }));
+    return items.map((item) => ({
+      id: item.id,
+      text: locale === "ml" && item.textMl ? item.textMl : item.textEn,
+      link: item.link,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function getAllFlashNews() {

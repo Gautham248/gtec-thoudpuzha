@@ -189,13 +189,13 @@ export default function StudentSignUpPage() {
                   href="https://wa.me/yournumber"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                 >
                   {t("whatsapp")}
                 </a>
                 <a
                   href="tel:+919999999999"
-                  className="inline-flex items-center gap-1 rounded-md bg-muted-foreground px-3 py-1.5 text-xs font-medium text-white hover:bg-foreground/10"
+                  className="inline-flex items-center gap-1 rounded-md bg-muted-foreground px-3 py-1.5 text-sm font-medium text-white hover:bg-foreground/10"
                 >
                   {t("callCentre")}
                 </a>
@@ -243,7 +243,7 @@ export default function StudentSignUpPage() {
           </Button>
         </form>
 
-        <div className="space-y-2 text-center text-xs text-muted-foreground">
+        <div className="space-y-2 text-center text-sm text-muted-foreground">
           <p>
             {t("noStudentId")}{" "}
             <Link href={`/${locale}/contact`} className="underline">

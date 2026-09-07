@@ -25,7 +25,7 @@ export default function PortalError({
           An error occurred in the portal. Please try again.
         </p>
         {error.digest && (
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className="text-sm text-muted-foreground font-mono">
             Error ID: {error.digest}
           </p>
         )}

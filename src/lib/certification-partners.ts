@@ -10,14 +10,18 @@ export interface PublicCertificationPartner {
 export async function getCertificationPartners(): Promise<
   PublicCertificationPartner[]
 > {
-  const partners = await prisma.certificationPartner.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
+  try {
+    const partners = await prisma.certificationPartner.findMany({
+      orderBy: { sortOrder: "asc" },
+    });
 
-  return partners.map((p) => ({
-    id: p.id,
-    name: p.name,
-    logoUrl: p.logoUrl,
-    link: p.link,
-  }));
+    return partners.map((p) => ({
+      id: p.id,
+      name: p.name,
+      logoUrl: p.logoUrl,
+      link: p.link,
+    }));
+  } catch {
+    return [];
+  }
 }

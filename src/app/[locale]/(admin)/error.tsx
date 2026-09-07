@@ -25,7 +25,7 @@ export default function AdminError({
           An error occurred in the admin panel. Please try again.
         </p>
         {error.digest && (
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className="text-sm text-muted-foreground font-mono">
             Error ID: {error.digest}
           </p>
         )}

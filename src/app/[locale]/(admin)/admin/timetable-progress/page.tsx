@@ -117,7 +117,7 @@ export default async function TimetableProgressPage({ params }: Props) {
                       <td className="border border-border px-3 py-2 text-sm whitespace-pre-wrap">
                         {e.contentText}
                       </td>
-                      <td className="border border-border px-3 py-2 text-xs font-mono">
+                      <td className="border border-border px-3 py-2 text-sm font-mono">
                         {e.createdAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
@@ -141,10 +141,10 @@ export default async function TimetableProgressPage({ params }: Props) {
                 <div key={e.id} className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="font-semibold text-foreground text-sm">{e.course.titleEn}</span>
-                    <span className="text-xs font-mono text-muted-foreground">{e.createdAt.toISOString().slice(0, 10)}</span>
+                    <span className="text-sm font-mono text-muted-foreground">{e.createdAt.toISOString().slice(0, 10)}</span>
                   </div>
 
-                  <p className="text-xs text-foreground whitespace-pre-wrap">{e.contentText}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{e.contentText}</p>
 
                   <div className="pt-2 border-t flex justify-end">
                     <form action={deleteTimetableEntry} className="w-full">
@@ -253,7 +253,7 @@ export default async function TimetableProgressPage({ params }: Props) {
                       </td>
                       <td className="border border-border px-3 py-2">{e.course.titleEn}</td>
                       <td className="border border-border px-3 py-2 text-sm">{e.noteEn}</td>
-                      <td className="border border-border px-3 py-2 text-xs font-mono">
+                      <td className="border border-border px-3 py-2 text-sm font-mono">
                         {e.recordedAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
@@ -278,12 +278,12 @@ export default async function TimetableProgressPage({ params }: Props) {
                   <div className="flex items-center justify-between border-b pb-2">
                     <div>
                       <span className="font-semibold text-foreground text-sm block">{e.studentProfile.fullName ?? e.studentProfileId}</span>
-                      <span className="text-xs text-muted-foreground">{e.course.titleEn}</span>
+                      <span className="text-sm text-muted-foreground">{e.course.titleEn}</span>
                     </div>
-                    <span className="text-xs font-mono text-muted-foreground">{e.recordedAt.toISOString().slice(0, 10)}</span>
+                    <span className="text-sm font-mono text-muted-foreground">{e.recordedAt.toISOString().slice(0, 10)}</span>
                   </div>
 
-                  <p className="text-xs text-foreground">{e.noteEn}</p>
+                  <p className="text-sm text-foreground">{e.noteEn}</p>
 
                   <div className="pt-2 border-t flex justify-end">
                     <form action={deleteProgressEntry} className="w-full">

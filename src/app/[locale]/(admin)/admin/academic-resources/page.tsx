@@ -175,35 +175,35 @@ export default async function AcademicResourcesPage({ params }: Props) {
                       <td className="border border-border px-3 py-2">
                         {r.course.titleEn}
                       </td>
-                      <td className="border border-border px-3 py-2 text-xs font-mono">
+                      <td className="border border-border px-3 py-2 text-sm font-mono">
                         {r.uploadedAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-2">
                           <details className="relative">
-                            <summary className="cursor-pointer text-xs text-primary font-medium">Edit</summary>
+                            <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
                             <form action={updateResource} className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={r.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Title *</label>
-                                <input name="title" defaultValue={r.title} required className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Title *</label>
+                                <input name="title" defaultValue={r.title} required className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Type *</label>
-                                <select name="type" defaultValue={r.type} className="w-full rounded border border-border px-2 py-1 text-xs bg-background">
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Type *</label>
+                                <select name="type" defaultValue={r.type} className="w-full rounded border border-border px-2 py-1 text-sm bg-background">
                                   {RESOURCE_TYPES.map((t) => (
                                     <option key={t} value={t}>{TYPE_LABELS[t]}</option>
                                   ))}
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">File URL</label>
-                                <input name="fileUrl" type="url" defaultValue={r.fileUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">File URL</label>
+                                <input name="fileUrl" type="url" defaultValue={r.fileUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Video Embed URL (Lectures)</label>
-                                <input name="embedUrl" type="url" defaultValue={r.embedUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Video Embed URL (Lectures)</label>
+                                <input name="embedUrl" type="url" defaultValue={r.embedUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
                             </form>
@@ -242,14 +242,14 @@ export default async function AcademicResourcesPage({ params }: Props) {
                           r.title
                         )}
                       </span>
-                      <span className="text-xs text-muted-foreground">{r.course.titleEn}</span>
+                      <span className="text-sm text-muted-foreground">{r.course.titleEn}</span>
                     </div>
-                    <span className="shrink-0 whitespace-nowrap rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary">
+                    <span className="shrink-0 whitespace-nowrap rounded bg-primary/10 px-2 py-0.5 text-sm font-semibold uppercase tracking-wider text-primary">
                       {TYPE_LABELS[r.type] || r.type}
                     </span>
                   </div>
 
-                  <div className="text-xs flex justify-between text-muted-foreground">
+                  <div className="text-sm flex justify-between text-muted-foreground">
                     <span>Uploaded:</span>
                     <span className="font-mono text-foreground">{r.uploadedAt.toISOString().slice(0, 10)}</span>
                   </div>
@@ -264,29 +264,29 @@ export default async function AcademicResourcesPage({ params }: Props) {
                     </form>
 
                     <details className="pt-1 border-t">
-                      <summary className="cursor-pointer text-xs font-medium text-primary py-1">Edit</summary>
+                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
                       <form action={updateResource} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Title *</label>
-                          <input name="title" defaultValue={r.title} required className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Title *</label>
+                          <input name="title" defaultValue={r.title} required className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Type *</label>
-                          <select name="type" defaultValue={r.type} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background">
+                          <label className="block text-sm font-medium text-foreground mb-1">Type *</label>
+                          <select name="type" defaultValue={r.type} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background">
                             {RESOURCE_TYPES.map((t) => (
                               <option key={t} value={t}>{TYPE_LABELS[t]}</option>
                             ))}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">File URL</label>
-                          <input name="fileUrl" type="url" defaultValue={r.fileUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">File URL</label>
+                          <input name="fileUrl" type="url" defaultValue={r.fileUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Video Embed URL (Lectures)</label>
-                          <input name="embedUrl" type="url" defaultValue={r.embedUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Video Embed URL (Lectures)</label>
+                          <input name="embedUrl" type="url" defaultValue={r.embedUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
                       </form>

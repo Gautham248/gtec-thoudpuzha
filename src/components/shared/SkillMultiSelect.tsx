@@ -99,7 +99,7 @@ export function SkillMultiSelect({
         {selectedSkills.map((skill) => (
           <span
             key={skill.id}
-            className="inline-flex items-center gap-1 rounded-md border bg-muted/50 px-2 py-0.5 text-xs"
+            className="inline-flex items-center gap-1 rounded-md border bg-muted/50 px-2 py-0.5 text-sm"
           >
             {skill.label}
             <button

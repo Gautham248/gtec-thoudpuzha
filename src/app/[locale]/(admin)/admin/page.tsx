@@ -146,12 +146,12 @@ export default async function AdminDashboardPage({
                   <div key={enquiry.id} className="rounded-lg border border-border bg-card p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-foreground text-sm">{enquiry.name}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(enquiry.createdAt).toLocaleDateString()}</span>
+                      <span className="text-sm text-muted-foreground">{new Date(enquiry.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <div className="text-xs space-y-1 text-muted-foreground">
+                    <div className="text-sm space-y-1 text-muted-foreground">
                       <div><span className="font-medium text-foreground">Phone:</span> <a href={`tel:${enquiry.phone}`} className="text-primary underline">{enquiry.phone}</a></div>
                       <div><span className="font-medium text-foreground">Course:</span> {enquiry.course?.titleEn || "—"}</div>
-                      <div><span className="font-medium text-foreground">Source:</span> <span className="inline-block rounded bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{enquiry.source}</span></div>
+                      <div><span className="font-medium text-foreground">Source:</span> <span className="inline-block rounded bg-secondary px-2 py-0.5 text-sm text-secondary-foreground">{enquiry.source}</span></div>
                     </div>
                   </div>
                 ))}
@@ -214,7 +214,7 @@ function SummaryCard({
     return (
       <div className="rounded border border-border bg-muted/30 p-4 opacity-60">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        <p className="mt-1 text-xs text-muted-foreground">No access</p>
+        <p className="mt-1 text-sm text-muted-foreground">No access</p>
       </div>
     );
   }
@@ -234,7 +234,7 @@ function SummaryCard({
           {count !== null ? count : "—"}
         </p>
         {count !== null && count > 0 && (
-          <p className="mt-1 text-xs text-accent">Requires review</p>
+          <p className="mt-1 text-sm text-accent">Requires review</p>
         )}
       </div>
     </Link>
@@ -257,7 +257,7 @@ function QuickLinkCard({
           <route.icon className="size-4 text-muted-foreground" />
           <h3 className="text-sm font-medium text-muted-foreground">{route.label}</h3>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">No access</p>
+        <p className="mt-1 text-sm text-muted-foreground">No access</p>
       </div>
     );
   }

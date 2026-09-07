@@ -137,7 +137,7 @@ export default async function CertificationPartnersPage({
                               ↓
                             </Button>
                           </form>
-                          <span className="ml-2 text-xs">{partner.sortOrder}</span>
+                          <span className="ml-2 text-sm">{partner.sortOrder}</span>
                         </div>
                       </td>
                       <td className="border border-border px-3 py-2">
@@ -171,25 +171,25 @@ export default async function CertificationPartnersPage({
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-2">
                           <details className="relative">
-                            <summary className="cursor-pointer text-xs text-primary font-medium">Edit</summary>
+                            <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
                             <form action={updatePartner} className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={partner.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Name (English) *</label>
-                                <input name="name" defaultValue={partner.name} required className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Name (English) *</label>
+                                <input name="name" defaultValue={partner.name} required className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Name (Malayalam)</label>
-                                <input name="nameMl" defaultValue={partner.nameMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Name (Malayalam)</label>
+                                <input name="nameMl" defaultValue={partner.nameMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Link URL</label>
-                                <input name="link" type="url" defaultValue={partner.link ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Link URL</label>
+                                <input name="link" type="url" defaultValue={partner.link ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">New Logo (optional)</label>
-                                <input name="logo" type="file" accept="image/*" className="w-full text-xs" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">New Logo (optional)</label>
+                                <input name="logo" type="file" accept="image/*" className="w-full text-sm" />
                               </div>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
                             </form>
@@ -223,12 +223,12 @@ export default async function CertificationPartnersPage({
                       />
                       <div>
                         <span className="font-semibold text-foreground text-sm block">{partner.name}</span>
-                        {partner.nameMl && <span className="text-xs text-muted-foreground block">{partner.nameMl}</span>}
+                        {partner.nameMl && <span className="text-sm text-muted-foreground block">{partner.nameMl}</span>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-xs flex justify-between text-muted-foreground">
+                  <div className="text-sm flex justify-between text-muted-foreground">
                     <span>Website Link:</span>
                     {partner.link ? (
                       <a href={partner.link} target="_blank" rel="noopener noreferrer" className="text-primary underline">
@@ -241,7 +241,7 @@ export default async function CertificationPartnersPage({
 
                   <div className="pt-2 border-t space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1 text-xs">
+                      <div className="flex items-center gap-1 text-sm">
                         <span className="text-muted-foreground mr-1">Order ({partner.sortOrder}):</span>
                         <form action={movePartner}>
                           <input type="hidden" name="id" value={partner.id} />
@@ -267,25 +267,25 @@ export default async function CertificationPartnersPage({
                     </div>
 
                     <details className="pt-1 border-t">
-                      <summary className="cursor-pointer text-xs font-medium text-primary py-1">Edit</summary>
+                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
                       <form action={updatePartner} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={partner.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Name (English) *</label>
-                          <input name="name" defaultValue={partner.name} required className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Name (English) *</label>
+                          <input name="name" defaultValue={partner.name} required className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Name (Malayalam)</label>
-                          <input name="nameMl" defaultValue={partner.nameMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Name (Malayalam)</label>
+                          <input name="nameMl" defaultValue={partner.nameMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Link URL</label>
-                          <input name="link" type="url" defaultValue={partner.link ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Link URL</label>
+                          <input name="link" type="url" defaultValue={partner.link ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">New Logo (optional)</label>
-                          <input name="logo" type="file" accept="image/*" className="w-full text-xs" />
+                          <label className="block text-sm font-medium text-foreground mb-1">New Logo (optional)</label>
+                          <input name="logo" type="file" accept="image/*" className="w-full text-sm" />
                         </div>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
                       </form>

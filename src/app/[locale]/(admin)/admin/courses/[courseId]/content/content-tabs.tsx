@@ -79,7 +79,7 @@ export function CourseContentEditor({
         <div className="flex items-center gap-3 shrink-0">
           {message && (
             <span
-              className={`text-xs sm:text-sm font-medium ${message.type === "success" ? "text-green-600" : "text-destructive"}`}
+              className={`text-sm font-medium ${message.type === "success" ? "text-green-600" : "text-destructive"}`}
             >
               {message.text}
             </span>
@@ -95,7 +95,7 @@ export function CourseContentEditor({
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3.5 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 ${
+            className={`px-3.5 py-2 text-sm font-medium border-b-2 transition-colors shrink-0 ${
               tab === t
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -322,7 +322,7 @@ function ListsTab({
           {list.items.map((item, itemIdx) => (
             <div key={itemIdx} className="flex gap-2 items-end">
               <div className="flex-1 space-y-1">
-                <label className="block text-xs font-medium">Code</label>
+                <label className="block text-sm font-medium">Code</label>
                 <input
                   type="text"
                   value={item.code}
@@ -335,7 +335,7 @@ function ListsTab({
                 />
               </div>
               <div className="flex-[2] space-y-1">
-                <label className="block text-xs font-medium">Name</label>
+                <label className="block text-sm font-medium">Name</label>
                 <input
                   type="text"
                   value={item.name}
@@ -419,7 +419,7 @@ function BenefitsTab({
       {benefits.items.map((item, idx) => (
         <div key={idx} className="flex gap-2 items-end">
           <div className="flex-1 space-y-1">
-            <label className="block text-xs font-medium">English</label>
+            <label className="block text-sm font-medium">English</label>
             <input
               type="text"
               value={item.textEn}
@@ -430,7 +430,7 @@ function BenefitsTab({
             />
           </div>
           <div className="flex-1 space-y-1">
-            <label className="block text-xs font-medium">Malayalam</label>
+            <label className="block text-sm font-medium">Malayalam</label>
             <input
               type="text"
               value={item.textMl ?? ""}

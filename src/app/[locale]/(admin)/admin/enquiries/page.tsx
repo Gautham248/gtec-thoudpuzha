@@ -80,7 +80,7 @@ export default async function EnquiriesPage({ params }: EnquiriesPageProps) {
             <div key={enquiry.id} className="rounded-lg border border-border bg-card p-4 space-y-2.5 shadow-xs">
               <div className="flex items-center justify-between border-b pb-2">
                 <span className="font-semibold text-foreground">{enquiry.name}</span>
-                <span className="text-xs text-muted-foreground">{new Date(enquiry.createdAt).toLocaleDateString()}</span>
+                <span className="text-sm text-muted-foreground">{new Date(enquiry.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="text-sm space-y-1.5 text-muted-foreground">
                 <div className="flex justify-between items-center">
@@ -93,7 +93,7 @@ export default async function EnquiriesPage({ params }: EnquiriesPageProps) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Source:</span>
-                  <span className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">{enquiry.source}</span>
+                  <span className="rounded bg-secondary px-2 py-0.5 text-sm text-secondary-foreground font-medium">{enquiry.source}</span>
                 </div>
               </div>
             </div>

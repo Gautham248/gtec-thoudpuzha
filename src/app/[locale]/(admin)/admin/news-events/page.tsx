@@ -188,40 +188,40 @@ export default async function NewsEventsPage({
                             </Button>
                           </form>
                           <details className="relative">
-                            <summary className="cursor-pointer text-xs text-primary font-medium">Edit</summary>
+                            <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
                             <form action={updateNewsEvent} className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={item.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Type *</label>
-                                <select name="type" defaultValue={item.type} className="w-full rounded border border-border px-2 py-1 text-xs bg-background">
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Type *</label>
+                                <select name="type" defaultValue={item.type} className="w-full rounded border border-border px-2 py-1 text-sm bg-background">
                                   <option value="NEWS">News</option>
                                   <option value="EVENT">Event</option>
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Title (English) *</label>
-                                <input name="titleEn" defaultValue={item.titleEn} required className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Title (English) *</label>
+                                <input name="titleEn" defaultValue={item.titleEn} required className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Title (Malayalam)</label>
-                                <input name="titleMl" defaultValue={item.titleMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Title (Malayalam)</label>
+                                <input name="titleMl" defaultValue={item.titleMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Event Date</label>
-                                <input name="eventDate" type="datetime-local" defaultValue={item.eventDate ? new Date(item.eventDate).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Event Date</label>
+                                <input name="eventDate" type="datetime-local" defaultValue={item.eventDate ? new Date(item.eventDate).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Body (English) *</label>
-                                <textarea name="bodyEn" defaultValue={item.bodyEn} required rows={3} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Body (English) *</label>
+                                <textarea name="bodyEn" defaultValue={item.bodyEn} required rows={3} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Body (Malayalam)</label>
-                                <textarea name="bodyMl" defaultValue={item.bodyMl ?? ""} rows={3} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Body (Malayalam)</label>
+                                <textarea name="bodyMl" defaultValue={item.bodyMl ?? ""} rows={3} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-foreground mb-0.5">Cover Image URL</label>
-                                <input name="coverImageUrl" defaultValue={item.coverImageUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-xs bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">Cover Image URL</label>
+                                <input name="coverImageUrl" defaultValue={item.coverImageUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
                             </form>
@@ -256,12 +256,12 @@ export default async function NewsEventsPage({
                     <div className="min-w-0 flex-1">
                       <span className="font-semibold text-foreground text-sm block leading-snug">{item.titleEn}</span>
                     </div>
-                    <span className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${item.publishedAt ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-sm font-semibold uppercase tracking-wider ${item.publishedAt ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {item.publishedAt ? "Published" : "Draft"}
                     </span>
                   </div>
 
-                  <div className="text-xs space-y-1 text-muted-foreground">
+                  <div className="text-sm space-y-1 text-muted-foreground">
                     <div className="flex justify-between">
                       <span className="font-medium text-foreground">Type:</span>
                       <span className="text-foreground">{item.type === "NEWS" ? "News" : "Event"}</span>
@@ -309,40 +309,40 @@ export default async function NewsEventsPage({
                     </div>
 
                     <details className="pt-1 border-t">
-                      <summary className="cursor-pointer text-xs font-medium text-primary py-1">Edit</summary>
+                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
                       <form action={updateNewsEvent} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Type *</label>
-                          <select name="type" defaultValue={item.type} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background">
+                          <label className="block text-sm font-medium text-foreground mb-1">Type *</label>
+                          <select name="type" defaultValue={item.type} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background">
                             <option value="NEWS">News</option>
                             <option value="EVENT">Event</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Title (English) *</label>
-                          <input name="titleEn" defaultValue={item.titleEn} required className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Title (English) *</label>
+                          <input name="titleEn" defaultValue={item.titleEn} required className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Title (Malayalam)</label>
-                          <input name="titleMl" defaultValue={item.titleMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Title (Malayalam)</label>
+                          <input name="titleMl" defaultValue={item.titleMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Event Date</label>
-                          <input name="eventDate" type="datetime-local" defaultValue={item.eventDate ? new Date(item.eventDate).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Event Date</label>
+                          <input name="eventDate" type="datetime-local" defaultValue={item.eventDate ? new Date(item.eventDate).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Body (English) *</label>
-                          <textarea name="bodyEn" defaultValue={item.bodyEn} required rows={3} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Body (English) *</label>
+                          <textarea name="bodyEn" defaultValue={item.bodyEn} required rows={3} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Body (Malayalam)</label>
-                          <textarea name="bodyMl" defaultValue={item.bodyMl ?? ""} rows={3} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Body (Malayalam)</label>
+                          <textarea name="bodyMl" defaultValue={item.bodyMl ?? ""} rows={3} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-foreground mb-1">Cover Image URL</label>
-                          <input name="coverImageUrl" defaultValue={item.coverImageUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-xs bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">Cover Image URL</label>
+                          <input name="coverImageUrl" defaultValue={item.coverImageUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
                       </form>

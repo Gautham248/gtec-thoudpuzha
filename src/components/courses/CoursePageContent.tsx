@@ -37,11 +37,11 @@ export function CoursePageContent({
     <div className="w-full max-w-full overflow-x-hidden space-y-6 sm:space-y-10">
       {/* Hero */}
       {tagline && (
-        <section className="rounded-xl border border-border/60 bg-muted/40 p-5 sm:p-8 text-center shadow-xs">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-3 text-foreground break-words">
+        <section className="rounded-xl border border-border/60 bg-muted/40 p-5 sm:p-7 text-center shadow-xs">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2.5 text-foreground break-words">
             {t(titleEn, titleMl)}
           </h1>
-          <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto break-words leading-relaxed">
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto break-words leading-relaxed">
             {tagline}
           </p>
         </section>
@@ -50,18 +50,18 @@ export function CoursePageContent({
       {/* Fallback hero when no tagline */}
       {!tagline && (
         <section className="py-4 sm:py-6">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-3 text-foreground break-words">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2.5 text-foreground break-words">
             {t(titleEn, titleMl)}
           </h1>
           {description && (
-            <p className="text-sm sm:text-base text-muted-foreground break-words leading-relaxed">{description}</p>
+            <p className="text-base text-muted-foreground break-words leading-relaxed">{description}</p>
           )}
         </section>
       )}
 
       {/* Overview */}
       {overview && (
-        <section className="prose prose-sm sm:prose-base max-w-none break-words leading-relaxed text-muted-foreground">
+        <section className="prose prose-base max-w-none break-words leading-relaxed text-muted-foreground">
           <p className="break-words">{overview}</p>
         </section>
       )}
@@ -73,7 +73,7 @@ export function CoursePageContent({
             .split("\n\n")
             .filter(Boolean)
             .map((para, i) => (
-              <p key={i} className="text-sm sm:text-base leading-relaxed text-muted-foreground break-words">
+              <p key={i} className="text-base leading-relaxed text-muted-foreground break-words">
                 {para}
               </p>
             ))}
@@ -113,7 +113,7 @@ export function CoursePageContent({
             {benefits.items.map((item, idx) => (
               <li key={idx} className="flex items-start gap-2.5">
                 <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
-                <span className="text-sm sm:text-base text-muted-foreground break-words leading-relaxed">
+                <span className="text-base text-muted-foreground break-words leading-relaxed">
                   {t(item.textEn, item.textMl)}
                 </span>
               </li>
@@ -153,7 +153,7 @@ function CourseListSection({ list }: { list: CourseListBlock }) {
           <tbody>
             {list.items.map((item, idx) => (
               <tr key={idx} className="even:bg-muted/20 hover:bg-muted/40 transition-colors">
-                <td className="border-b border-border/60 px-3.5 py-2.5 font-mono text-xs text-foreground/90 whitespace-nowrap">
+                <td className="border-b border-border/60 px-3.5 py-2.5 font-mono text-sm text-foreground/90 whitespace-nowrap">
                   {item.code}
                 </td>
                 <td className="border-b border-border/60 px-3.5 py-2.5 text-muted-foreground break-words">{item.name}</td>

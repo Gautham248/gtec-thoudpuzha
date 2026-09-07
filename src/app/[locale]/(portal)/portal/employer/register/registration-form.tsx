@@ -352,7 +352,7 @@ export function RegistrationForm({
           {submitting ? t("submitting") : isEdit ? t("saveChanges") : t("register")}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-sm text-muted-foreground text-center">
           Your company data is handled in accordance with our{" "}
           <Link href="/privacy" className="underline hover:no-underline">Privacy Policy</Link>
           {" "}and{" "}

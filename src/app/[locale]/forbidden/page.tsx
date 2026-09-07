@@ -77,7 +77,7 @@ export default async function ForbiddenPage({
 
           {/* Error Tag & Title */}
           <div className="space-y-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold tracking-wider text-destructive uppercase">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-3 py-1 text-sm font-bold tracking-wider text-destructive uppercase">
               HTTP 403 • FORBIDDEN
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
@@ -87,18 +87,18 @@ export default async function ForbiddenPage({
 
           {/* Reason Box */}
           <div className="rounded-xl border border-border/70 bg-muted/50 p-4 text-left space-y-2 shadow-xs">
-            <div className="flex items-center gap-2 text-xs font-semibold text-destructive uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-sm font-semibold text-destructive uppercase tracking-wider">
               <KeyRound className="size-3.5" />
               <span>Reason for Restriction</span>
             </div>
-            <h2 className="text-sm font-bold text-foreground">
+            <h2 className="text-base font-bold text-foreground">
               {displayTitle}
             </h2>
-            <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">
               {displayDescription}
             </p>
             {from && (
-              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground font-mono truncate">
+              <div className="pt-2 border-t border-border/60 text-sm text-muted-foreground font-mono truncate">
                 Attempted Route: <span className="text-foreground">{from}</span>
               </div>
             )}
@@ -132,7 +132,7 @@ export default async function ForbiddenPage({
           </div>
 
           {/* Footer help link */}
-          <div className="pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="pt-4 border-t border-border/60 flex items-center justify-between text-sm text-muted-foreground">
             <Link
               href={loginUrl}
               className="hover:text-primary transition-colors underline-offset-4 hover:underline"

@@ -87,3 +87,18 @@ export const getCachedActiveFlashNews = (locale: "en" | "ml") =>
     { revalidate: 3600, tags: ["flash-news"] },
   )();
 
+export const getCachedUpcomingEvents = unstable_cache(
+  async (limit: number = 3) => {
+    const { getUpcomingEvents } = await import("@/lib/news-events");
+    try {
+      return await getUpcomingEvents(limit);
+    } catch (err) {
+      logger.exception("cache", "Failed to load upcoming events", err);
+      throw err;
+    }
+  },
+  ["upcoming-events"],
+  { revalidate: 3600, tags: ["upcoming-events", "news-events"] },
+);
+
+

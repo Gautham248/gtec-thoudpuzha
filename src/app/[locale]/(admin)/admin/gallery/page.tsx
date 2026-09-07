@@ -108,7 +108,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                             <input type="hidden" name="locale" value={locale} />
                             <Button type="submit" size="icon-xs" variant="outline" disabled={index === categories.length - 1} aria-label="Move down">↓</Button>
                           </form>
-                          <span className="ml-1 text-xs">{cat.sortOrder}</span>
+                          <span className="ml-1 text-sm">{cat.sortOrder}</span>
                         </div>
                       </td>
                       <td className="border border-border px-3 py-2 font-medium">{cat.nameEn}</td>
@@ -142,15 +142,15 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                   <div className="flex items-start justify-between gap-2 border-b pb-2">
                     <div className="min-w-0 flex-1">
                       <span className="font-semibold text-foreground text-sm block leading-snug">{cat.nameEn}</span>
-                      {cat.nameMl && <span className="text-xs text-muted-foreground block">{cat.nameMl}</span>}
+                      {cat.nameMl && <span className="text-sm text-muted-foreground block">{cat.nameMl}</span>}
                     </div>
-                    <span className="shrink-0 whitespace-nowrap rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary">
+                    <span className="shrink-0 whitespace-nowrap rounded bg-primary/10 px-2 py-0.5 text-sm font-semibold uppercase tracking-wider text-primary">
                       {cat._count.items} items
                     </span>
                   </div>
 
                   <div className="pt-2 border-t flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 text-xs">
+                    <div className="flex items-center gap-1 text-sm">
                       <span className="text-muted-foreground mr-1">Order ({cat.sortOrder}):</span>
                       <form action={moveCategory}>
                         <input type="hidden" name="id" value={cat.id} />
@@ -206,7 +206,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="categoryId" value={cat.id} />
                 <div>
-                  <label htmlFor={`files-${cat.id}`} className="text-xs font-medium">
+                  <label htmlFor={`files-${cat.id}`} className="text-sm font-medium">
                     Select images (multi-file)
                   </label>
                   <input
@@ -216,12 +216,12 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                     multiple
                     accept="image/*"
                     required
-                    className="mt-1 block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1 file:text-xs file:text-primary-foreground"
+                    className="mt-1 block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1 file:text-sm file:text-primary-foreground"
                   />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <label htmlFor={`capEn-${cat.id}`} className="text-xs font-medium">
+                    <label htmlFor={`capEn-${cat.id}`} className="text-sm font-medium">
                       Caption (English)
                     </label>
                     <input
@@ -231,7 +231,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                     />
                   </div>
                   <div>
-                    <label htmlFor={`capMl-${cat.id}`} className="text-xs font-medium">
+                    <label htmlFor={`capMl-${cat.id}`} className="text-sm font-medium">
                       Caption (Malayalam)
                     </label>
                     <input
@@ -252,7 +252,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="categoryId" value={cat.id} />
                 <div>
-                  <label htmlFor={`vidUrl-${cat.id}`} className="text-xs font-medium">
+                  <label htmlFor={`vidUrl-${cat.id}`} className="text-sm font-medium">
                     External video URL <span className="text-destructive">*</span>
                   </label>
                   <input
@@ -266,7 +266,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <label htmlFor={`vidCapEn-${cat.id}`} className="text-xs font-medium">
+                    <label htmlFor={`vidCapEn-${cat.id}`} className="text-sm font-medium">
                       Caption (English)
                     </label>
                     <input
@@ -276,7 +276,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                     />
                   </div>
                   <div>
-                    <label htmlFor={`vidCapMl-${cat.id}`} className="text-xs font-medium">
+                    <label htmlFor={`vidCapMl-${cat.id}`} className="text-sm font-medium">
                       Caption (Malayalam)
                     </label>
                     <input
@@ -308,16 +308,16 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                     <tbody>
                       {catItems.map((item) => (
                         <tr key={item.id}>
-                          <td className="border border-border px-3 py-2 text-xs font-medium">
+                          <td className="border border-border px-3 py-2 text-sm font-medium">
                             {item.mediaType}
                           </td>
-                          <td className="border border-border px-3 py-2 text-xs font-mono max-w-[200px] truncate">
+                          <td className="border border-border px-3 py-2 text-sm font-mono max-w-[200px] truncate">
                             {item.url}
                           </td>
-                          <td className="border border-border px-3 py-2 text-xs">
+                          <td className="border border-border px-3 py-2 text-sm">
                             {item.captionEn || "—"}
                           </td>
-                          <td className="border border-border px-3 py-2 text-xs font-mono">
+                          <td className="border border-border px-3 py-2 text-sm font-mono">
                             {item.sortOrder}
                           </td>
                           <td className="border border-border px-3 py-2">
@@ -341,15 +341,15 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                   {catItems.map((item) => (
                     <div key={item.id} className="rounded-lg border border-border bg-card p-4 space-y-2 shadow-xs">
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="font-semibold text-foreground text-xs">{item.captionEn || "Untitled Item"}</span>
-                        <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">{item.mediaType}</span>
+                        <span className="font-semibold text-foreground text-sm">{item.captionEn || "Untitled Item"}</span>
+                        <span className="rounded bg-muted px-2 py-0.5 text-sm font-mono text-muted-foreground">{item.mediaType}</span>
                       </div>
 
-                      <div className="text-xs space-y-1 text-muted-foreground">
-                        <div className="truncate font-mono text-[11px] text-foreground">
+                      <div className="text-sm space-y-1 text-muted-foreground">
+                        <div className="truncate font-mono text-sm text-foreground">
                           {item.url}
                         </div>
-                        <div className="flex justify-between text-[11px]">
+                        <div className="flex justify-between text-sm">
                           <span>Sort Order:</span>
                           <span className="font-mono text-foreground">{item.sortOrder}</span>
                         </div>
@@ -370,7 +370,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
                 </div>
               </>
             ) : (
-              <p className="mt-4 text-xs text-muted-foreground">No items yet.</p>
+              <p className="mt-4 text-sm text-muted-foreground">No items yet.</p>
             )}
           </section>
         );

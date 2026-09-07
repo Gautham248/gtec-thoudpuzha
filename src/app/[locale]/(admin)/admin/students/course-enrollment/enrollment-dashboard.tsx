@@ -197,7 +197,7 @@ export default function EnrollmentDashboard({
                     ) : (
                       <div className="flex flex-wrap items-center gap-1">
                         {student.enrollments.length > 1 && (
-                          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">
                             {student.enrollments.length}
                           </span>
                         )}
@@ -233,11 +233,11 @@ export default function EnrollmentDashboard({
             >
               <div className="flex items-center justify-between border-b pb-2">
                 <span className="font-semibold text-foreground">{student.fullName || "Unknown"}</span>
-                <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs text-foreground">
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-sm text-foreground">
                   {student.studentId || "N/A"}
                 </span>
               </div>
-              <div className="text-xs space-y-1 text-muted-foreground">
+              <div className="text-sm space-y-1 text-muted-foreground">
                 <div><span className="font-medium text-foreground">Phone:</span> {student.phone || "N/A"}</div>
                 <div>
                   <span className="font-medium text-foreground">Enrolled Courses:</span>{" "}
@@ -359,7 +359,7 @@ export default function EnrollmentDashboard({
                     <div key={enrollment.id} className="rounded-md border p-3 bg-card flex items-center justify-between">
                       <div>
                         <div className="font-medium text-sm text-foreground">{enrollment.course.titleEn}</div>
-                        <div className="text-xs text-muted-foreground">Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}</div>
+                        <div className="text-sm text-muted-foreground">Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}</div>
                       </div>
                       <form action={unenrollStudentFromCourse}>
                         <input type="hidden" name="enrollmentId" value={enrollment.id} />
@@ -420,7 +420,7 @@ export default function EnrollmentDashboard({
                       />
                       {course.titleEn}
                       {isAlreadyEnrolled && (
-                        <span className="text-xs text-accent">
+                        <span className="text-sm text-accent">
                           (already enrolled)
                         </span>
                       )}

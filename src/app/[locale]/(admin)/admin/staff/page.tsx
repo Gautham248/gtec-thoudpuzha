@@ -35,7 +35,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
         <form action={inviteStaff} className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           <input type="hidden" name="locale" value={locale} />
           <div className="flex-1">
-            <label htmlFor="email" className="block text-xs font-medium text-foreground">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground">
               Email address <span className="text-destructive">*</span>
             </label>
             <input
@@ -43,7 +43,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
               name="email"
               type="email"
               required
-              className="mt-1 w-full rounded border border-border bg-background px-3 py-1.5 text-xs"
+              className="mt-1 w-full rounded border border-border bg-background px-3 py-1.5 text-sm"
             />
           </div>
           <Button type="submit" size="sm" className="w-full sm:w-auto">Send Invite</Button>
@@ -70,13 +70,13 @@ export default async function StaffPage({ params }: StaffPageProps) {
                 <tbody>
                   {staff.map((user) => (
                     <tr key={user.id}>
-                      <td className="border border-border px-3 py-2 font-mono text-xs break-all">
+                      <td className="border border-border px-3 py-2 font-mono text-sm break-all">
                         {user.id}
                       </td>
                       <td className="border border-border px-3 py-2">{user.role}</td>
                       <td className="border border-border px-3 py-2">
                         <span
-                          className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${
                             user.deactivatedAt
                               ? "bg-destructive/10 text-destructive"
                               : "bg-primary/10 text-primary"
@@ -85,7 +85,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                           {user.deactivatedAt ? "Deactivated" : "Active"}
                         </span>
                       </td>
-                      <td className="border border-border px-3 py-2 text-xs">
+                      <td className="border border-border px-3 py-2 text-sm">
                         {user.createdAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
@@ -111,7 +111,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                           </>
                         )}
                         {user.role === Role.SUPER_ADMIN && (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </td>
                     </tr>
@@ -126,11 +126,11 @@ export default async function StaffPage({ params }: StaffPageProps) {
                 <div key={user.id} className="w-full overflow-hidden rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
                   <div className="flex items-center justify-between border-b pb-2 gap-2">
                     <div className="min-w-0 flex-1">
-                      <span className="font-mono text-xs font-semibold text-foreground block break-all">{user.id}</span>
-                      <span className="text-[11px] text-muted-foreground">{user.role}</span>
+                      <span className="font-mono text-sm font-semibold text-foreground block break-all">{user.id}</span>
+                      <span className="text-sm text-muted-foreground">{user.role}</span>
                     </div>
                     <span
-                      className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${
+                      className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-sm font-semibold uppercase tracking-wider ${
                         user.deactivatedAt
                           ? "bg-destructive/10 text-destructive"
                           : "bg-primary/10 text-primary"
@@ -140,7 +140,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                     </span>
                   </div>
 
-                  <div className="text-xs flex justify-between text-muted-foreground">
+                  <div className="text-sm flex justify-between text-muted-foreground">
                     <span>Joined:</span>
                     <span className="font-mono text-foreground">{user.createdAt.toISOString().slice(0, 10)}</span>
                   </div>
@@ -189,7 +189,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                   {PERMISSION_KEYS.map((key) => (
                     <th
                       key={key}
-                      className="border border-border px-3 py-2 text-left text-xs font-medium"
+                      className="border border-border px-3 py-2 text-left text-sm font-medium"
                     >
                       {PERMISSION_LABELS[key]}
                     </th>
@@ -201,7 +201,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                   .filter((u) => u.role === Role.CENTRE_STAFF && !u.deactivatedAt)
                   .map((user) => (
                     <tr key={user.id}>
-                      <td className="border border-border px-3 py-2 font-mono text-xs break-all">
+                      <td className="border border-border px-3 py-2 font-mono text-sm break-all">
                         {user.id}
                       </td>
                       {PERMISSION_KEYS.map((key) => {
@@ -223,7 +223,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                               />
                               <button
                                 type="submit"
-                                className={`rounded px-2 py-1 text-xs font-medium ${
+                                className={`rounded px-2 py-1 text-sm font-medium ${
                                   currentValue
                                     ? "bg-primary/10 text-primary hover:bg-primary/20"
                                     : "bg-destructive/10 text-destructive hover:bg-destructive/20"
@@ -248,8 +248,8 @@ export default async function StaffPage({ params }: StaffPageProps) {
               .map((user) => (
                 <div key={user.id} className="w-full overflow-hidden rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
                   <div className="border-b pb-2">
-                    <span className="font-mono text-xs font-semibold text-foreground block break-all">{user.id}</span>
-                    <span className="text-xs text-muted-foreground">Permission Matrix</span>
+                    <span className="font-mono text-sm font-semibold text-foreground block break-all">{user.id}</span>
+                    <span className="text-sm text-muted-foreground">Permission Matrix</span>
                   </div>
 
                   <div className="space-y-2">
@@ -258,7 +258,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                         user.staffPermission?.[key as keyof typeof user.staffPermission] ?? false;
                       return (
                         <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                          <span className="text-xs text-foreground font-medium">{PERMISSION_LABELS[key]}</span>
+                          <span className="text-sm text-foreground font-medium">{PERMISSION_LABELS[key]}</span>
                           <form action={setStaffPermission}>
                             <input type="hidden" name="locale" value={locale} />
                             <input type="hidden" name="userId" value={user.id} />
@@ -270,7 +270,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                             />
                             <button
                               type="submit"
-                              className={`rounded px-3 py-1 text-xs font-medium ${
+                              className={`rounded px-3 py-1 text-sm font-medium ${
                                 currentValue
                                   ? "bg-primary/10 text-primary hover:bg-primary/20"
                                   : "bg-destructive/10 text-destructive hover:bg-destructive/20"

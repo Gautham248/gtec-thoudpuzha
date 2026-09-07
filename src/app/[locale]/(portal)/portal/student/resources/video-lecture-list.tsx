@@ -106,7 +106,7 @@ export async function VideoLectureList({ locale }: { locale: string }) {
                       )}
                     </div>
                     <h3 className="font-medium">{r.title}</h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {r.uploadedAt.toISOString().slice(0, 10)}
                     </p>
                   </div>

@@ -10,10 +10,9 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let address: string | null | undefined;
+  let settings: import("@/lib/site-settings").SiteSettingsWithCards | undefined;
   try {
-    const settings = await getCachedSiteSettings();
-    address = settings.address;
+    settings = await getCachedSiteSettings();
   } catch {
     logger.warn("public-layout", "Failed to load SiteSettings", {
       source: "getCachedSiteSettings",
@@ -42,7 +41,7 @@ export default async function PublicLayout({
       <div className="flex-1 w-full max-w-full overflow-x-hidden">
         {children}
       </div>
-      <Footer address={address} />
+      <Footer settings={settings} address={settings?.address} />
     </div>
   );
 }

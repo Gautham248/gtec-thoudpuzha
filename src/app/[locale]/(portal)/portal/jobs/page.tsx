@@ -86,11 +86,11 @@ export default async function JobsPage({
                       {posting.department && ` · ${posting.department}`}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-medium text-primary">
                         {jt(posting.jobType)}
                       </span>
                       {posting.employer.companyAddress && (
-                        <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
+                        <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-sm font-medium text-foreground">
                           {posting.employer.companyAddress}
                         </span>
                       )}
@@ -98,7 +98,7 @@ export default async function JobsPage({
                     <p className="mt-2 text-sm text-muted-foreground">
                       {salaryDisplay}
                     </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {t("deadline", { date: new Date(posting.applicationDeadline).toLocaleDateString() })}
                     </p>
                   </div>
@@ -110,7 +110,7 @@ export default async function JobsPage({
       )}
 
       {postings.length > 0 && (
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           {t("showing", { count: postings.length })}
         </p>
       )}

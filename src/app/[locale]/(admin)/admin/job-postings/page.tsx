@@ -155,7 +155,7 @@ export default async function JobPostingsPage({
                       </td>
                       <td className="border border-border px-3 py-2">
                         <span
-                          className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${
                             isAutoPublishedView
                               ? STATUS_COLORS["AUTO_PUBLISHED"]
                               : STATUS_COLORS[jp.status] || STATUS_COLORS["PENDING"]
@@ -173,7 +173,7 @@ export default async function JobPostingsPage({
                           <span className="text-muted-foreground">No</span>
                         )}
                         {jp.rejectionReason && (
-                          <p className="mt-1 text-xs text-destructive">
+                          <p className="mt-1 text-sm text-destructive">
                             {jp.rejectionReason}
                           </p>
                         )}
@@ -191,14 +191,14 @@ export default async function JobPostingsPage({
                                 />
                                 <button
                                   type="submit"
-                                  className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
+                                  className="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90"
                                 >
                                   Approve
                                 </button>
                               </form>
 
                               <details className="inline-block">
-                                <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-xs text-white hover:bg-destructive/90">
+                                <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90">
                                   Reject
                                 </summary>
                                 <form
@@ -219,11 +219,11 @@ export default async function JobPostingsPage({
                                     name="rejectionReason"
                                     placeholder="Reason (required)"
                                     required
-                                    className="w-40 rounded border border-border px-2 py-1 text-xs"
+                                    className="w-40 rounded border border-border px-2 py-1 text-sm"
                                   />
                                   <button
                                     type="submit"
-                                    className="rounded bg-destructive px-2 py-1 text-xs text-white hover:bg-destructive/90"
+                                    className="rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90"
                                   >
                                     Submit
                                   </button>
@@ -231,7 +231,7 @@ export default async function JobPostingsPage({
                               </details>
 
                               <details className="inline-block">
-                                <summary className="cursor-pointer rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90">
+                                <summary className="cursor-pointer rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90">
                                   Edit & Approve
                                 </summary>
                                 <form
@@ -251,12 +251,12 @@ export default async function JobPostingsPage({
                                   <input
                                     name="title"
                                     defaultValue={jp.title}
-                                    className="w-full rounded border border-border px-2 py-1 text-xs"
+                                    className="w-full rounded border border-border px-2 py-1 text-sm"
                                   />
                                   <textarea
                                     name="description"
                                     defaultValue={jp.description}
-                                    className="w-full rounded border border-border px-2 py-1 text-xs"
+                                    className="w-full rounded border border-border px-2 py-1 text-sm"
                                     rows={2}
                                   />
                                   <div className="flex gap-1">
@@ -265,19 +265,19 @@ export default async function JobPostingsPage({
                                       type="number"
                                       defaultValue={jp.salaryMin ?? ""}
                                       placeholder="Salary min"
-                                      className="w-24 rounded border border-border px-2 py-1 text-xs"
+                                      className="w-24 rounded border border-border px-2 py-1 text-sm"
                                     />
                                     <input
                                       name="salaryMax"
                                       type="number"
                                       defaultValue={jp.salaryMax ?? ""}
                                       placeholder="Salary max"
-                                      className="w-24 rounded border border-border px-2 py-1 text-xs"
+                                      className="w-24 rounded border border-border px-2 py-1 text-sm"
                                     />
                                   </div>
                                   <button
                                     type="submit"
-                                    className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
+                                    className="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90"
                                   >
                                     Save & Approve
                                   </button>
@@ -296,7 +296,7 @@ export default async function JobPostingsPage({
                               />
                               <button
                                 type="submit"
-                                className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
+                                className="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90"
                               >
                                 Re-approve
                               </button>
@@ -317,10 +317,10 @@ export default async function JobPostingsPage({
                   <div className="flex items-start justify-between gap-2 border-b pb-2">
                     <div className="min-w-0 flex-1">
                       <span className="font-semibold text-foreground text-sm block leading-snug">{jp.title}</span>
-                      <span className="text-xs text-muted-foreground">{jp.employer.companyName}</span>
+                      <span className="text-sm text-muted-foreground">{jp.employer.companyName}</span>
                     </div>
                     <span
-                      className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${
+                      className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-sm font-semibold uppercase tracking-wider ${
                         isAutoPublishedView
                           ? STATUS_COLORS["AUTO_PUBLISHED"]
                           : STATUS_COLORS[jp.status] || STATUS_COLORS["PENDING"]
@@ -332,7 +332,7 @@ export default async function JobPostingsPage({
                     </span>
                   </div>
 
-                  <div className="text-xs space-y-1.5 text-muted-foreground">
+                  <div className="text-sm space-y-1.5 text-muted-foreground">
                     <div className="flex justify-between">
                       <span className="font-medium text-foreground">Type:</span>
                       <span className="text-foreground">{jp.jobType.replace(/_/g, " ")}</span>
@@ -362,7 +362,7 @@ export default async function JobPostingsPage({
                               <input type="hidden" name="postingId" value={jp.id} />
                               <button
                                 type="submit"
-                                className="w-full rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                                className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                               >
                                 Approve
                               </button>
@@ -370,7 +370,7 @@ export default async function JobPostingsPage({
                           </div>
 
                           <details className="w-full">
-                            <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-xs font-medium text-white hover:bg-destructive/90">
+                            <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/90">
                               Reject Job Posting
                             </summary>
                             <form action={rejectJobPosting} className="mt-2 space-y-2">
@@ -380,11 +380,11 @@ export default async function JobPostingsPage({
                                 name="rejectionReason"
                                 placeholder="Reason (required)"
                                 required
-                                className="w-full rounded border border-border px-2 py-1 text-xs"
+                                className="w-full rounded border border-border px-2 py-1 text-sm"
                               />
                               <button
                                 type="submit"
-                                className="w-full rounded bg-destructive px-2 py-1 text-xs font-medium text-white hover:bg-destructive/90"
+                                className="w-full rounded bg-destructive px-2 py-1 text-sm font-medium text-white hover:bg-destructive/90"
                               >
                                 Submit Rejection
                               </button>
@@ -392,27 +392,27 @@ export default async function JobPostingsPage({
                           </details>
 
                           <details className="w-full">
-                            <summary className="cursor-pointer text-center rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90">
+                            <summary className="cursor-pointer text-center rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90">
                               Edit & Approve
                             </summary>
                             <form action={editAndApproveJobPosting} className="mt-2 space-y-2 border border-border rounded p-3 bg-muted/20">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="postingId" value={jp.id} />
                               <div>
-                                <label className="text-xs font-medium block">Title</label>
-                                <input name="title" defaultValue={jp.title} className="w-full rounded border border-border px-2 py-1 text-xs" />
+                                <label className="text-sm font-medium block">Title</label>
+                                <input name="title" defaultValue={jp.title} className="w-full rounded border border-border px-2 py-1 text-sm" />
                               </div>
                               <div>
-                                <label className="text-xs font-medium block">Description</label>
-                                <textarea name="description" defaultValue={jp.description} rows={2} className="w-full rounded border border-border px-2 py-1 text-xs" />
+                                <label className="text-sm font-medium block">Description</label>
+                                <textarea name="description" defaultValue={jp.description} rows={2} className="w-full rounded border border-border px-2 py-1 text-sm" />
                               </div>
                               <div className="grid grid-cols-2 gap-2">
-                                <input name="salaryMin" type="number" defaultValue={jp.salaryMin ?? ""} placeholder="Salary min" className="w-full rounded border border-border px-2 py-1 text-xs" />
-                                <input name="salaryMax" type="number" defaultValue={jp.salaryMax ?? ""} placeholder="Salary max" className="w-full rounded border border-border px-2 py-1 text-xs" />
+                                <input name="salaryMin" type="number" defaultValue={jp.salaryMin ?? ""} placeholder="Salary min" className="w-full rounded border border-border px-2 py-1 text-sm" />
+                                <input name="salaryMax" type="number" defaultValue={jp.salaryMax ?? ""} placeholder="Salary max" className="w-full rounded border border-border px-2 py-1 text-sm" />
                               </div>
                               <button
                                 type="submit"
-                                className="w-full rounded bg-primary px-2 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                                className="w-full rounded bg-primary px-2 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                               >
                                 Save & Approve Posting
                               </button>
@@ -427,7 +427,7 @@ export default async function JobPostingsPage({
                           <input type="hidden" name="postingId" value={jp.id} />
                           <button
                             type="submit"
-                            className="w-full rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
+                            className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                           >
                             Re-approve Posting
                           </button>
