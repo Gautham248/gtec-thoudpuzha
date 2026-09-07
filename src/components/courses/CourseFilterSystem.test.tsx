@@ -59,10 +59,33 @@ describe("CourseFilterSystem helpers", () => {
     contentBlocks: null,
   };
 
+  const mockCourse4: PublicCourse = {
+    id: "c-4",
+    slug: "spoken-english-and-communication-skills",
+    titleEn: "Spoken English & Communication Skills",
+    titleMl: null,
+    descriptionEn: "Practical English language training for fluency.",
+    descriptionMl: null,
+    durationText: "3 Months",
+    certifications: ["G-TEC"],
+    careerOutcomesEn: "Customer Service Executive, Front Office Executive",
+    careerOutcomesMl: null,
+    coverImageUrl: null,
+    featured: false,
+    category: {
+      id: "cat-4",
+      nameEn: "Language & Communications",
+      nameMl: "ഭാഷ & കമ്മ്യൂണിക്കേഷൻ",
+    },
+    contentBlocks: null,
+  };
+
   test("getCourseDepartment maps courses accurately", () => {
     expect(getCourseDepartment(mockCourse1)).toBe("Web Development");
     expect(getCourseDepartment(mockCourse2)).toBe("Office & Productivity");
     expect(getCourseDepartment(mockCourse3)).toBe("Accounting & Finance");
+    // Regression: a Language course must not fall through to Programming.
+    expect(getCourseDepartment(mockCourse4)).toBe("Language & Communications");
   });
 
   test("getCourseLevel maps basic vs advanced levels accurately", () => {

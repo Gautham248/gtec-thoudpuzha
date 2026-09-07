@@ -19,7 +19,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { PublicCourse } from "@/lib/courses";
-import { getMediaUrl } from "@/lib/media";
+import { getCourseFallbackImage, getMediaUrl } from "@/lib/media";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 import { Button } from "@/components/ui/button";
 
@@ -36,7 +36,9 @@ export type DepartmentKey =
   | "Design"
   | "Accounting & Finance"
   | "Office & Productivity"
-  | "Hardware & Networking";
+  | "Hardware & Networking"
+  | "Language & Communications"
+  | "Vocational & Professional";
 
 export type DurationKey =
   | "ALL"
@@ -67,9 +69,20 @@ export function getCourseLevel(course: PublicCourse): "BASIC" | "ADVANCED" {
   return "BASIC";
 }
 
+// Categories the title-keyword checks below can't derive on their own. Title matching
+// runs first because the seed's broad "IT & Software" category spans several departments
+// (Web, Data, Office, Programming) that only the title can tell apart.
+const CATEGORY_TO_DEPARTMENT: Record<string, DepartmentKey> = {
+  "multimedia & design": "Design",
+  "design": "Design",
+  "accounting & finance": "Accounting & Finance",
+  "language & communications": "Language & Communications",
+  "hardware & networking": "Hardware & Networking",
+  "vocational & professional": "Vocational & Professional",
+};
+
 export function getCourseDepartment(course: PublicCourse): DepartmentKey {
   const title = (course.titleEn || "").toLowerCase();
-  const cat = (course.category?.nameEn || "").toLowerCase();
 
   if (
     title.includes("web") ||
@@ -92,9 +105,7 @@ export function getCourseDepartment(course: PublicCourse): DepartmentKey {
     title.includes("design") ||
     title.includes("multimedia") ||
     title.includes("video") ||
-    title.includes("ui/ux") ||
-    cat.includes("multimedia") ||
-    cat.includes("design")
+    title.includes("ui/ux")
   ) {
     return "Design";
   }
@@ -102,8 +113,7 @@ export function getCourseDepartment(course: PublicCourse): DepartmentKey {
     title.includes("tally") ||
     title.includes("account") ||
     title.includes("finance") ||
-    title.includes("gst") ||
-    cat.includes("accounting")
+    title.includes("gst")
   ) {
     return "Accounting & Finance";
   }
@@ -111,22 +121,28 @@ export function getCourseDepartment(course: PublicCourse): DepartmentKey {
     title.includes("dca") ||
     title.includes("office") ||
     title.includes("computer application") ||
-    title.includes("productivity") ||
-    title.includes("diploma in computer application")
+    title.includes("productivity")
   ) {
     return "Office & Productivity";
   }
   if (
     title.includes("hardware") ||
     title.includes("network") ||
-    title.includes("cloud") ||
-    cat.includes("hardware") ||
-    cat.includes("network")
+    title.includes("cloud")
   ) {
     return "Hardware & Networking";
   }
   if (
-    cat.includes("it") ||
+    title.includes("english") ||
+    title.includes("ielts") ||
+    title.includes("toefl") ||
+    title.includes("pte") ||
+    title.includes("language") ||
+    title.includes("spoken")
+  ) {
+    return "Language & Communications";
+  }
+  if (
     title.includes("programming") ||
     title.includes("software") ||
     title.includes("c++") ||
@@ -134,54 +150,17 @@ export function getCourseDepartment(course: PublicCourse): DepartmentKey {
   ) {
     return "Programming";
   }
-  return "Programming";
-}
 
-function getCourseFallbackImage(slug: string, categoryName?: string | null): string {
-  const s = slug.toLowerCase();
-  const c = categoryName?.toLowerCase() ?? "";
+  // Fall back to the real category relation for courses the keywords can't classify.
+  const category = (course.category?.nameEn || "").toLowerCase();
+  const mapped = CATEGORY_TO_DEPARTMENT[category];
+  if (mapped) return mapped;
+  if (category.includes("it") || category.includes("software")) {
+    return "Programming";
+  }
 
-  if (
-    s.includes("data-science") ||
-    s.includes("machine-learning") ||
-    s.includes("python") ||
-    s.includes("ai")
-  ) {
-    return "/images/courses/course-data-science.jpg";
-  }
-  if (
-    s.includes("web") ||
-    s.includes("full-stack") ||
-    s.includes("react") ||
-    s.includes("javascript")
-  ) {
-    return "/images/courses/course-web-dev.jpg";
-  }
-  if (
-    s.includes("software") ||
-    s.includes("adse") ||
-    s.includes("java") ||
-    s.includes("c-programming")
-  ) {
-    return "/images/courses/course-software-eng.jpg";
-  }
-  if (
-    s.includes("tally") ||
-    s.includes("account") ||
-    s.includes("finance") ||
-    c.includes("accounting")
-  ) {
-    return "/images/courses/course-accounting.jpg";
-  }
-  if (
-    s.includes("network") ||
-    s.includes("hardware") ||
-    s.includes("cloud") ||
-    c.includes("hardware")
-  ) {
-    return "/images/courses/course-networking.jpg";
-  }
-  return "/images/courses/course-dca.jpg";
+  // Unknown or uncategorized course — don't silently file it under Programming.
+  return "Office & Productivity";
 }
 
 const DEPARTMENTS: { key: DepartmentKey; labelEn: string; labelMl: string }[] = [
@@ -193,6 +172,8 @@ const DEPARTMENTS: { key: DepartmentKey; labelEn: string; labelMl: string }[] = 
   { key: "Accounting & Finance", labelEn: "Accounting & Finance", labelMl: "അക്കൗണ്ടിംഗ് & ഫിനാൻസ്" },
   { key: "Office & Productivity", labelEn: "Office & Productivity", labelMl: "ഓഫീസ് & പ്രൊഡക്ടിവിറ്റി" },
   { key: "Hardware & Networking", labelEn: "Hardware & Networking", labelMl: "ഹാർഡ്‌വെയർ & നെറ്റ്‌വർക്കിംഗ്" },
+  { key: "Language & Communications", labelEn: "Language & Communications", labelMl: "ഭാഷ & കമ്മ്യൂണിക്കേഷൻ" },
+  { key: "Vocational & Professional", labelEn: "Vocational & Professional", labelMl: "വൊക്കേഷണൽ & പ്രൊഫഷണൽ" },
 ];
 
 const DURATIONS: { key: DurationKey; labelEn: string; labelMl: string }[] = [

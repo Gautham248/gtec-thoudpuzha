@@ -10,59 +10,12 @@ import {
   BookOpen,
 } from "lucide-react";
 import type { PublicCourse } from "@/lib/courses";
-import { getMediaUrl } from "@/lib/media";
+import { getCourseFallbackImage, getMediaUrl } from "@/lib/media";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 
 interface FeaturedCoursesSectionProps {
   courses: PublicCourse[];
   locale: Locale;
-}
-
-function getCourseFallbackImage(slug: string, categoryName?: string | null): string {
-  const s = slug.toLowerCase();
-  const c = categoryName?.toLowerCase() ?? "";
-
-  if (
-    s.includes("data-science") ||
-    s.includes("machine-learning") ||
-    s.includes("python") ||
-    s.includes("ai")
-  ) {
-    return "/images/courses/course-data-science.jpg";
-  }
-  if (
-    s.includes("web") ||
-    s.includes("full-stack") ||
-    s.includes("react") ||
-    s.includes("javascript")
-  ) {
-    return "/images/courses/course-web-dev.jpg";
-  }
-  if (
-    s.includes("software") ||
-    s.includes("adse") ||
-    s.includes("java") ||
-    s.includes("c-programming")
-  ) {
-    return "/images/courses/course-software-eng.jpg";
-  }
-  if (
-    s.includes("tally") ||
-    s.includes("account") ||
-    s.includes("finance") ||
-    c.includes("accounting")
-  ) {
-    return "/images/courses/course-accounting.jpg";
-  }
-  if (
-    s.includes("network") ||
-    s.includes("hardware") ||
-    s.includes("cloud") ||
-    c.includes("hardware")
-  ) {
-    return "/images/courses/course-networking.jpg";
-  }
-  return "/images/courses/course-dca.jpg";
 }
 
 export function FeaturedCoursesSection({

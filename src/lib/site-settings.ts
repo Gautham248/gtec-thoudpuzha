@@ -8,22 +8,24 @@ export type SiteSettingsWithCards = SiteSettings & {
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 export { pickLocalizedText, type Locale };
 
+// Mirrors prisma/seed.ts SiteSettings values so a degraded render (missing row or
+// transient DB error) shows the same numbers as a freshly-seeded production DB.
 const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   id: "default",
   createdAt: new Date(),
   updatedAt: new Date(),
-  yearsInOperation: "25+",
-  studentsTrained: "10,000+",
-  centresWorldwide: "500+",
+  yearsInOperation: "20+",
+  studentsTrained: "15000+",
+  centresWorldwide: "120+",
   affiliations: "50+",
-  countries: "15+",
+  countries: "23",
   aboutBodyEn:
     "G-TEC EDUCATION Thodupuzha is a premier skill development and computer education centre.",
   aboutBodyMl:
     "ജി-ടെക് എഡ്യൂക്കേഷൻ തൊടുപുഴ ഒരു പ്രമുഖ കമ്പ്യൂട്ടർ വിദ്യാഭ്യാസ സ്ഥാപനമാണ്.",
   aboutPhotoUrl: null,
   address:
-    "East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School, Thodupuzha, Kerala 685585",
+    "G-TEC Education, Near Municipal Office, Thodupuzha, Idukki District, Kerala - 685584",
   mapEmbedUrl: null,
   mapsUrl:
     "https://maps.google.com/?q=G-TEC+Computer+Education,+East+End,+Thodupuzha-Udumbanoor+Rd,+near+De+Paul+Public+School,+Thodupuzha,+Kerala+685585",

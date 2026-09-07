@@ -35,7 +35,7 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-sm font-bold text-primary mb-3">
               <Sparkles className="size-3.5 text-amber-500" />
-              <span>Campus Happenings</span>
+              <span>{locale === "ml" ? "ക്യാമ്പസ് ഇവന്റുകൾ" : "Campus Happenings"}</span>
             </div>
             <h2
               id="events-heading"
@@ -99,7 +99,7 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
                       <div className="flex flex-col justify-center">
                         <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                           <Clock className="size-3" />
-                          <span>Upcoming Workshop</span>
+                          <span>{locale === "ml" ? "വർക്ക്‌ഷോപ്പ്" : "Upcoming Workshop"}</span>
                         </span>
                         {dateInfo && (
                           <span className="text-xs font-semibold text-muted-foreground mt-0.5">
@@ -124,10 +124,10 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
                   <div className="mt-6 flex items-center justify-between pt-4 border-t border-border/50 text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors">
                     <span className="inline-flex items-center gap-1.5">
                       <MapPin className="size-3.5 text-primary" />
-                      <span>Thodupuzha Campus</span>
+                      <span>{locale === "ml" ? "തൊടുപുഴ ക്യാമ്പസ്" : "Thodupuzha Campus"}</span>
                     </span>
                     <span className="inline-flex items-center gap-1 text-primary">
-                      <span>Details</span>
+                      <span>{locale === "ml" ? "വിശദാംശങ്ങൾ" : "Details"}</span>
                       <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                     </span>
                   </div>
