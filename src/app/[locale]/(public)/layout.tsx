@@ -10,9 +10,10 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let settings: import("@/lib/site-settings").SiteSettingsWithCards | undefined;
+  let address: string | null | undefined;
   try {
-    settings = await getCachedSiteSettings();
+    const settings = await getCachedSiteSettings();
+    address = settings.address;
   } catch {
     logger.warn("public-layout", "Failed to load SiteSettings", {
       source: "getCachedSiteSettings",
@@ -34,12 +35,12 @@ export default async function PublicLayout({
 
   return (
     <div className="relative min-h-screen w-full flex flex-col">
-      <Header courses={courses} />
       <FlashNewsBar />
+      <Header courses={courses} />
       <div className="flex-1 w-full max-w-full overflow-x-hidden">
         {children}
       </div>
-      <Footer settings={settings} address={settings?.address} />
+      <Footer address={address} />
     </div>
   );
 }

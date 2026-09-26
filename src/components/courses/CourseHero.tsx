@@ -1,205 +1,178 @@
 import Image from "next/image";
-import {
-  Clock,
-  Award,
-  GraduationCap,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  BookOpen,
-} from "lucide-react";
-import { WhatsAppIcon } from "@/components/shared/icons/WhatsAppIcon";
-import type { CourseWithCategory } from "@/lib/courses";
-import { getCourseFallbackImage, getMediaUrl } from "@/lib/media";
-import { deriveCourseLevel } from "@/lib/course-detail-helpers";
+import { MessageCircle, ArrowUpRight, Clock, GraduationCap, MonitorPlay, Award, ShieldCheck, BookOpenCheck, CalendarClock } from "lucide-react";
+import { Link } from "@/lib/i18n/navigation";
+import { siteConfig } from "@/lib/site";
+import { getMediaUrl } from "@/lib/media";
 
 interface CourseHeroProps {
-  course: CourseWithCategory;
-  locale: string;
-  tagline?: string | null;
-  whatsappNumber?: string | null;
+  title: string;
+  description: string | null;
+  categoryName: string | null;
+  durationText: string | null;
+  certificationName: string | null;
+  coverImageUrl: string | null;
 }
 
 export function CourseHero({
-  course,
-  locale,
-  tagline,
-  whatsappNumber = "919744221113",
+  title,
+  description,
+  categoryName,
+  durationText,
+  certificationName,
+  coverImageUrl,
 }: CourseHeroProps) {
-  const isMl = locale === "ml";
-  const title = isMl && course.titleMl ? course.titleMl : course.titleEn;
-  const description = tagline || (isMl && course.descriptionMl ? course.descriptionMl : course.descriptionEn);
-  const categoryName = isMl && course.category?.nameMl ? course.category.nameMl : course.category?.nameEn || (isMl ? "പ്രൊഫഷണൽ കോഴ്സ്" : "Professional Course");
-  
-  const duration = course.durationText || (isMl ? "3-6 മാസം" : "3–6 Months");
-  const level = isMl ? (deriveCourseLevel(course).includes("Advanced") ? "തുടക്കക്കാർ & അഡ്വാൻസ്ഡ്" : "തുടക്കക്കാർക്കായി") : deriveCourseLevel(course);
-  const certText = course.certifications && course.certifications.length > 0
-    ? course.certifications[0]
-    : "G-TEC Global";
-
-  const imageSrc = course.coverImageUrl
-    ? getMediaUrl(course.coverImageUrl)
-    : getCourseFallbackImage(course.slug, course.category?.nameEn);
-
-  const cleanPhone = (whatsappNumber || "919744221113").replace(/\D/g, "");
-  const whatsappMsg = encodeURIComponent(
-    `Hello G-TEC Thodupuzha, I would like to know more about admission for the course: ${course.titleEn}.`
-  );
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${whatsappMsg}`;
+  const image = coverImageUrl
+    ? getMediaUrl(coverImageUrl)
+    : "/images/figma/legacy-students-62c433.png";
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-primary/8 via-background to-muted/40 p-6 sm:p-8 lg:p-12 shadow-sm">
-      {/* Background subtle glow decorations */}
-      <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true" />
+    <section className="relative w-full">
+      <div className="relative w-full overflow-hidden bg-[#0B57D0] text-white rounded-b-[40px] sm:rounded-b-[56px] shadow-2xl">
+        {/* Decorative wine geometric arcs, consistent with HeroSection */}
+        <div
+          className="pointer-events-none absolute left-[55%] -top-[35%] w-[65%] sm:w-[45%] aspect-square rounded-tr-[1457px] bg-[#810000] z-0"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[75%] top-[10%] w-[45%] sm:w-[30%] aspect-square rounded-tr-[1457px] bg-[#810000]/80 z-0"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-0 z-1 bg-[radial-gradient(circle_at_-20%_10%,rgba(0,0,0,0.3)_45%,rgba(0,0,0,0)_100%)]"
+          aria-hidden="true"
+        />
 
-      <div className="relative grid gap-8 lg:grid-cols-12 lg:gap-10 items-center">
-        {/* Left Column (Hero Content) */}
-        <div className="space-y-6 lg:col-span-7">
-          {/* Category Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1 text-xs sm:text-sm font-bold tracking-wider text-primary uppercase shadow-2xs">
-            <Sparkles className="size-3.5 text-amber-500 shrink-0" />
-            <span>{categoryName}</span>
-          </div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-20 sm:pb-28 z-10">
+          {/* Breadcrumb */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-white/70"
+          >
+            <Link href="/courses" className="hover:text-white transition-colors">
+              Courses
+            </Link>
+            {categoryName && (
+              <>
+                <span aria-hidden="true">/</span>
+                <span>{categoryName}</span>
+              </>
+            )}
+            <span aria-hidden="true">/</span>
+            <span className="text-white">{title}</span>
+          </nav>
 
-          {/* Course Main Title */}
-          <h1 className="text-3xl sm:text-4xl lg:text-[44px] xl:text-[50px] font-black tracking-tight text-foreground leading-[1.15] break-words">
-            {title}
-          </h1>
-
-          {/* Short Description */}
-          {description && (
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl break-words">
-              {description}
-            </p>
-          )}
-
-          {/* Metadata Badges Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Clock className="size-4.5" />
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left column */}
+            <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-5">
+              {/* Category / duration pills */}
+              <div className="flex flex-wrap items-center gap-2">
+                {categoryName && (
+                  <span className="inline-flex items-center rounded-full bg-white/15 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-sm">
+                    {categoryName}
+                  </span>
+                )}
+                {durationText && (
+                  <span className="inline-flex items-center rounded-full bg-white/15 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-sm">
+                    {durationText}
+                  </span>
+                )}
               </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "കാലാവധി" : "Duration"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {duration}
-                </span>
+
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.04em] text-white leading-[1.08] break-words">
+                {title}
+              </h1>
+
+              {description && (
+                <p className="max-w-xl text-sm sm:text-lg text-white/85 leading-relaxed break-words">
+                  {description}
+                </p>
+              )}
+
+              {/* Quick facts */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs sm:text-sm text-white/90">
+                {durationText && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    <span>{durationText}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <GraduationCap className="h-4 w-4" />
+                  <span>Beginner to Advanced</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <MonitorPlay className="h-4 w-4" />
+                  <span>Hands-On Lab</span>
+                </div>
+                {certificationName && (
+                  <div className="flex items-center gap-1.5">
+                    <Award className="h-4 w-4" />
+                    <span>{certificationName}</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <GraduationCap className="size-4.5" />
+            {/* Right column: image */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative aspect-4/3 sm:aspect-square lg:aspect-4/3 w-full overflow-hidden rounded-[24px] border border-white/15 shadow-2xl bg-black/20">
+                <Image
+                  src={image}
+                  alt={title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 480px"
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute left-3 top-3 sm:left-4 sm:top-4 inline-flex items-center rounded-full bg-[#0B1220]/90 px-3 py-1.5 text-[11px] sm:text-xs font-semibold text-white shadow-md backdrop-blur-sm">
+                  Admissions Open 2025-26
+                </div>
               </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "ലെവൽ" : "Level"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {level}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <BookOpen className="size-4.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "രീതി" : "Mode"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {isMl ? "ലാബ് & തിയറി" : "Hands-On Lab"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Award className="size-4.5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "സർട്ടിഫിക്കറ്റ്" : "Certificate"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {certText}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-3.5 pt-2">
-            <a
-              href="#admission-enquiry"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm sm:text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <span>{isMl ? "ഇപ്പോൾ അഡ്മിഷൻ നേടൂ" : "Enroll Now"}</span>
-              <ArrowRight className="size-4.5" />
-            </a>
-
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-3.5 text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-300 transition-all hover:bg-emerald-500/20 hover:border-emerald-500/50 hover:-translate-y-0.5"
-            >
-              <WhatsAppIcon className="size-4.5" />
-              <span>{isMl ? "വാട്സ്ആപ്പിൽ ചോദിക്കൂ" : "WhatsApp Us"}</span>
-            </a>
-          </div>
-
-          {/* Trust Value Strip */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2 text-xs sm:text-sm font-semibold text-muted-foreground">
-            <div className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{isMl ? "100% പ്ലേസ്‌മെന്റ് പിന്തുണ" : "100% Placement Assistance"}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-primary shrink-0" />
-              <span>{isMl ? "ഐഎസ്ഒ 9001:2015 അംഗീകാരം" : "ISO 9001:2015 Certified"}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <Sparkles className="size-4 text-amber-500 shrink-0" />
-              <span>{isMl ? "ഫ്ലെക്സിബിൾ ബാച്ച് സമയം" : "Flexible Batch Timings"}</span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Column (Hero Visual Card) */}
-        <div className="lg:col-span-5">
-          <div className="relative group overflow-hidden rounded-2xl border border-border/80 bg-card p-2.5 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-primary/40">
-            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden rounded-xl bg-muted">
-              <Image
-                src={imageSrc}
-                alt={title}
-                fill
-                priority
-                unoptimized={imageSrc.startsWith("/api/media/")}
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 45vw, 400px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      {/* Overlapping CTA card */}
+      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12">
+        <div className="rounded-2xl bg-white shadow-xl border border-black/5 p-4 sm:p-6 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6">
+          {/* CTA buttons */}
+          <div className="flex w-full lg:w-auto flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Link
+              href="/#enquiry"
+              className="group flex items-center justify-between sm:justify-start gap-4 rounded-full bg-[#0B1220] hover:bg-black pl-6 pr-2 py-2 text-sm sm:text-base font-semibold text-white shadow-md transition-all active:scale-[0.98]"
+            >
+              <span>Enroll Now</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white transition-transform group-hover:scale-105">
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </Link>
+            <a
+              href={`https://wa.me/${siteConfig.whatsappNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center justify-between sm:justify-start gap-4 rounded-full bg-[#2EB700] hover:bg-[#28a100] pl-6 pr-2 py-2 text-sm sm:text-base font-semibold text-white shadow-md transition-all active:scale-[0.98]"
+            >
+              <span>WhatsApp Us</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#067914] text-white transition-transform group-hover:scale-105">
+                <MessageCircle className="h-4 w-4" />
+              </span>
+            </a>
+          </div>
 
-              {/* Floating Top Badge */}
-              <div className="absolute top-3.5 left-3.5 inline-flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur-md border border-border/60 px-3 py-1 text-xs font-bold text-foreground shadow-sm">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{isMl ? "അഡ്മിഷൻ ആരംഭിച്ചു" : "Admissions Open 2025-26"}</span>
-              </div>
-
-              {/* Bottom Card Overlay Details */}
-              <div className="absolute bottom-3.5 inset-x-3.5 text-white">
-                <div className="flex items-center justify-between text-xs font-semibold bg-black/40 backdrop-blur-md rounded-lg px-3 py-2 border border-white/10">
-                  <span>{isMl ? "പ്രാക്ടിക്കൽ ലാബ് ട്രെയിനിംഗ്" : "Hands-On Lab Training"}</span>
-                  <span className="text-amber-400 font-bold">{duration}</span>
-                </div>
-              </div>
+          {/* Trust strip */}
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs sm:text-sm font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <BookOpenCheck className="h-4 w-4 text-primary" />
+              <span>100% Placement Assistance</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <span>ISO 9001:2015 Certified</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CalendarClock className="h-4 w-4 text-primary" />
+              <span>Flexible Batch Timings</span>
             </div>
           </div>
         </div>

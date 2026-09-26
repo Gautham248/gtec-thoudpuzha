@@ -34,6 +34,21 @@
       "neutral": {
         "white":      { "$value": "oklch(0.996 0 0)", "$type": "color", "$description": "Pure near-white page background" },
         "white-soft": { "$value": "oklch(0.97 0 0)", "$type": "color", "$description": "Dark mode foreground / text" }
+      },
+      "figma": {
+        "blue":       { "$value": "#0B57D0", "$type": "color", "$description": "Hero brand royal blue" },
+        "dark":       { "$value": "#121926", "$type": "color", "$description": "Dark container and banner background" },
+        "deep":       { "$value": "#0B1220", "$type": "color", "$description": "Button and dark pill background" },
+        "wine":       { "$value": "#810000", "$type": "color", "$description": "Decorative brand arcs" },
+        "accentBlue": { "$value": "#093C98", "$type": "color", "$description": "Category badge blue" },
+        "btnBlue":    { "$value": "#1753DA", "$type": "color", "$description": "Circular arrow button badge" },
+        "green":      { "$value": "#2EB700", "$type": "color", "$description": "WhatsApp primary green" },
+        "greenDark":  { "$value": "#067914", "$type": "color", "$description": "WhatsApp badge dark green" },
+        "lime":       { "$value": "#6AFF00", "$type": "color", "$description": "Badge highlight lime" },
+        "legacyBlue": { "$value": "#072D6D", "$type": "color", "$description": "Stats and numbers blue" },
+        "muted":      { "$value": "#565555", "$type": "color", "$description": "Footer link muted color" },
+        "tagBg":      { "$value": "#F9F9F9", "$type": "color", "$description": "Navbar pill background" },
+        "cardBg":     { "$value": "#F0F0F0", "$type": "color", "$description": "Hear from students card background" }
       }
     },
     "spacing": {
