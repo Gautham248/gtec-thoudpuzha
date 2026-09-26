@@ -19,7 +19,7 @@ export type PublicCourse = Pick<
   | "coverImageUrl"
   | "featured"
 > & {
-  category: Pick<CourseCategory, "id" | "nameEn" | "nameMl"> | null;
+  category: Pick<CourseCategory, "id" | "nameEn" | "nameMl" | "sortOrder"> | null;
   contentBlocks: CourseContent | null;
 };
 
@@ -28,7 +28,7 @@ export async function getPublishedCourses(): Promise<PublicCourse[]> {
     where: { status: "PUBLISHED" },
     include: {
       category: {
-        select: { id: true, nameEn: true, nameMl: true },
+        select: { id: true, nameEn: true, nameMl: true, sortOrder: true },
       },
     },
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],

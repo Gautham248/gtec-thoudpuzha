@@ -9,6 +9,7 @@ import { LegacyStatsSection } from "@/components/shared/LegacyStatsSection";
 import { AboutSection } from "@/components/shared/AboutSection";
 import { PlacementSupportSection } from "@/components/shared/PlacementSupportSection";
 import { NewsTeaserSection } from "@/components/shared/NewsTeaserSection";
+import { MotionProvider, RevealNoScript } from "@/components/motion/Reveal";
 import type { Locale } from "@/lib/site-settings";
 import {
   getCachedSiteSettings,
@@ -56,6 +57,8 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <main className="w-full overflow-x-hidden">
+      <RevealNoScript />
+      <MotionProvider>
       {/* 1. Hero Section (Figma #1:67) */}
       <HeroSection
         t={{
@@ -120,6 +123,7 @@ export default async function HomePage({ params }: HomePageProps) {
       <div id="enquiry">
         <ContactSection settings={settings} courses={courses} />
       </div>
+      </MotionProvider>
     </main>
   );
 }

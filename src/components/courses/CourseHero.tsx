@@ -1,8 +1,17 @@
 import Image from "next/image";
-import { MessageCircle, ArrowUpRight, Clock, GraduationCap, MonitorPlay, Award, ShieldCheck, BookOpenCheck, CalendarClock } from "lucide-react";
+import {
+  PhoneCall,
+  ArrowUpRight,
+  Clock,
+  ChartNoAxesColumn,
+  Monitor,
+  Award,
+  ShieldCheck,
+} from "lucide-react";
 import { Link } from "@/lib/i18n/navigation";
 import { siteConfig } from "@/lib/site";
 import { getMediaUrl } from "@/lib/media";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/Reveal";
 
 interface CourseHeroProps {
   title: string;
@@ -27,155 +36,196 @@ export function CourseHero({
 
   return (
     <section className="relative w-full">
-      <div className="relative w-full overflow-hidden bg-[#0B57D0] text-white rounded-b-[40px] sm:rounded-b-[56px] shadow-2xl">
-        {/* Decorative wine geometric arcs, consistent with HeroSection */}
+      {/* Blue gradient hero (Figma #9:5). The floating header overlays its top. */}
+      <div className="relative w-full overflow-hidden rounded-b-[40px] bg-linear-to-b from-[#1759CF] from-[6.49%] to-[#0A2B68] text-white sm:rounded-b-[56px] lg:rounded-b-[80px]">
+        {/* Faded classroom photo (Figma #9:6, image 21) */}
         <div
-          className="pointer-events-none absolute left-[55%] -top-[35%] w-[65%] sm:w-[45%] aspect-square rounded-tr-[1457px] bg-[#810000] z-0"
+          className="pointer-events-none absolute -left-4 top-0 aspect-735/935 w-[101%] -translate-y-[20.6%] opacity-[0.06]"
           aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute left-[75%] top-[10%] w-[45%] sm:w-[30%] aspect-square rounded-tr-[1457px] bg-[#810000]/80 z-0"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute inset-0 z-1 bg-[radial-gradient(circle_at_-20%_10%,rgba(0,0,0,0.3)_45%,rgba(0,0,0,0)_100%)]"
-          aria-hidden="true"
-        />
+        >
+          <Image
+            src="/images/figma/course-hero-photo.png"
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-20 sm:pb-28 z-10">
+        {/* Geometric pattern, rotated −90° as in Figma (#9:7, image 7) */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-[44%] aspect-819/1024 w-[max(82%,1185px)] -translate-x-1/2 -translate-y-1/2 -rotate-90 opacity-[0.08]"
+          aria-hidden="true"
+        >
+          <Image
+            src="/images/figma/course-hero-pattern.png"
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 sm:pt-36 sm:pb-28 lg:px-8 lg:pt-[172px] lg:pb-[148px]">
           {/* Breadcrumb */}
-          <nav
-            aria-label="Breadcrumb"
-            className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-white/70"
-          >
-            <Link href="/courses" className="hover:text-white transition-colors">
-              Courses
-            </Link>
-            {categoryName && (
-              <>
-                <span aria-hidden="true">/</span>
-                <span>{categoryName}</span>
-              </>
-            )}
-            <span aria-hidden="true">/</span>
-            <span className="text-white">{title}</span>
-          </nav>
-
-          <div className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            {/* Left column */}
-            <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-5">
-              {/* Category / duration pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                {categoryName && (
-                  <span className="inline-flex items-center rounded-full bg-white/15 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-sm">
-                    {categoryName}
-                  </span>
-                )}
-                {durationText && (
-                  <span className="inline-flex items-center rounded-full bg-white/15 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-sm">
-                    {durationText}
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.04em] text-white leading-[1.08] break-words">
+          <Reveal y={12} duration={0.5}>
+            <nav
+              aria-label="Breadcrumb"
+              className="flex flex-wrap items-center gap-1.5 text-[13px] text-white/60"
+            >
+              <Link
+                href="/courses"
+                className="transition-colors hover:text-white"
+              >
+                Courses
+              </Link>
+              {categoryName && (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <span>{categoryName}</span>
+                </>
+              )}
+              <span aria-hidden="true">/</span>
+              <span
+                aria-current="page"
+                className="font-semibold uppercase text-white"
+              >
                 {title}
-              </h1>
+              </span>
+            </nav>
+          </Reveal>
+
+          <div className="mt-6 grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-12 xl:gap-16">
+            {/* Left column */}
+            <RevealGroup stagger={0.09} className="flex flex-col items-start">
+              {/* Category / duration pills */}
+              {(categoryName || durationText) && (
+                <RevealItem className="flex flex-wrap items-center gap-3">
+                  {categoryName && (
+                    <span className="inline-flex h-[26px] items-center rounded-full bg-[rgba(237,237,237,0.2)] px-2.5 text-sm font-semibold tracking-[-0.06em] text-white sm:text-[15.5px]">
+                      {categoryName}
+                    </span>
+                  )}
+                  {durationText && (
+                    <span className="inline-flex h-[26px] items-center rounded-full bg-[rgba(237,237,237,0.2)] px-2.5 text-sm font-semibold tracking-[-0.06em] text-white sm:text-[15.5px]">
+                      {durationText}
+                    </span>
+                  )}
+                </RevealItem>
+              )}
+
+              <RevealItem>
+                <h1 className="mt-7 max-w-[720px] break-words text-4xl font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-5xl lg:text-[56px]">
+                  {title}
+                </h1>
+              </RevealItem>
 
               {description && (
-                <p className="max-w-xl text-sm sm:text-lg text-white/85 leading-relaxed break-words">
-                  {description}
-                </p>
+                <RevealItem>
+                  <p className="mt-5 max-w-[680px] break-words text-base font-light leading-[1.5] tracking-[-0.02em] text-white/80 sm:text-lg">
+                    {description}
+                  </p>
+                </RevealItem>
               )}
 
               {/* Quick facts */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs sm:text-sm text-white/90">
+              <RevealItem className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm font-semibold text-white sm:text-[15px]">
                 {durationText && (
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" />
-                    <span>{durationText}</span>
-                  </div>
+                  <span className="flex items-center gap-2">
+                    <Clock className="size-[18px]" aria-hidden="true" />
+                    {durationText}
+                  </span>
                 )}
-                <div className="flex items-center gap-1.5">
-                  <GraduationCap className="h-4 w-4" />
-                  <span>Beginner to Advanced</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MonitorPlay className="h-4 w-4" />
-                  <span>Hands-On Lab</span>
-                </div>
+                <span className="flex items-center gap-2">
+                  <ChartNoAxesColumn
+                    className="size-[18px]"
+                    aria-hidden="true"
+                  />
+                  Beginner to Advanced
+                </span>
+                <span className="flex items-center gap-2">
+                  <Monitor className="size-[18px]" aria-hidden="true" />
+                  Hands-On Lab
+                </span>
                 {certificationName && (
-                  <div className="flex items-center gap-1.5">
-                    <Award className="h-4 w-4" />
-                    <span>{certificationName}</span>
-                  </div>
+                  <span className="flex items-center gap-2 uppercase">
+                    <Award className="size-[18px]" aria-hidden="true" />
+                    {certificationName}
+                  </span>
                 )}
-              </div>
-            </div>
+              </RevealItem>
+            </RevealGroup>
 
-            {/* Right column: image */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative aspect-4/3 sm:aspect-square lg:aspect-4/3 w-full overflow-hidden rounded-[24px] border border-white/15 shadow-2xl bg-black/20">
+            {/* Right column: cover image (Figma #9:43) */}
+            <Reveal x={30} y={0} delay={0.15} duration={0.7}>
+              <div className="relative aspect-440/360 w-full overflow-hidden rounded-[24px] shadow-2xl">
                 <Image
                   src={image}
                   alt={title}
                   fill
-                  sizes="(max-width: 1024px) 100vw, 480px"
+                  sizes="(max-width: 1024px) 100vw, 440px"
                   className="object-cover"
                   priority
                 />
-                <div className="absolute left-3 top-3 sm:left-4 sm:top-4 inline-flex items-center rounded-full bg-[#0B1220]/90 px-3 py-1.5 text-[11px] sm:text-xs font-semibold text-white shadow-md backdrop-blur-sm">
+                <span className="absolute left-4 top-4 inline-flex items-center rounded-[18px] bg-linear-to-r from-[#D1D1D1] via-[#8D8D8D] to-[#DFDFDF] px-3.5 py-2 text-xs font-bold tracking-[-0.02em] text-black">
                   Admissions Open 2025-26
-                </div>
+                </span>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </div>
 
-      {/* Overlapping CTA card */}
-      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12">
-        <div className="rounded-2xl bg-white shadow-xl border border-black/5 p-4 sm:p-6 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6">
-          {/* CTA buttons */}
-          <div className="flex w-full lg:w-auto flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <Link
-              href="/#enquiry"
-              className="group flex items-center justify-between sm:justify-start gap-4 rounded-full bg-[#0B1220] hover:bg-black pl-6 pr-2 py-2 text-sm sm:text-base font-semibold text-white shadow-md transition-all active:scale-[0.98]"
-            >
-              <span>Enroll Now</span>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white transition-transform group-hover:scale-105">
-                <ArrowUpRight className="h-4 w-4" />
-              </span>
-            </Link>
-            <a
-              href={`https://wa.me/${siteConfig.whatsappNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center justify-between sm:justify-start gap-4 rounded-full bg-[#2EB700] hover:bg-[#28a100] pl-6 pr-2 py-2 text-sm sm:text-base font-semibold text-white shadow-md transition-all active:scale-[0.98]"
-            >
-              <span>WhatsApp Us</span>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#067914] text-white transition-transform group-hover:scale-105">
-                <MessageCircle className="h-4 w-4" />
-              </span>
-            </a>
-          </div>
+      {/* Overlapping CTA card (Figma #9:18) */}
+      <div className="relative z-20 mx-auto -mt-16 max-w-7xl px-4 sm:-mt-20 sm:px-6 lg:-mt-[110px] lg:px-8">
+        <Reveal y={24} delay={0.25}>
+          <div className="flex flex-col items-center justify-between gap-5 rounded-[30px] bg-white px-5 py-5 shadow-[9px_8px_25px_rgba(0,0,0,0.06)] sm:px-8 sm:py-6 lg:min-h-[110px] lg:flex-row">
+            <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4 lg:w-auto">
+              <Link
+                href="/#enquiry"
+                className="group flex items-center justify-between gap-2.5 rounded-full bg-[#0B1220] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-black active:scale-[0.98] sm:justify-center sm:text-lg"
+              >
+                <span>Enroll Now</span>
+                <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] transition-transform group-hover:scale-105">
+                  <ArrowUpRight className="size-5" aria-hidden="true" />
+                </span>
+              </Link>
+              <a
+                href={`https://wa.me/${siteConfig.whatsappNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-between gap-2.5 rounded-full bg-[#2EB700] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-[#28a100] active:scale-[0.98] sm:justify-center sm:text-lg"
+              >
+                <span>WhatsApp Us</span>
+                <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded-full bg-[#067914] transition-transform group-hover:scale-105">
+                  <PhoneCall className="size-5" aria-hidden="true" />
+                </span>
+              </a>
+            </div>
 
-          {/* Trust strip */}
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs sm:text-sm font-medium text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <BookOpenCheck className="h-4 w-4 text-primary" />
-              <span>100% Placement Assistance</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              <span>ISO 9001:2015 Certified</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              <span>Flexible Batch Timings</span>
-            </div>
+            {/* Trust strip */}
+            <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm font-semibold text-[#374151]">
+              <li className="flex items-center gap-2">
+                <ShieldCheck
+                  className="size-5 text-[#1753DA]"
+                  aria-hidden="true"
+                />
+                100% Placement Assistance
+              </li>
+              <li className="flex items-center gap-2">
+                <ShieldCheck
+                  className="size-5 text-[#1753DA]"
+                  aria-hidden="true"
+                />
+                ISO 9001:2015 Certified
+              </li>
+              <li className="flex items-center gap-2">
+                <Clock className="size-5 text-[#1753DA]" aria-hidden="true" />
+                Flexible Batch Timings
+              </li>
+            </ul>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

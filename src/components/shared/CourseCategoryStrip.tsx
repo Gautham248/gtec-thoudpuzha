@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RevealGroup, RevealItem } from "@/components/motion/Reveal";
 
 const categories = [
   { name: "ACCOUNTING & FINANCE", href: "/courses?category=accounting" },
@@ -13,17 +14,21 @@ export function CourseCategoryStrip() {
   return (
     <section className="relative z-20 w-full bg-[#121926] py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-5">
+        <RevealGroup
+          stagger={0.06}
+          className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-5"
+        >
           {categories.map((cat) => (
-            <Link
-              key={cat.name}
-              href={cat.href}
-              className="inline-flex items-center justify-center rounded-[75px] bg-[#093C98] hover:bg-[#0b48b5] px-5 sm:px-7 py-3 sm:py-3.5 text-xs sm:text-base lg:text-lg font-semibold tracking-tight text-white shadow-md transition-all hover:scale-105 active:scale-95"
-            >
-              {cat.name}
-            </Link>
+            <RevealItem key={cat.name} y={16} scale={0.95}>
+              <Link
+                href={cat.href}
+                className="inline-flex items-center justify-center rounded-[75px] bg-[#093C98] hover:bg-[#0b48b5] px-5 sm:px-7 py-3 sm:py-3.5 text-xs sm:text-base lg:text-lg font-semibold tracking-tight text-white shadow-md transition-all hover:scale-105 active:scale-95"
+              >
+                {cat.name}
+              </Link>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
       </div>
     </section>
   );

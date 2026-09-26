@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { motion, type Variants } from "framer-motion";
 import {
-  MessageCircle,
+  PhoneCall,
   ArrowUpRight,
   BookOpenCheck,
   Layers,
@@ -12,6 +13,7 @@ import {
   CircleArrowRight,
 } from "lucide-react";
 import { siteConfig } from "@/lib/site";
+import { EASE_OUT } from "@/components/motion/Reveal";
 
 interface HeroSectionProps {
   t: {
@@ -24,178 +26,239 @@ interface HeroSectionProps {
   };
 }
 
+const copy: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
+};
+
+const copyItem: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE_OUT } },
+};
+
+function floatIn(delay: number) {
+  return {
+    initial: { opacity: 0, y: 16, scale: 0.96 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    transition: { duration: 0.6, delay, ease: EASE_OUT },
+  };
+}
+
 export function HeroSection({ t }: HeroSectionProps) {
   return (
-    <div className="relative w-full overflow-hidden bg-[#0B57D0] text-white shadow-2xl">
-      {/* ── BOLD RED GEOMETRIC ARCS (Figma #1:68, #1:69, #1:70, #1:72) ── */}
-      {/* 1. Diagonal Rising Swoosh Behind Center/Body (#1:68) */}
-      <div
-        className="pointer-events-none absolute left-[15%] sm:left-[17.3%] top-[40%] sm:top-[46.2%] w-[75%] sm:w-[51.7%] aspect-square rounded-tr-[1457px] bg-[#810000] z-0"
-        aria-hidden="true"
-      />
+    // Dark backing so the hero's rounded bottom corners blend into the next section.
+    <div className="w-full bg-[#121926]">
+      <section
+        aria-label="Admissions"
+        className="relative isolate w-full overflow-hidden rounded-b-[28px] bg-[#0B57D0] text-white shadow-2xl sm:rounded-b-[40px] lg:rounded-b-[56px]"
+      >
+        {/* â”€â”€ SUBTLE GEOMETRIC TRIANGLE PATTERN OVERLAY (#1:73) â”€â”€ sits above the bands (z-0) */}
+        <div
+          className="pointer-events-none absolute inset-0 z-1 bg-cover bg-center opacity-25 mix-blend-overlay"
+          style={{ backgroundImage: `url('/images/figma/hero-bg.png')` }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-0 z-1 bg-[radial-gradient(circle_at_-44%_8%,rgba(0,0,0,0.35)_52%,rgba(0,0,0,0)_100%)]"
+          aria-hidden="true"
+        />
 
-      {/* 2. Parallel Arc Behind Shoulders (#1:70) */}
-      <div
-        className="pointer-events-none absolute left-[32%] sm:left-[37.7%] top-[44%] sm:top-[50.6%] w-[65%] sm:w-[45.6%] aspect-square rounded-tr-[1457px] bg-[#810000] z-0"
-        aria-hidden="true"
-      />
+        {/* â”€â”€ SOFT LIGHT BEAMS (Figma #1:113, #1:114) â”€â”€ */}
+        <div
+          className="pointer-events-none absolute left-[22%] -top-[14%] z-1 h-[148%] w-[39%] bg-white/10 blur-[160px]"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[68%] -top-[24%] z-1 h-[148%] w-[39%] bg-white/5 blur-[160px]"
+          aria-hidden="true"
+        />
 
-      {/* 3. Top-Right Arc Slicing Through Top Edge & Behind Navbar (#1:69) */}
-      <div
-        className="pointer-events-none absolute left-[56%] sm:left-[62.0%] -top-[25%] sm:-top-[16.0%] w-[60%] sm:w-[44.3%] aspect-square rounded-tr-[1457px] bg-[#810000] z-0"
-        aria-hidden="true"
-      />
-
-      {/* 4. Upper Right Fill Arc (#1:72) */}
-      <div
-        className="pointer-events-none absolute left-[70%] sm:left-[75.4%] top-[2%] sm:top-[7.3%] w-[45%] sm:w-[34.0%] aspect-square rounded-tr-[1457px] bg-[#810000] z-0"
-        aria-hidden="true"
-      />
-
-      {/* ── SUBTLE GEOMETRIC TRIANGLE PATTERN OVERLAY (#1:73 / image 7) ── */}
-      <div
-        className="pointer-events-none absolute inset-0 z-1 opacity-25 mix-blend-overlay bg-cover bg-center"
-        style={{ backgroundImage: `url('/images/figma/hero-bg.png')` }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-0 z-1 bg-[radial-gradient(circle_at_-44%_8%,rgba(0,0,0,0.35)_52%,rgba(0,0,0,0)_100%)]"
-        aria-hidden="true"
-      />
-
-      {/* ── SOFT LIGHT BEAMS (Figma #1:113, #1:114) ── */}
-      <div
-        className="pointer-events-none absolute left-[22%] -top-[14%] w-[39%] h-[148%] bg-white/10 blur-[160px] z-1"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute left-[68%] -top-[24%] w-[39%] h-[148%] bg-white/5 blur-[160px] z-1"
-        aria-hidden="true"
-      />
-
-      {/* ── MAIN HERO CONTENT (Starts with pt for the floating navbar) ── */}
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-28 sm:pt-36 lg:pt-40 pb-16 sm:pb-24 lg:pb-32 z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        {/* No z-index on the wrappers below, so the bands / photo / copy layer
+            against the pattern overlay inside the section's stacking context. */}
+        <div className="relative mx-auto grid max-w-7xl grid-cols-1 px-4 sm:px-6 lg:min-h-[max(720px,min(100svh,62vw))] lg:grid-cols-12 lg:gap-8 lg:px-8">
           {/* Left Column: Headings & Call to Actions */}
-          <div className="lg:col-span-7 flex flex-col items-start gap-4 sm:gap-6 z-10">
+          <motion.div
+            variants={copy}
+            initial="hidden"
+            animate="show"
+            className="relative z-10 flex flex-col items-start gap-5 pt-32 pb-10 sm:pt-36 lg:col-span-7 lg:justify-center lg:gap-6 lg:pt-32 lg:pb-24"
+          >
             {/* Admission Badge (Figma #1:133) */}
-            <div className="inline-flex items-center rounded-[18px] bg-linear-to-r from-[#D1D1D1] via-[#E8E8E8] to-[#DFDFDF] px-3.5 sm:px-4 py-1.5 shadow-sm">
-              <span className="text-xs sm:text-sm font-semibold tracking-tight text-black">
+            <motion.div
+              variants={copyItem}
+              className="inline-flex items-center rounded-full bg-linear-to-r from-[#9A9A9A] via-[#E8E8E8] to-[#DFDFDF] px-4 py-1.5 shadow-sm"
+            >
+              <span className="text-xs font-semibold uppercase tracking-tight text-black sm:text-sm">
                 {t.badge || "ADMISSION OPEN FOR 2026-27"}
               </span>
-            </div>
+            </motion.div>
 
-            {/* Main Headlines (Figma #1:110, #1:111) */}
-            <div className="space-y-1">
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-[-0.06em] text-white leading-[1.05]">
-                Build Skills
-              </h1>
-              <h2 className="text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-[-0.06em] text-white leading-[1.05]">
-                Build Your Career
-              </h2>
-            </div>
+            {/* Main Headline (Figma #1:110, #1:111) */}
+            <motion.h1
+              variants={copyItem}
+              className="text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.06em] text-white sm:text-6xl lg:text-[3.5rem] xl:text-[4.25rem]"
+            >
+              <span className="block">Build Skills</span>
+              <span className="block">Build Your Career</span>
+            </motion.h1>
 
             {/* Subhead (Figma #1:112) */}
-            <p className="max-w-lg text-base sm:text-xl lg:text-2xl font-light tracking-[-0.04em] text-white/95 leading-snug">
-              {t.subhead || "Industry-focused training for the careers of tomorrow."}
-            </p>
+            <motion.p
+              variants={copyItem}
+              className="max-w-xl text-base font-light leading-snug tracking-[-0.04em] text-white/95 sm:text-xl lg:text-[1.4rem]"
+            >
+              {t.subhead ||
+                "Industry-focused training for the careers of tomorrow."}
+            </motion.p>
 
             {/* Gradient Divider Line (Figma #1:116) */}
-            <div className="h-[1px] w-64 sm:w-80 bg-linear-to-r from-transparent via-white/80 to-transparent my-0.5" />
+            <motion.div
+              variants={copyItem}
+              className="h-px w-full max-w-md bg-linear-to-r from-white/70 via-white/40 to-transparent"
+            />
 
             {/* Action Buttons (Figma #1:100, #1:105) */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4 w-full sm:w-auto pt-1">
-              {/* Find my course button */}
+            <motion.div
+              variants={copyItem}
+              className="flex w-full flex-row items-center gap-2.5 sm:w-auto sm:gap-4"
+            >
               <Link
                 href="/courses"
-                className="group flex items-center justify-between sm:justify-start gap-4 rounded-[78px] bg-[#0B1220] hover:bg-black pl-6 pr-2 py-2 text-sm sm:text-base font-semibold text-white shadow-xl transition-all active:scale-[0.98]"
+                className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-[#0B1220] py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl transition-all hover:bg-black active:scale-[0.98] sm:justify-start sm:text-base"
               >
-                <span>Find my course</span>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white shadow-sm transition-transform group-hover:scale-105">
+                <span className="min-w-0 truncate">Find my course</span>
+                <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white shadow-sm transition-transform group-hover:scale-105">
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
               </Link>
 
-              {/* Whatsapp Us button */}
               <a
                 href={`https://wa.me/${siteConfig.whatsappNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center justify-between sm:justify-start gap-4 rounded-[78px] bg-[#2EB700] hover:bg-[#28a100] pl-6 pr-2 py-2 text-sm sm:text-base font-semibold text-white shadow-xl transition-all active:scale-[0.98]"
+                className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-[#2EB700] py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl transition-all hover:bg-[#28a100] active:scale-[0.98] sm:justify-start sm:text-base"
               >
-                <span>{t.whatsappUs || "Whatsapp Us"}</span>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#067914] text-white shadow-sm transition-transform group-hover:scale-105">
-                  <MessageCircle className="h-4 w-4" />
+                <span className="min-w-0 truncate">
+                  {t.whatsappUs || "Whatsapp Us"}
+                </span>
+                <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#067914] text-white shadow-sm transition-transform group-hover:scale-105">
+                  <PhoneCall className="h-4 w-4" />
                 </span>
               </a>
-            </div>
+            </motion.div>
 
             {/* Key Feature Trust Badges (Figma #1:126, #1:127, #1:128) */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-3 text-xs sm:text-sm font-normal text-white/90">
-              <div className="flex items-center gap-2">
+            <motion.ul
+              variants={copyItem}
+              className="flex flex-col gap-2 pt-1 text-xs font-normal text-white/90 sm:text-sm"
+            >
+              <li className="flex items-center gap-2">
                 <BookOpenCheck className="h-4 w-4 text-white" />
                 <span>24 /7 Placement Support</span>
-              </div>
-              <div className="flex items-center gap-2">
+              </li>
+              <li className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-white" />
                 <span>100+ Affiliations</span>
-              </div>
-              <div className="flex items-center gap-2">
+              </li>
+              <li className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-white" />
                 <span>ISO 9001:2015 Certified</span>
-              </div>
-            </div>
-          </div>
+              </li>
+            </motion.ul>
+          </motion.div>
 
-          {/* Right Column: Hero Image & Overlays (Figma #1:122, #1:123, #1:121, #1:117) */}
-          <div className="lg:col-span-5 relative flex items-center justify-center mt-6 lg:mt-0">
-            <div className="relative w-full max-w-[420px] lg:max-w-[540px] aspect-4/5 sm:aspect-square flex items-center justify-center">
+          {/* Right Column: photo pinned to the section floor, bands + overlays positioned relative to it */}
+          <div className="relative mx-auto aspect-square w-full max-w-[560px] lg:col-span-5 lg:mx-0 lg:aspect-auto lg:max-w-none">
+            <div className="absolute bottom-0 right-0 aspect-square w-full lg:w-[140%] xl:-right-[13%] xl:w-[156%]">
+              {/* Burgundy 45Â° bands (Figma #1:68â€“#1:72). Drawn in the 2000Ã—1203
+                  Figma frame's coordinates, offset so the photo box lines up with
+                  where it sits in that frame; overflow is clipped by the section. */}
+              <motion.svg
+                className="pointer-events-none absolute z-0 overflow-visible"
+                style={{
+                  left: "-9%",
+                  top: "-13.8%",
+                  width: "189.2%",
+                  height: "113.8%",
+                }}
+                viewBox="0 0 2000 1203"
+                aria-hidden="true"
+                initial={{ opacity: 0, x: -60, y: 60 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 1, ease: EASE_OUT }}
+              >
+                <path
+                  d="M4935 -3000 L-1065 3000"
+                  stroke="#810000"
+                  strokeWidth={205}
+                />
+                <path
+                  d="M5305 -3000 L1690 615"
+                  stroke="#810000"
+                  strokeWidth={233}
+                  strokeLinecap="round"
+                />
+              </motion.svg>
+
               {/* Instructor / Student Image (Mrs. Jyoti) */}
-              <div className="relative h-full w-full z-10">
+              <motion.div
+                className="absolute inset-0 z-2"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.15, ease: EASE_OUT }}
+              >
                 <Image
                   src="/images/figma/hero-person.png"
                   alt="Student at GTEC"
                   fill
-                  sizes="(max-width: 768px) 100vw, 540px"
-                  className="object-contain object-bottom drop-shadow-2xl"
+                  sizes="(max-width: 1024px) 100vw, 760px"
+                  className="object-contain object-bottom"
                   priority
                 />
-              </div>
+              </motion.div>
 
               {/* Floating Instructor / Placement Tag (Figma #1:123) */}
-              <div className="absolute left-2 sm:left-4 bottom-20 sm:bottom-28 z-20 rounded-xl bg-white/20 backdrop-blur-md px-3.5 py-2.5 shadow-lg border border-white/30 flex items-center gap-3">
-                <div>
-                  <p className="text-xs sm:text-sm font-semibold text-white tracking-tight leading-tight">
+              <motion.div
+                {...floatIn(0.55)}
+                className="absolute left-[40%] top-[50%] z-3 flex items-center gap-2 sm:gap-3 lg:left-[42%] lg:top-[63%]"
+              >
+                <div className="rounded-xl border border-white/30 bg-linear-to-r from-white/30 to-white/5 px-3.5 py-2 shadow-lg backdrop-blur-md">
+                  <p className="text-xs font-semibold leading-tight tracking-tight text-white sm:text-base">
                     Mrs. Jyoti
                   </p>
-                  <p className="text-[10px] sm:text-xs text-white/85 tracking-tight">
+                  <p className="text-[10px] tracking-tight text-white/85 sm:text-sm">
                     Senior developer at google
                   </p>
                 </div>
-                <CircleArrowRight className="h-5 w-5 text-white/90 shrink-0" />
-              </div>
+                <CircleArrowRight className="h-5 w-5 shrink-0 text-white/90" />
+              </motion.div>
 
               {/* 25+ Years Stat (Figma #1:121) */}
-              <div className="absolute right-0 sm:right-2 top-8 sm:top-12 z-20 text-right">
-                <p className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.06em] text-white leading-none">
+              <motion.div
+                {...floatIn(0.7)}
+                className="absolute right-0 top-[67%] z-3 whitespace-nowrap text-right lg:top-[72%] xl:-right-[2%]"
+              >
+                <p className="text-4xl font-semibold leading-none tracking-[-0.06em] text-white sm:text-5xl xl:text-6xl">
                   25+
                 </p>
-                <p className="text-xs sm:text-sm font-normal tracking-tight text-white/90">
+                <p className="mt-1 text-sm font-normal tracking-tight text-white/95 sm:text-lg xl:text-2xl">
                   years of empowering careers
                 </p>
-              </div>
+              </motion.div>
 
               {/* 4.9/5 Google Rating Badge (Figma #1:117) */}
-              <div className="absolute right-2 sm:right-4 bottom-4 sm:bottom-6 z-20 inline-flex items-center gap-2 rounded-xl bg-[#121926] px-3.5 py-2 shadow-xl border border-white/10">
-                <span className="text-xs sm:text-sm font-medium tracking-tight text-white">
-                  4.9/5 rating on google
-                </span>
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-              </div>
+              <motion.div
+                {...floatIn(0.85)}
+                className="absolute bottom-[3%] right-0 z-3 inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-white/10 bg-[#121926] px-3.5 py-2 text-xs font-medium tracking-tight text-white shadow-xl sm:text-base lg:bottom-auto lg:top-[87%] xl:-right-[2%]"
+              >
+                <span>4.9/5</span>
+                <Star className="h-4 w-4 fill-[#FFC61A] text-[#FFC61A] sm:h-5 sm:w-5" />
+                <span>rating on google</span>
+              </motion.div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

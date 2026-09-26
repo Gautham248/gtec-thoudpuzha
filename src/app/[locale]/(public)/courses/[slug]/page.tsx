@@ -13,6 +13,7 @@ import { getPublishedCourses } from "@/lib/courses";
 import { Link } from "@/lib/i18n/navigation";
 import type { CourseContent } from "@/lib/course-content.types";
 import { getMediaUrl } from "@/lib/media";
+import { MotionProvider, RevealNoScript } from "@/components/motion/Reveal";
 
 interface CourseDetailProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -68,14 +69,17 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
 
   return (
     <main className="w-full max-w-full overflow-x-hidden">
-      <CourseHero
-        title={title}
-        description={description}
-        categoryName={categoryName}
-        durationText={course.durationText}
-        certificationName={course.certifications[0] ?? null}
-        coverImageUrl={course.coverImageUrl}
-      />
+      <RevealNoScript />
+      <MotionProvider>
+        <CourseHero
+          title={title}
+          description={description}
+          categoryName={categoryName}
+          durationText={course.durationText}
+          certificationName={course.certifications[0] ?? null}
+          coverImageUrl={course.coverImageUrl}
+        />
+      </MotionProvider>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
         <CourseDetailSections

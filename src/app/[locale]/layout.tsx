@@ -81,6 +81,7 @@ export default async function LocaleLayout({
       afterSignOutUrl={`/${locale}`}
     >
       <html
+        suppressHydrationWarning
         lang={locale}
         className={`${inter.variable} ${jetbrainsMono.variable} ${sora.variable} h-full antialiased max-w-full overflow-x-clip`}
       >

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Reveal } from "@/components/motion/Reveal";
 
 interface Story {
   id: string;
@@ -36,18 +37,24 @@ export function StudentStoriesSection() {
   return (
     <section className="relative overflow-hidden bg-white py-16 sm:py-24 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl text-center">
-        {/* Subtitle (Figma #1:149) */}
-        <p className="text-base sm:text-xl font-semibold tracking-[-0.05em] text-[#B4B4B4]">
-          Why Choose Us
-        </p>
+        <Reveal>
+          {/* Subtitle (Figma #1:149) */}
+          <p className="text-base sm:text-xl font-semibold tracking-[-0.05em] text-[#B4B4B4]">
+            Why Choose Us
+          </p>
 
-        {/* Heading (Figma #1:146) */}
-        <h2 className="mt-2 text-3xl sm:text-5xl font-semibold tracking-[-0.05em] text-[#111827]">
-          Hear from our students
-        </h2>
+          {/* Heading (Figma #1:146) */}
+          <h2 className="mt-2 text-3xl sm:text-5xl font-semibold tracking-[-0.05em] text-[#111827]">
+            Hear from our students
+          </h2>
+        </Reveal>
 
         {/* Showcase Stage (Figma #1:151, #1:159, #1:167) */}
-        <div className="relative mt-12 sm:mt-16 flex items-center justify-center min-h-[360px] sm:min-h-[440px]">
+        <Reveal
+          delay={0.1}
+          y={40}
+          className="relative mt-12 sm:mt-16 flex items-center justify-center min-h-[360px] sm:min-h-[440px]"
+        >
           {/* Left Preview Card (Figma #1:159) */}
           <div
             onClick={prevStory}
@@ -131,7 +138,7 @@ export function StudentStoriesSection() {
               <p className="text-[10px] text-[#3E1515]/80">{next.role}</p>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

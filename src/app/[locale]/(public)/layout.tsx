@@ -4,6 +4,7 @@ import { Footer } from "@/components/shared/Footer";
 import { getCachedSiteSettings } from "@/lib/data-cache";
 import { getCachedPublishedCourses } from "@/lib/data-cache";
 import { logger } from "@/lib/logger";
+import { toNavCourse } from "@/lib/nav-courses";
 
 export default async function PublicLayout({
   children,
@@ -21,13 +22,7 @@ export default async function PublicLayout({
   }
 
   const courses = await getCachedPublishedCourses()
-    .then((c) =>
-      c.map(({ slug, titleEn, titleMl }) => ({
-        slug,
-        titleEn,
-        titleMl,
-      })),
-    )
+    .then((c) => c.map(toNavCourse))
     .catch((err) => {
       logger.exception("public-layout", "Failed to load published courses", err);
       return [];
