@@ -3,15 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
-import {
-  PhoneCall,
-  ArrowUpRight,
-  BookOpenCheck,
-  Layers,
-  ShieldCheck,
-  Star,
-  CircleArrowRight,
-} from "lucide-react";
+import { ArrowUpRight, MessageCircle, Phone } from "lucide-react";
 import { siteConfig } from "@/lib/site";
 import { EASE_OUT } from "@/components/motion/Reveal";
 
@@ -36,14 +28,6 @@ const copyItem: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE_OUT } },
 };
 
-function floatIn(delay: number) {
-  return {
-    initial: { opacity: 0, y: 16, scale: 0.96 },
-    animate: { opacity: 1, y: 0, scale: 1 },
-    transition: { duration: 0.6, delay, ease: EASE_OUT },
-  };
-}
-
 export function HeroSection({ t }: HeroSectionProps) {
   return (
     // Dark backing so the hero's rounded bottom corners blend into the next section.
@@ -52,7 +36,7 @@ export function HeroSection({ t }: HeroSectionProps) {
         aria-label="Admissions"
         className="relative isolate w-full overflow-hidden rounded-b-[28px] bg-[#0B57D0] text-white shadow-2xl sm:rounded-b-[40px] lg:rounded-b-[56px]"
       >
-        {/* â”€â”€ SUBTLE GEOMETRIC TRIANGLE PATTERN OVERLAY (#1:73) â”€â”€ sits above the bands (z-0) */}
+        {/* ── SUBTLE GEOMETRIC TRIANGLE PATTERN OVERLAY (#1:73) ── sits above the bands (z-0) */}
         <div
           className="pointer-events-none absolute inset-0 z-1 bg-cover bg-center opacity-25 mix-blend-overlay"
           style={{ backgroundImage: `url('/images/figma/hero-bg.png')` }}
@@ -63,7 +47,7 @@ export function HeroSection({ t }: HeroSectionProps) {
           aria-hidden="true"
         />
 
-        {/* â”€â”€ SOFT LIGHT BEAMS (Figma #1:113, #1:114) â”€â”€ */}
+        {/* ── SOFT LIGHT BEAMS (Figma #1:113, #1:114) ── */}
         <div
           className="pointer-events-none absolute left-[22%] -top-[14%] z-1 h-[148%] w-[39%] bg-white/10 blur-[160px]"
           aria-hidden="true"
@@ -89,7 +73,7 @@ export function HeroSection({ t }: HeroSectionProps) {
               className="inline-flex items-center rounded-full bg-linear-to-r from-[#9A9A9A] via-[#E8E8E8] to-[#DFDFDF] px-4 py-1.5 shadow-sm"
             >
               <span className="text-xs font-semibold uppercase tracking-tight text-black sm:text-sm">
-                {t.badge || "ADMISSION OPEN FOR 2026-27"}
+                {t.badge}
               </span>
             </motion.div>
 
@@ -98,8 +82,7 @@ export function HeroSection({ t }: HeroSectionProps) {
               variants={copyItem}
               className="text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.06em] text-white sm:text-6xl lg:text-[3.5rem] xl:text-[4.25rem]"
             >
-              <span className="block">Build Skills</span>
-              <span className="block">Build Your Career</span>
+              {t.headline}
             </motion.h1>
 
             {/* Subhead (Figma #1:112) */}
@@ -107,8 +90,7 @@ export function HeroSection({ t }: HeroSectionProps) {
               variants={copyItem}
               className="max-w-xl text-base font-light leading-snug tracking-[-0.04em] text-white/95 sm:text-xl lg:text-[1.4rem]"
             >
-              {t.subhead ||
-                "Industry-focused training for the careers of tomorrow."}
+              {t.subhead}
             </motion.p>
 
             {/* Gradient Divider Line (Figma #1:116) */}
@@ -123,10 +105,10 @@ export function HeroSection({ t }: HeroSectionProps) {
               className="flex w-full flex-row items-center gap-2.5 sm:w-auto sm:gap-4"
             >
               <Link
-                href="/courses"
+                href="#enquiry"
                 className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-[#0B1220] py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl transition-all hover:bg-black active:scale-[0.98] sm:justify-start sm:text-base"
               >
-                <span className="min-w-0 truncate">Find my course</span>
+                <span className="min-w-0 truncate">{t.applyNow}</span>
                 <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white shadow-sm transition-transform group-hover:scale-105">
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
@@ -138,39 +120,28 @@ export function HeroSection({ t }: HeroSectionProps) {
                 rel="noopener noreferrer"
                 className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-[#2EB700] py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl transition-all hover:bg-[#28a100] active:scale-[0.98] sm:justify-start sm:text-base"
               >
-                <span className="min-w-0 truncate">
-                  {t.whatsappUs || "Whatsapp Us"}
-                </span>
+                <span className="min-w-0 truncate">{t.whatsappUs}</span>
                 <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#067914] text-white shadow-sm transition-transform group-hover:scale-105">
-                  <PhoneCall className="h-4 w-4" />
+                  <MessageCircle className="h-4 w-4" />
+                </span>
+              </a>
+
+              <a
+                href={`tel:${siteConfig.phoneNumber.replace(/[^0-9+]/g, "")}`}
+                className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-white/15 py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl backdrop-blur-sm transition-all hover:bg-white/25 active:scale-[0.98] sm:justify-start sm:text-base"
+              >
+                <span className="min-w-0 truncate">{t.callNow}</span>
+                <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white shadow-sm transition-transform group-hover:scale-105">
+                  <Phone className="h-4 w-4" />
                 </span>
               </a>
             </motion.div>
-
-            {/* Key Feature Trust Badges (Figma #1:126, #1:127, #1:128) */}
-            <motion.ul
-              variants={copyItem}
-              className="flex flex-col gap-2 pt-1 text-xs font-normal text-white/90 sm:text-sm"
-            >
-              <li className="flex items-center gap-2">
-                <BookOpenCheck className="h-4 w-4 text-white" />
-                <span>24 /7 Placement Support</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Layers className="h-4 w-4 text-white" />
-                <span>100+ Affiliations</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-white" />
-                <span>ISO 9001:2015 Certified</span>
-              </li>
-            </motion.ul>
           </motion.div>
 
-          {/* Right Column: photo pinned to the section floor, bands + overlays positioned relative to it */}
+          {/* Right Column: photo pinned to the section floor, bands positioned relative to it */}
           <div className="relative mx-auto aspect-square w-full max-w-[560px] lg:col-span-5 lg:mx-0 lg:aspect-auto lg:max-w-none">
             <div className="absolute bottom-0 right-0 aspect-square w-full lg:w-[140%] xl:-right-[13%] xl:w-[156%]">
-              {/* Burgundy 45Â° bands (Figma #1:68â€“#1:72). Drawn in the 2000Ã—1203
+              {/* Burgundy 45° bands (Figma #1:68–#1:72). Drawn in the 2000×1203
                   Figma frame's coordinates, offset so the photo box lines up with
                   where it sits in that frame; overflow is clipped by the section. */}
               <motion.svg
@@ -200,7 +171,7 @@ export function HeroSection({ t }: HeroSectionProps) {
                 />
               </motion.svg>
 
-              {/* Instructor / Student Image (Mrs. Jyoti) */}
+              {/* Student photo (Figma #1:122) */}
               <motion.div
                 className="absolute inset-0 z-2"
                 initial={{ opacity: 0, y: 40 }}
@@ -209,51 +180,12 @@ export function HeroSection({ t }: HeroSectionProps) {
               >
                 <Image
                   src="/images/figma/hero-person.png"
-                  alt="Student at GTEC"
+                  alt=""
                   fill
                   sizes="(max-width: 1024px) 100vw, 760px"
                   className="object-contain object-bottom"
                   priority
                 />
-              </motion.div>
-
-              {/* Floating Instructor / Placement Tag (Figma #1:123) */}
-              <motion.div
-                {...floatIn(0.55)}
-                className="absolute left-[40%] top-[50%] z-3 flex items-center gap-2 sm:gap-3 lg:left-[42%] lg:top-[63%]"
-              >
-                <div className="rounded-xl border border-white/30 bg-linear-to-r from-white/30 to-white/5 px-3.5 py-2 shadow-lg backdrop-blur-md">
-                  <p className="text-xs font-semibold leading-tight tracking-tight text-white sm:text-base">
-                    Mrs. Jyoti
-                  </p>
-                  <p className="text-[10px] tracking-tight text-white/85 sm:text-sm">
-                    Senior developer at google
-                  </p>
-                </div>
-                <CircleArrowRight className="h-5 w-5 shrink-0 text-white/90" />
-              </motion.div>
-
-              {/* 25+ Years Stat (Figma #1:121) */}
-              <motion.div
-                {...floatIn(0.7)}
-                className="absolute right-0 top-[67%] z-3 whitespace-nowrap text-right lg:top-[72%] xl:-right-[2%]"
-              >
-                <p className="text-4xl font-semibold leading-none tracking-[-0.06em] text-white sm:text-5xl xl:text-6xl">
-                  25+
-                </p>
-                <p className="mt-1 text-sm font-normal tracking-tight text-white/95 sm:text-lg xl:text-2xl">
-                  years of empowering careers
-                </p>
-              </motion.div>
-
-              {/* 4.9/5 Google Rating Badge (Figma #1:117) */}
-              <motion.div
-                {...floatIn(0.85)}
-                className="absolute bottom-[3%] right-0 z-3 inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-white/10 bg-[#121926] px-3.5 py-2 text-xs font-medium tracking-tight text-white shadow-xl sm:text-base lg:bottom-auto lg:top-[87%] xl:-right-[2%]"
-              >
-                <span>4.9/5</span>
-                <Star className="h-4 w-4 fill-[#FFC61A] text-[#FFC61A] sm:h-5 sm:w-5" />
-                <span>rating on google</span>
               </motion.div>
             </div>
           </div>

@@ -30,7 +30,7 @@ import { Link } from "@/lib/i18n/navigation";
 import { CourseHeroBackdrop } from "@/components/courses/CourseHero";
 import { CertificationPartnerStrip } from "@/components/shared/CertificationPartnerStrip";
 import { AboutPillars } from "@/components/about/AboutPillars";
-import { CountUp } from "@/components/about/CountUp";
+import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
 import { AboutIntro } from "@/components/about/AboutIntro";
 import { EnquiryButton } from "@/components/enquiry/EnquiryModal";
 import {
@@ -241,7 +241,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
                     >
                       {stats.map((stat) => (
                         <RevealItem key={stat.label}>
-                          <CountUp
+                          <AnimatedCounter
                             value={String(stat.value)}
                             className="block text-4xl font-bold tracking-[-0.05em] text-[#111827] sm:text-5xl"
                           />

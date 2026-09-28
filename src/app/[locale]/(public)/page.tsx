@@ -72,7 +72,7 @@ export default async function HomePage({ params }: HomePageProps) {
       />
 
       {/* 2. Course Category Banner (Figma #1:54) */}
-      <CourseCategoryStrip />
+      <CourseCategoryStrip courses={courses} locale={locale} />
 
       {/* 3. "Hear from our students" / "Why Choose Us" Showcase (Figma #1:146, #1:151) */}
       <StudentStoriesSection />
@@ -87,7 +87,7 @@ export default async function HomePage({ params }: HomePageProps) {
       />
 
       {/* 6. Legacy & Statistics Showcase (Figma #1:137-#1:140, #1:223) */}
-      <LegacyStatsSection />
+      <LegacyStatsSection settings={settings} />
 
       {/* 7. "About Us" Section with Dark Geometry (Figma #1:228) */}
       <AboutSection

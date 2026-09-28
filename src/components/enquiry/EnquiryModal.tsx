@@ -18,6 +18,7 @@ import { useLocale } from "next-intl";
 import {
   CircleCheck,
   Clock,
+  GraduationCap,
   MessageCircle,
   Phone,
   ShieldCheck,
@@ -51,10 +52,11 @@ const EnquiryModalContext = createContext<EnquiryModalContextValue | null>(
 /** Opens the app-wide enquiry modal; falls back to the home enquiry section. */
 export function useEnquiryModal(): EnquiryModalContextValue {
   const ctx = useContext(EnquiryModalContext);
+  const locale = useLocale();
   return (
     ctx ?? {
       openEnquiry: () => {
-        window.location.assign("/#enquiry");
+        window.location.assign(`/${locale}/#enquiry`);
       },
     }
   );
@@ -94,7 +96,7 @@ const COPY = {
   },
 } as const;
 
-const PERK_ICONS = [ShieldCheck, ShieldCheck, Clock];
+const PERK_ICONS = [GraduationCap, ShieldCheck, Clock];
 
 const subscribeNoop = () => () => {};
 

@@ -132,7 +132,7 @@ describe("Dictionary content integrity", () => {
   });
 });
 
-describe("No hardcoded English UI strings in route groups", () => {
+describe("No hardcoded English UI strings", () => {
   const ROUTE_GROUP_DIRS = ["(public)", "(portal)"];
 
   function isTestFile(filePath: string): boolean {
@@ -161,9 +161,9 @@ describe("No hardcoded English UI strings in route groups", () => {
     // Nullish coalescing or OR fallback with English text
     /\?\? ["'][A-Za-z]/,
     /\|\| ["'][A-Za-z]/,
-    // placeholder / label / title with English text
+    // placeholder / label / title with English text (aria-label is not visible copy)
     /placeholder=["'][A-Z]/,
-    /label=["'][A-Z]/,
+    /(?<![-\w])label=["'][A-Z]/,
     // Button/link text in ternary: ? "Text" : "Text"
     /\? ["'][A-Z][a-z]+[^"']*["']\s*:/,
     // English text in specific error/status snippets
@@ -249,6 +249,41 @@ describe("No hardcoded English UI strings in route groups", () => {
         .join("\n");
       expect(realOffenders, `Found hardcoded English UI strings without t():\n${msg}`).toEqual([]);
     }
+  });
+
+  // Redesigned homepage sections live under src/components/, which the
+  // route-group scan above never reaches — so they are listed explicitly.
+  const HOME_SECTION_FILES = [
+    "components/shared/HeroSection.tsx",
+    "components/shared/CourseCategoryStrip.tsx",
+    "components/shared/LegacyStatsSection.tsx",
+  ];
+
+  test("redesigned home sections have no hardcoded English UI strings", () => {
+    const srcDir = path.resolve(__dirname, "..");
+    const offenders: { file: string; matched: string }[] = [];
+
+    for (const rel of HOME_SECTION_FILES) {
+      const content = fs.readFileSync(path.join(srcDir, rel), "utf-8");
+
+      if (TRANSLATION_IMPORT_PATTERNS.some((p) => p.test(content))) continue;
+
+      for (const pattern of HARDCODED_STRING_PATTERNS) {
+        const matches = content.match(pattern);
+        if (matches) {
+          offenders.push({ file: rel, matched: matches[0] });
+          break;
+        }
+      }
+    }
+
+    const msg = offenders
+      .map((o) => `  ${o.file}: matched "${o.matched}"`)
+      .join("\n");
+    expect(
+      offenders,
+      `Found hardcoded English UI strings without t():\n${msg}`,
+    ).toEqual([]);
   });
 });
 
