@@ -12,6 +12,7 @@ import { Link } from "@/lib/i18n/navigation";
 import { siteConfig } from "@/lib/site";
 import { getMediaUrl } from "@/lib/media";
 import { Reveal, RevealGroup, RevealItem } from "@/components/motion/Reveal";
+import { EnquiryButton } from "@/components/enquiry/EnquiryModal";
 
 interface CourseHeroProps {
   title: string;
@@ -20,6 +21,8 @@ interface CourseHeroProps {
   durationText: string | null;
   certificationName: string | null;
   coverImageUrl: string | null;
+  /** Preselects this course in the enquiry modal. */
+  courseId?: string;
 }
 
 export function CourseHero({
@@ -29,6 +32,7 @@ export function CourseHero({
   durationText,
   certificationName,
   coverImageUrl,
+  courseId,
 }: CourseHeroProps) {
   const image = coverImageUrl
     ? getMediaUrl(coverImageUrl)
@@ -38,33 +42,7 @@ export function CourseHero({
     <section className="relative w-full">
       {/* Blue gradient hero (Figma #9:5). The floating header overlays its top. */}
       <div className="relative w-full overflow-hidden rounded-b-[40px] bg-linear-to-b from-[#1759CF] from-[6.49%] to-[#0A2B68] text-white sm:rounded-b-[56px] lg:rounded-b-[80px]">
-        {/* Faded classroom photo (Figma #9:6, image 21) */}
-        <div
-          className="pointer-events-none absolute -left-4 top-0 aspect-735/935 w-[101%] -translate-y-[20.6%] opacity-[0.06]"
-          aria-hidden="true"
-        >
-          <Image
-            src="/images/figma/course-hero-photo.png"
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
-
-        {/* Geometric pattern, rotated −90° as in Figma (#9:7, image 7) */}
-        <div
-          className="pointer-events-none absolute left-1/2 top-[44%] aspect-819/1024 w-[max(82%,1185px)] -translate-x-1/2 -translate-y-1/2 -rotate-90 opacity-[0.08]"
-          aria-hidden="true"
-        >
-          <Image
-            src="/images/figma/course-hero-pattern.png"
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
+        <CourseHeroBackdrop />
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 sm:pt-36 sm:pb-28 lg:px-8 lg:pt-[172px] lg:pb-[148px]">
           {/* Breadcrumb */}
@@ -181,15 +159,16 @@ export function CourseHero({
         <Reveal y={24} delay={0.25}>
           <div className="flex flex-col items-center justify-between gap-5 rounded-[30px] bg-white px-5 py-5 shadow-[9px_8px_25px_rgba(0,0,0,0.06)] sm:px-8 sm:py-6 lg:min-h-[110px] lg:flex-row">
             <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4 lg:w-auto">
-              <Link
-                href="/#enquiry"
+              <EnquiryButton
+                courseId={courseId}
+                source="course-hero"
                 className="group flex items-center justify-between gap-2.5 rounded-full bg-[#0B1220] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-black active:scale-[0.98] sm:justify-center sm:text-lg"
               >
                 <span>Enroll Now</span>
                 <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] transition-transform group-hover:scale-105">
                   <ArrowUpRight className="size-5" aria-hidden="true" />
                 </span>
-              </Link>
+              </EnquiryButton>
               <a
                 href={`https://wa.me/${siteConfig.whatsappNumber}`}
                 target="_blank"
@@ -228,5 +207,40 @@ export function CourseHero({
         </Reveal>
       </div>
     </section>
+  );
+}
+
+/** Decorative layers shared by the course hero and the courses listing hero. */
+export function CourseHeroBackdrop() {
+  return (
+    <>
+      {/* Faded classroom photo (Figma #9:6, image 21) */}
+      <div
+        className="pointer-events-none absolute -left-4 top-0 aspect-735/935 w-[101%] -translate-y-[20.6%] opacity-[0.06]"
+        aria-hidden="true"
+      >
+        <Image
+          src="/images/figma/course-hero-photo.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+
+      {/* Geometric pattern, rotated −90° as in Figma (#9:7, image 7) */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[44%] aspect-819/1024 w-[max(82%,1185px)] -translate-x-1/2 -translate-y-1/2 -rotate-90 opacity-[0.08]"
+        aria-hidden="true"
+      >
+        <Image
+          src="/images/figma/course-hero-pattern.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+    </>
   );
 }

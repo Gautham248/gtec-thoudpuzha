@@ -43,6 +43,7 @@ function course(
   overrides: Partial<NavCourse> = {},
 ): NavCourse {
   return {
+    id: `id_${slug}`,
     slug,
     titleEn,
     titleMl: null,

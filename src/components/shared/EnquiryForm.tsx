@@ -2,22 +2,23 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ArrowUpRight, ChevronDown, CircleCheck, Loader2 } from "lucide-react";
 import { submitEnquiry, type EnquiryPayload } from "@/lib/enquiry";
-import { CourseSelect } from "./CourseSelect";
-import type { PublicCourse } from "@/lib/courses";
-import { Sparkles, Send, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CourseSelect, type CourseOption } from "./CourseSelect";
 export type { EnquiryPayload };
 
 type EnquiryFormProps = {
   source: string;
-  courses: PublicCourse[];
-  defaultCourseId?: string;
-  customTitle?: string;
-  customSubtitle?: string;
+  courses: CourseOption[];
   onSubmit?: (payload: EnquiryPayload) => void | Promise<void>;
+  /** Course id to preselect (e.g. on a course page). */
+  defaultCourseId?: string;
+  /** "card" = standalone white card; "bare" = no chrome, for use inside a modal/panel. */
+  variant?: "card" | "bare";
+  /** Hide the built-in heading when the container already provides one. */
+  hideHeading?: boolean;
+  /** Called after a successful submission. */
+  onSuccess?: () => void;
 };
 
 type FormErrors = {
@@ -34,30 +35,41 @@ function sanitizePhone(value: string) {
   return value.replace(/\D/g, "").slice(0, 10);
 }
 
+const labelClass = "text-sm font-semibold text-[#344054]";
+const fieldClass =
+  "w-full rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#98A2B3] focus:border-[#1753DA] focus:bg-white focus:ring-4 focus:ring-[#1753DA]/15 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50/40";
+const errorClass = "text-xs font-medium text-red-600";
+
 export function EnquiryForm({
   source,
   courses,
-  defaultCourseId,
-  customTitle,
-  customSubtitle,
   onSubmit,
+  defaultCourseId,
+  variant = "card",
+  hideHeading = false,
+  onSuccess,
 }: EnquiryFormProps) {
   const t = useTranslations("enquiry");
+  const initialCourse =
+    defaultCourseId && courses.some((c) => c.id === defaultCourseId)
+      ? defaultCourseId
+      : "";
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [course, setCourse] = useState(defaultCourseId || "");
+  const [course, setCourse] = useState(initialCourse);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
 
   const resetForm = useCallback(() => {
     setFullName("");
     setPhone("");
-    setCourse(defaultCourseId || "");
+    setCourse(initialCourse);
     setMessage("");
     setErrors({});
-  }, [defaultCourseId]);
-
+  }, [initialCourse]);
 
   const validate = useCallback((): boolean => {
     const nextErrors: FormErrors = {};
@@ -106,155 +118,173 @@ export function EnquiryForm({
         }
         setStatus("success");
         resetForm();
+        onSuccess?.();
       } catch {
         setStatus("error");
       }
     },
-    [source, fullName, phone, course, message, validate, onSubmit, resetForm],
+    [
+      source,
+      fullName,
+      phone,
+      course,
+      message,
+      validate,
+      onSubmit,
+      resetForm,
+      onSuccess,
+    ],
   );
+
+  const fieldId = (name: string) => `enquiry-${name}-${source}`;
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative flex flex-col gap-4 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-xl p-6 sm:p-7 shadow-xl transition-all duration-300 hover:border-primary/30"
+      className={
+        variant === "card"
+          ? "flex flex-col gap-5 rounded-[28px] border border-[#EAECF0] bg-white p-6 shadow-[0_24px_60px_-24px_rgba(11,18,32,0.25)] sm:p-8"
+          : "flex flex-col gap-5"
+      }
       aria-label={`Enquiry form${source ? ` — ${source}` : ""}`}
       noValidate
     >
-      {/* Decorative top gradient line */}
-      <div className="absolute top-0 inset-x-0 h-1 rounded-t-2xl bg-gradient-to-r from-primary via-primary/80 to-amber-500" />
-
-      {/* Header */}
-      <div>
-        <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-sm font-bold text-primary mb-2.5">
-          <Sparkles className="size-3.5 text-amber-500" />
-          <span>Quick Admission Enquiry</span>
+      {!hideHeading && (
+        <div>
+          <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[#111827]">
+            {t("heading")}
+          </h2>
+          <p className="mt-1 text-sm text-[#667085]">{t("description")}</p>
         </div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-          {customTitle || t("heading")}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-          {customSubtitle || t("description")}
-        </p>
+      )}
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={fieldId("fullName")} className={labelClass}>
+            {t("fullName")}
+          </label>
+          <input
+            id={fieldId("fullName")}
+            type="text"
+            autoComplete="name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            aria-invalid={errors.fullName ? "true" : "false"}
+            aria-describedby={
+              errors.fullName ? `${fieldId("fullName")}-error` : undefined
+            }
+            placeholder={t("fullNamePlaceholder")}
+            className={`${fieldClass} h-12`}
+            required
+          />
+          {errors.fullName && (
+            <p id={`${fieldId("fullName")}-error`} className={errorClass}>
+              {errors.fullName}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={fieldId("phone")} className={labelClass}>
+            {t("phoneNumber")}
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-[#667085]">
+              +91
+            </span>
+            <input
+              id={fieldId("phone")}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              value={phone}
+              onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+              aria-invalid={errors.phone ? "true" : "false"}
+              aria-describedby={
+                errors.phone ? `${fieldId("phone")}-error` : undefined
+              }
+              placeholder={t("phonePlaceholder")}
+              className={`${fieldClass} h-12 pl-12`}
+              required
+            />
+          </div>
+          {errors.phone && (
+            <p id={`${fieldId("phone")}-error`} className={errorClass}>
+              {errors.phone}
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Full Name */}
-      <div className="space-y-1.5">
-        <Label htmlFor={`enquiry-fullName-${source}`} className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          {t("fullName")}
-        </Label>
-        <Input
-          id={`enquiry-fullName-${source}`}
-          type="text"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          aria-invalid={errors.fullName ? "true" : "false"}
-          aria-describedby={errors.fullName ? `enquiry-fullName-${source}-error` : undefined}
-          placeholder={t("fullNamePlaceholder")}
-          required
-          className="rounded-xl border-border/80 bg-background/80 px-3.5 py-2 text-sm transition-all focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-        />
-        {errors.fullName && (
-          <p id={`enquiry-fullName-${source}-error`} className="text-sm font-semibold text-destructive flex items-center gap-1 mt-1">
-            <AlertCircle className="size-3.5 shrink-0" />
-            <span>{errors.fullName}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Phone Number */}
-      <div className="space-y-1.5">
-        <Label htmlFor={`enquiry-phone-${source}`} className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          {t("phoneNumber")}
-        </Label>
-        <Input
-          id={`enquiry-phone-${source}`}
-          type="tel"
-          inputMode="tel"
-          value={phone}
-          onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-          aria-invalid={errors.phone ? "true" : "false"}
-          aria-describedby={errors.phone ? `enquiry-phone-${source}-error` : undefined}
-          placeholder={t("phonePlaceholder")}
-          required
-          className="rounded-xl border-border/80 bg-background/80 px-3.5 py-2 text-sm transition-all focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-        />
-        {errors.phone && (
-          <p id={`enquiry-phone-${source}-error`} className="text-sm font-semibold text-destructive flex items-center gap-1 mt-1">
-            <AlertCircle className="size-3.5 shrink-0" />
-            <span>{errors.phone}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Course Selection */}
-      <div className="space-y-1.5">
-        <Label htmlFor={`enquiry-course-${source}`} className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={fieldId("course")} className={labelClass}>
           {t("courseInterested")}
-        </Label>
-        <CourseSelect
-          courses={courses}
-          mode="single"
-          value={course}
-          onChange={(v: string | string[]) => { if (typeof v === "string") setCourse(v); }}
-          id={`enquiry-course-${source}`}
-          error={errors.course}
-        />
+        </label>
+        <div className="relative">
+          <CourseSelect
+            courses={courses}
+            mode="single"
+            value={course}
+            onChange={(v: string | string[]) => {
+              if (typeof v === "string") setCourse(v);
+            }}
+            id={fieldId("course")}
+            error={errors.course}
+            selectClassName={`${fieldClass} h-12 appearance-none pr-11`}
+          />
+          <ChevronDown
+            className="pointer-events-none absolute right-4 top-6 size-4 -translate-y-1/2 text-[#667085]"
+            aria-hidden="true"
+          />
+        </div>
       </div>
 
-      {/* Message Query */}
-      <div className="space-y-1.5">
-        <Label htmlFor={`enquiry-message-${source}`} className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={fieldId("message")} className={labelClass}>
           {t("messageQuery")}
-        </Label>
+        </label>
         <textarea
-          id={`enquiry-message-${source}`}
+          id={fieldId("message")}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={3}
           placeholder={t("messagePlaceholder")}
-          className="w-full resize-none rounded-xl border border-border/80 bg-background/80 px-3.5 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+          className={`${fieldClass} resize-none py-3`}
         />
       </div>
 
-      {/* Notifications */}
       {status === "success" && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-          <CheckCircle2 className="size-4.5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-          <span>{t("success")}</span>
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-2xl bg-[#ECFDF3] p-4 text-sm font-medium text-[#067647]"
+        >
+          <CircleCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {t("success")}
         </div>
       )}
       {status === "error" && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-sm font-semibold text-destructive">
-          <AlertCircle className="size-4.5 shrink-0 mt-0.5" />
-          <span>{t("error")}</span>
+        <div
+          role="alert"
+          className="rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-700"
+        >
+          {t("error")}
         </div>
       )}
 
-      {/* Submit Button */}
-      <Button
+      <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full rounded-2xl bg-primary py-3 text-sm sm:text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 cursor-pointer"
+        className="group flex w-full items-center justify-between gap-4 rounded-full bg-[#0B1220] py-2 pl-6 pr-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-black active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 sm:text-base"
       >
-        {status === "submitting" ? (
-          <span className="inline-flex items-center gap-2">
-            <Loader2 className="size-5 animate-spin" />
-            <span>{t("submitting")}</span>
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-2">
-            <Send className="size-5" />
-            <span>{t("submit")}</span>
-          </span>
-        )}
-      </Button>
-
-      {/* Trust & Privacy Guarantee Note */}
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-1.5">
-        <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
-        <span>100% Confidential • Instant response from counsellor</span>
-      </div>
+        <span>{status === "submitting" ? t("submitting") : t("submit")}</span>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1753DA] transition-transform group-hover:scale-105">
+          {status === "submitting" ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          )}
+        </span>
+      </button>
     </form>
   );
 }
-

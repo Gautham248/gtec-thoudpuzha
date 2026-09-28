@@ -1,14 +1,21 @@
 "use client";
 
-import type { PublicCourse } from "@/lib/courses";
+/** Anything with an id and title works, so callers can pass slim course lists. */
+export type CourseOption = {
+  id: string;
+  titleEn: string;
+  titleMl?: string | null;
+};
 
 type CourseSelectProps = {
-  courses: PublicCourse[];
+  courses: CourseOption[];
   mode: "single" | "multi";
   value: string | string[];
   onChange: (value: string | string[]) => void;
   id?: string;
   error?: string;
+  /** Overrides the single-select styling. */
+  selectClassName?: string;
 };
 
 export function CourseSelect({
@@ -18,6 +25,7 @@ export function CourseSelect({
   onChange,
   id,
   error,
+  selectClassName,
 }: CourseSelectProps) {
   if (mode === "multi") {
     const selected = (value as string[]) ?? [];
@@ -59,7 +67,10 @@ export function CourseSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        className={
+          selectClassName ??
+          "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        }
         required
       >
         <option value="" disabled>

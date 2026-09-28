@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Sparkles, Award, ShieldCheck, GraduationCap } from "lucide-react";
-import { getCachedPublishedCourses } from "@/lib/data-cache";
-import { CourseFilterSystem } from "@/components/courses/CourseFilterSystem";
-import type { Locale } from "@/lib/site-settings";
+import { ArrowRight, GraduationCap, Layers } from "lucide-react";
+import { getPublishedCourses } from "@/lib/courses";
+import { CourseCard } from "@/components/courses/CourseCard";
+import { CourseHeroBackdrop } from "@/components/courses/CourseHero";
+import { CourseCtaBanner } from "@/components/courses/CourseCtaBanner";
+import { Link } from "@/lib/i18n/navigation";
+import { collectCategories, resolveCategory } from "@/lib/course-filters";
+import {
+  MotionProvider,
+  Reveal,
+  RevealGroup,
+  RevealItem,
+  RevealNoScript,
+} from "@/components/motion/Reveal";
 
 interface CoursesPageProps {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ category?: string | string[] }>;
 }
 
 export async function generateMetadata({
@@ -15,67 +26,200 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "nav" });
   return {
-    title: `${t("courses")} | G-TEC Education Thodupuzha`,
-    description:
-      "Explore comprehensive computer, software engineering, multimedia, accounting, and networking diploma courses with 100% placement assistance at G-TEC Thodupuzha.",
+    title: `${t("courses")} | GTEC Thodupuzha`,
+    description: "Browse our professional courses and training programs",
   };
 }
 
-export default async function CoursesPage({ params }: CoursesPageProps) {
-  const { locale: localeStr } = await params;
-  const locale = localeStr as Locale;
-  const isMl = locale === "ml";
+const chipBase =
+  "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold tracking-tight transition-colors";
+const chipActive = "bg-[#0B57D0] text-white shadow-md";
+const chipIdle = "bg-[#F2F4F7] text-[#111827] hover:bg-[#E4E7EC]";
 
-  const courses = await getCachedPublishedCourses();
+export default async function CoursesPage({
+  params,
+  searchParams,
+}: CoursesPageProps) {
+  const { locale } = await params;
+  const { category: rawCategory } = await searchParams;
+  const isMl = locale === "ml";
+  const t = await getTranslations({ locale, namespace: "nav" });
+  const courses = await getPublishedCourses();
+
+  const categories = collectCategories(courses);
+  const active = resolveCategory(
+    Array.isArray(rawCategory) ? rawCategory[0] : rawCategory,
+    categories,
+  );
+  const visible = active
+    ? courses.filter((c) => c.category?.id === active.id)
+    : courses;
+  const pick = (en: string, ml: string | null) => (isMl && ml ? ml : en);
 
   return (
-    <main className="min-h-screen pb-20">
-      {/* ── Page Header & Hero Banner ── */}
-      <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-primary/8 via-muted/30 to-background py-12 sm:py-16 lg:py-20">
-        {/* Subtle Background Glow */}
-        <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-30" aria-hidden="true" />
-        <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-96 rounded-full bg-primary/20 blur-3xl" aria-hidden="true" />
+    <main className="w-full max-w-full overflow-x-hidden">
+      <RevealNoScript />
+      <MotionProvider>
+        {/* Hero (shares the course detail page's backdrop) */}
+        <section className="relative w-full">
+          <div className="relative w-full overflow-hidden rounded-b-[40px] bg-linear-to-b from-[#1759CF] from-[6.49%] to-[#0A2B68] text-white sm:rounded-b-[56px] lg:rounded-b-[80px]">
+            <CourseHeroBackdrop />
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-bold text-primary mb-4">
-            <Sparkles className="size-4 text-amber-500" />
-            <span>{isMl ? "തൊഴിലധിഷ്ഠിത പ്രോഗ്രാമുകൾ" : "Explore Career-Oriented Programs"}</span>
+            <div className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-28 sm:px-6 sm:pt-36 sm:pb-32 lg:px-8 lg:pt-[172px] lg:pb-[140px]">
+              <RevealGroup stagger={0.09} className="max-w-3xl">
+                <RevealItem>
+                  <p className="text-base font-semibold tracking-[-0.05em] text-white/60 sm:text-xl">
+                    GTEC at glance
+                  </p>
+                </RevealItem>
+                <RevealItem>
+                  <h1 className="mt-2 text-4xl font-bold leading-[1.1] tracking-[-0.04em] sm:text-5xl lg:text-[56px]">
+                    {isMl ? t("courses") : "Our Courses"}
+                  </h1>
+                </RevealItem>
+                <RevealItem>
+                  <p className="mt-5 max-w-2xl text-base font-light leading-[1.5] tracking-[-0.02em] text-white/80 sm:text-lg">
+                    Industry-focused programmes in accounting, IT, design,
+                    programming and more — with hands-on labs, recognised
+                    certifications and dedicated placement support.
+                  </p>
+                </RevealItem>
+                <RevealItem className="mt-7 flex flex-wrap items-center gap-3">
+                  <span className="inline-flex h-8 items-center gap-2 rounded-full bg-[rgba(237,237,237,0.2)] px-3.5 text-sm font-semibold">
+                    <GraduationCap className="size-4" aria-hidden="true" />
+                    {courses.length} {isMl ? "കോഴ്സുകൾ" : "courses"}
+                  </span>
+                  {categories.length > 0 && (
+                    <span className="inline-flex h-8 items-center gap-2 rounded-full bg-[rgba(237,237,237,0.2)] px-3.5 text-sm font-semibold">
+                      <Layers className="size-4" aria-hidden="true" />
+                      {categories.length} {isMl ? "വിഭാഗങ്ങൾ" : "categories"}
+                    </span>
+                  )}
+                </RevealItem>
+              </RevealGroup>
+            </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground max-w-3xl mx-auto leading-[1.15]">
-            {isMl
-              ? "പ്രൊഫഷണൽ കോഴ്‌സുകൾ & സർട്ടിഫിക്കേഷനുകൾ"
-              : "Professional Courses & Global Certifications"}
-          </h1>
-
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            {isMl
-              ? "ഐടി, സോഫ്റ്റ്‌വെയർ, മൾട്ടിമീഡിയ, അക്കൗണ്ടിംഗ് എന്നീ മേഖലകളിൽ അന്താരാഷ്ട്ര സർട്ടിഫിക്കേഷനുകളോടെയുള്ള സമഗ്ര പരിശീലനം."
-              : "Discover industry-aligned diploma courses designed to fast-track your career. Learn with practical lab projects, experienced mentors, and guaranteed placement support."}
-          </p>
-
-          {/* Value Propositions Strip */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs sm:text-sm font-bold text-muted-foreground">
-            <div className="inline-flex items-center gap-2">
-              <Award className="size-4 text-primary" />
-              <span>{isMl ? "അംഗീകൃത സർട്ടിഫിക്കറ്റുകൾ" : "Globally Recognized"}</span>
+          {/* Category filter, overlapping the hero like the course CTA card */}
+          {categories.length > 0 && (
+            <div className="relative z-20 mx-auto -mt-12 max-w-7xl px-4 sm:-mt-14 sm:px-6 lg:-mt-[70px] lg:px-8">
+              <Reveal y={24} delay={0.2}>
+                <nav
+                  aria-label={isMl ? "കോഴ്സ് വിഭാഗങ്ങൾ" : "Course categories"}
+                  className="rounded-[30px] bg-white p-3 shadow-[9px_8px_25px_rgba(0,0,0,0.06)] sm:p-4"
+                >
+                  {/* Scrolls sideways on small screens instead of wrapping. */}
+                  <ul className="flex gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] lg:flex-wrap lg:overflow-visible">
+                    <li>
+                      <Link
+                        href="/courses"
+                        scroll={false}
+                        aria-current={active ? undefined : "page"}
+                        className={`${chipBase} ${active ? chipIdle : chipActive}`}
+                      >
+                        {isMl ? "എല്ലാം" : "All"}
+                        <span className="text-xs opacity-70">
+                          {courses.length}
+                        </span>
+                      </Link>
+                    </li>
+                    {categories.map((cat) => {
+                      const isActive = active?.id === cat.id;
+                      return (
+                        <li key={cat.id}>
+                          <Link
+                            href={`/courses?category=${cat.slug}`}
+                            scroll={false}
+                            aria-current={isActive ? "page" : undefined}
+                            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
+                          >
+                            {pick(cat.nameEn, cat.nameMl)}
+                            <span className="text-xs opacity-70">
+                              {cat.count}
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+              </Reveal>
             </div>
-            <div className="inline-flex items-center gap-2">
-              <GraduationCap className="size-4 text-primary" />
-              <span>{isMl ? "100% പ്ലേസ്‌മെന്റ് പിന്തുണ" : "100% Placement Support"}</span>
-            </div>
-            <div className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-4 text-primary" />
-              <span>{isMl ? "പ്രാക്ടിക്കൽ ലാബ് ട്രെയിനിംഗ്" : "Hands-On Lab Training"}</span>
-            </div>
-          </div>
-        </div>
-      </section>
+          )}
+        </section>
 
-      {/* ── Main Courses & Filter System Container ── */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 sm:pt-12">
-        <CourseFilterSystem courses={courses} locale={locale} />
-      </div>
+        {/* Course grid */}
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <Reveal className="mb-10 flex flex-col gap-1 sm:mb-14">
+            <p className="text-base font-semibold tracking-[-0.05em] text-[#B4B4B4] sm:text-xl">
+              {isMl ? "കാണിക്കുന്നത്" : "Showing"} {visible.length}{" "}
+              {isMl ? "കോഴ്സുകൾ" : visible.length === 1 ? "course" : "courses"}
+            </p>
+            <h2 className="text-3xl font-semibold tracking-[-0.05em] text-[#111827] sm:text-5xl">
+              {active
+                ? pick(active.nameEn, active.nameMl)
+                : isMl
+                  ? "എല്ലാ കോഴ്സുകളും"
+                  : "All Courses"}
+            </h2>
+          </Reveal>
+
+          {visible.length === 0 ? (
+            <Reveal className="rounded-[30px] bg-[#F5F7FB] px-6 py-16 text-center">
+              <p className="text-lg font-semibold text-[#111827]">
+                {isMl
+                  ? "ഇപ്പോൾ കോഴ്സുകളൊന്നും ലഭ്യമല്ല."
+                  : "No courses available here at the moment."}
+              </p>
+              <p className="mt-2 text-sm text-[#6B7280]">
+                {isMl
+                  ? "ഉടൻ വീണ്ടും പരിശോധിക്കുക."
+                  : "New batches are added regularly — check back soon."}
+              </p>
+              {active && (
+                <Link
+                  href="/courses"
+                  scroll={false}
+                  className="group mt-6 inline-flex items-center gap-2 rounded-full bg-[#0B1220] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+                >
+                  {isMl ? "എല്ലാ കോഴ്സുകളും കാണുക" : "View all courses"}
+                  <ArrowRight
+                    className="size-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </Link>
+              )}
+            </Reveal>
+          ) : (
+            <RevealGroup
+              key={active?.id ?? "all"}
+              stagger={0.08}
+              className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
+            >
+              {visible.map((course) => (
+                <RevealItem key={course.id} y={40} className="h-full">
+                  <CourseCard
+                    courseId={course.id}
+                    slug={course.slug}
+                    titleEn={course.titleEn}
+                    titleMl={course.titleMl}
+                    descriptionEn={course.descriptionEn}
+                    descriptionMl={course.descriptionMl}
+                    coverImageUrl={course.coverImageUrl}
+                    categoryNameEn={course.category?.nameEn}
+                    categoryNameMl={course.category?.nameMl}
+                    durationText={course.durationText}
+                    featured={course.featured}
+                    locale={locale}
+                  />
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          )}
+        </section>
+      </MotionProvider>
+
+      <CourseCtaBanner />
     </main>
   );
 }

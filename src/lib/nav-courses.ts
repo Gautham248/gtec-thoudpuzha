@@ -2,6 +2,7 @@ import type { PublicCourse } from "@/lib/courses";
 
 /** Slim course shape sent to the header's Courses menu (keeps the client payload small). */
 export interface NavCourse {
+  id: string;
   slug: string;
   titleEn: string;
   titleMl: string | null;
@@ -42,6 +43,7 @@ function toSummary(text: string | null): string | null {
 
 export function toNavCourse(course: PublicCourse): NavCourse {
   return {
+    id: course.id,
     slug: course.slug,
     titleEn: course.titleEn,
     titleMl: course.titleMl,

@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { MapPin, Phone, MessageCircle } from "lucide-react";
-import { EnquiryForm } from "@/components/shared/EnquiryForm";
+import { ArrowUpRight, MapPin, Phone, MessageCircle } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
-import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { useEnquiryModal } from "@/components/enquiry/EnquiryModal";
 import { siteConfig } from "@/lib/site";
 import type { PublicCourse } from "@/lib/courses";
 import type { SiteSettings } from "@prisma/client";
@@ -21,7 +19,8 @@ interface ContactSectionProps {
     | "linkedinUrl"
     | "googleReviewsUrl"
   >;
-  courses: PublicCourse[];
+  /** No longer used here: the shared enquiry modal gets courses from the layout. */
+  courses?: PublicCourse[];
 }
 
 const socialIcons: Record<
@@ -50,63 +49,9 @@ const socialIcons: Record<
   },
 };
 
-function useCloseOnEscape(onClose: () => void) {
-  useEffect(() => {
-    function handler(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
-}
-
-function ModalOverlay({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  useCloseOnEscape(onClose);
-  const containerRef = useFocusTrap(true);
-
-  return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Enquiry form"
-    >
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-background p-6 shadow-xl">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          aria-label="Close"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            className="h-5 w-5"
-          >
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-export function ContactSection({ settings, courses }: ContactSectionProps) {
+export function ContactSection({ settings }: ContactSectionProps) {
   const t = useTranslations("contact");
-  const [showEnquiry, setShowEnquiry] = useState(false);
+  const { openEnquiry } = useEnquiryModal();
 
   const socialLinks = [
     { url: settings.facebookUrl, key: "facebook" },
@@ -126,7 +71,11 @@ export function ContactSection({ settings, courses }: ContactSectionProps) {
 
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
           {settings.mapEmbedUrl && (
-            <Reveal x={-30} y={0} className="overflow-hidden rounded-2xl border shadow-md">
+            <Reveal
+              x={-30}
+              y={0}
+              className="overflow-hidden rounded-2xl border shadow-md"
+            >
               <iframe
                 title="G-TEC Thodupuzha location"
                 src={settings.mapEmbedUrl}
@@ -149,12 +98,15 @@ export function ContactSection({ settings, courses }: ContactSectionProps) {
           >
             <div>
               <h3 className="text-2xl font-bold tracking-tight">
-                G-TEC <span className="text-primary">{siteConfig.centreName}</span>
+                G-TEC{" "}
+                <span className="text-primary">{siteConfig.centreName}</span>
               </h3>
               {settings.address && (
                 <div className="mt-2 flex items-start gap-2 text-muted-foreground">
                   <MapPin className="mt-0.5 size-4 shrink-0" />
-                  <span className="text-sm leading-relaxed">{settings.address}</span>
+                  <span className="text-sm leading-relaxed">
+                    {settings.address}
+                  </span>
                 </div>
               )}
             </div>
@@ -223,20 +175,17 @@ export function ContactSection({ settings, courses }: ContactSectionProps) {
             <div>
               <button
                 type="button"
-                onClick={() => setShowEnquiry(true)}
-                className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
+                onClick={() => openEnquiry({ source: "contact_page" })}
+                className="group inline-flex items-center gap-3 rounded-full bg-[#0B1220] py-2 pl-6 pr-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-black active:scale-[0.98]"
               >
                 {t("sendMessage")}
+                <span className="flex size-9 items-center justify-center rounded-full bg-[#1753DA] transition-transform group-hover:scale-105">
+                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                </span>
               </button>
             </div>
           </Reveal>
         </div>
-
-        {showEnquiry && (
-          <ModalOverlay onClose={() => setShowEnquiry(false)}>
-            <EnquiryForm source="contact_page" courses={courses} />
-          </ModalOverlay>
-        )}
       </div>
     </section>
   );
