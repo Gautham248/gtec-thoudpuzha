@@ -18,7 +18,7 @@ describe("FeaturedCoursesSection", () => {
       careerOutcomesMl: null,
       coverImageUrl: null,
       featured: true,
-      category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി" },
+      category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
       contentBlocks: null,
     },
     {
@@ -34,7 +34,7 @@ describe("FeaturedCoursesSection", () => {
       careerOutcomesMl: null,
       coverImageUrl: null,
       featured: true,
-      category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി" },
+      category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
       contentBlocks: null,
     },
   ];

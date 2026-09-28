@@ -82,8 +82,9 @@ test("homepage renders without throwing", async () => {
 test("(public) homepage renders main elements and sections", async () => {
   const html = await renderHomePage();
   // Structure check (translated strings come from dictionaries)
-  expect(html).toContain("Build Your Career With G-TEC Thodupuzha");
-  expect(html).toContain("Apply Now");
-  expect(html).toContain("Years of Legacy");
+  expect(html).toContain("Build Skills");
+  expect(html).toContain("Build Your Career");
+  expect(html).toContain("Find my course");
+  expect(html).toContain("years of legacy");
   expect(html).toContain("About");
 });

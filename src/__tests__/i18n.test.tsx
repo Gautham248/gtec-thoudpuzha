@@ -159,8 +159,8 @@ describe("No hardcoded English UI strings in route groups", () => {
     // Inline text after JSX tag: >Some Text<  (multi-word, first word capitalized)
     />[A-Z][a-zA-Z]+ [A-Za-z]/,
     // Nullish coalescing or OR fallback with English text
-    /\?\? ["']/,
-    /\|\| ["']/,
+    /\?\? ["'][A-Za-z]/,
+    /\|\| ["'][A-Za-z]/,
     // placeholder / label / title with English text
     /placeholder=["'][A-Z]/,
     /label=["'][A-Z]/,

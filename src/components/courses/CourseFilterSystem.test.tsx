@@ -23,7 +23,7 @@ describe("CourseFilterSystem helpers", () => {
     careerOutcomesMl: null,
     coverImageUrl: null,
     featured: true,
-    category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി" },
+    category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
     contentBlocks: null,
   };
 
@@ -40,7 +40,7 @@ describe("CourseFilterSystem helpers", () => {
     careerOutcomesMl: null,
     coverImageUrl: null,
     featured: true,
-    category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി" },
+    category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
     contentBlocks: null,
   };
 
@@ -57,7 +57,7 @@ describe("CourseFilterSystem helpers", () => {
     careerOutcomesMl: null,
     coverImageUrl: null,
     featured: false,
-    category: { id: "cat-2", nameEn: "Accounting & Finance", nameMl: "അക്കൗണ്ടിംഗ്" },
+    category: { id: "cat-2", nameEn: "Accounting & Finance", nameMl: "അക്കൗണ്ടിംഗ്", sortOrder: 0 },
     contentBlocks: null,
   };
 
@@ -78,6 +78,7 @@ describe("CourseFilterSystem helpers", () => {
       id: "cat-4",
       nameEn: "Language & Communications",
       nameMl: "ഭാഷ & കമ്മ്യൂണിക്കേഷൻ",
+      sortOrder: 0,
     },
     contentBlocks: null,
   };
@@ -95,7 +96,7 @@ describe("CourseFilterSystem helpers", () => {
     careerOutcomesMl: null,
     coverImageUrl: null,
     featured: true,
-    category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി" },
+    category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
     contentBlocks: null,
   };
 
@@ -116,6 +117,7 @@ describe("CourseFilterSystem helpers", () => {
       id: "cat-4",
       nameEn: "Language & Communications",
       nameMl: "ഭാഷ & കമ്മ്യൂണിക്കേഷൻ",
+      sortOrder: 0,
     },
     contentBlocks: null,
   };

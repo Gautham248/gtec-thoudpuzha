@@ -78,7 +78,7 @@ export default async function HomePage({ params }: HomePageProps) {
       <StudentStoriesSection />
 
       {/* 4. "Featured Courses" / "GTEC at glance" (Figma #1:150, #1:147, #1:175) */}
-      <FeaturedCoursesSection />
+      <FeaturedCoursesSection courses={courses} locale={locale} />
 
       {/* 5. "Our Partners" Certification Strip (Figma #1:148, #1:221) */}
       <CertificationPartnerStrip

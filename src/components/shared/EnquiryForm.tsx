@@ -17,6 +17,10 @@ type EnquiryFormProps = {
   variant?: "card" | "bare";
   /** Hide the built-in heading when the container already provides one. */
   hideHeading?: boolean;
+  /** Override the built-in heading text. */
+  customTitle?: string;
+  /** Override the built-in heading description. */
+  customSubtitle?: string;
   /** Called after a successful submission. */
   onSuccess?: () => void;
 };
@@ -48,6 +52,8 @@ export function EnquiryForm({
   variant = "card",
   hideHeading = false,
   onSuccess,
+  customTitle,
+  customSubtitle,
 }: EnquiryFormProps) {
   const t = useTranslations("enquiry");
   const initialCourse =
@@ -152,9 +158,11 @@ export function EnquiryForm({
       {!hideHeading && (
         <div>
           <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[#111827]">
-            {t("heading")}
+            {customTitle ?? t("heading")}
           </h2>
-          <p className="mt-1 text-sm text-[#667085]">{t("description")}</p>
+          <p className="mt-1 text-sm text-[#667085]">
+            {customSubtitle ?? t("description")}
+          </p>
         </div>
       )}
 

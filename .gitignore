@@ -48,3 +48,7 @@ graphify-out/
 # Local Netlify folder
 .netlify
 .dev-agent/
+
+# playwright artifacts
+test-results/
+playwright-report/
