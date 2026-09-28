@@ -1,209 +1,246 @@
 import Image from "next/image";
 import {
+  PhoneCall,
+  ArrowUpRight,
   Clock,
+  ChartNoAxesColumn,
+  Monitor,
   Award,
-  GraduationCap,
-  Sparkles,
-  ArrowRight,
   ShieldCheck,
-  CheckCircle2,
-  BookOpen,
 } from "lucide-react";
-import { WhatsAppIcon } from "@/components/shared/icons/WhatsAppIcon";
-import type { CourseWithCategory } from "@/lib/courses";
-import { getCourseFallbackImage, getMediaUrl } from "@/lib/media";
-import { deriveCourseLevel } from "@/lib/course-detail-helpers";
+import { Link } from "@/lib/i18n/navigation";
+import { siteConfig } from "@/lib/site";
+import { getMediaUrl } from "@/lib/media";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/Reveal";
+import { EnquiryButton } from "@/components/enquiry/EnquiryModal";
 
 interface CourseHeroProps {
-  course: CourseWithCategory;
-  locale: string;
-  tagline?: string | null;
-  whatsappNumber?: string | null;
+  title: string;
+  description: string | null;
+  categoryName: string | null;
+  durationText: string | null;
+  certificationName: string | null;
+  coverImageUrl: string | null;
+  /** Preselects this course in the enquiry modal. */
+  courseId?: string;
 }
 
 export function CourseHero({
-  course,
-  locale,
-  tagline,
-  whatsappNumber = "919744221113",
+  title,
+  description,
+  categoryName,
+  durationText,
+  certificationName,
+  coverImageUrl,
+  courseId,
 }: CourseHeroProps) {
-  const isMl = locale === "ml";
-  const title = isMl && course.titleMl ? course.titleMl : course.titleEn;
-  const description = tagline || (isMl && course.descriptionMl ? course.descriptionMl : course.descriptionEn);
-  const categoryName = isMl && course.category?.nameMl ? course.category.nameMl : course.category?.nameEn || (isMl ? "പ്രൊഫഷണൽ കോഴ്സ്" : "Professional Course");
-  
-  const duration = course.durationText || (isMl ? "3-6 മാസം" : "3–6 Months");
-  const level = isMl ? (deriveCourseLevel(course).includes("Advanced") ? "തുടക്കക്കാർ & അഡ്വാൻസ്ഡ്" : "തുടക്കക്കാർക്കായി") : deriveCourseLevel(course);
-  const certText = course.certifications && course.certifications.length > 0
-    ? course.certifications[0]
-    : "G-TEC Global";
-
-  const imageSrc = course.coverImageUrl
-    ? getMediaUrl(course.coverImageUrl)
-    : getCourseFallbackImage(course.slug, course.category?.nameEn);
-
-  const cleanPhone = (whatsappNumber || "919744221113").replace(/\D/g, "");
-  const whatsappMsg = encodeURIComponent(
-    `Hello G-TEC Thodupuzha, I would like to know more about admission for the course: ${course.titleEn}.`
-  );
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${whatsappMsg}`;
+  const image = coverImageUrl
+    ? getMediaUrl(coverImageUrl)
+    : "/images/figma/legacy-students-62c433.png";
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-primary/8 via-background to-muted/40 p-6 sm:p-8 lg:p-12 shadow-sm">
-      {/* Background subtle glow decorations */}
-      <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true" />
+    <section className="relative w-full">
+      {/* Blue gradient hero (Figma #9:5). The floating header overlays its top. */}
+      <div className="relative w-full overflow-hidden rounded-b-[40px] bg-linear-to-b from-[#1759CF] from-[6.49%] to-[#0A2B68] text-white sm:rounded-b-[56px] lg:rounded-b-[80px]">
+        <CourseHeroBackdrop />
 
-      <div className="relative grid gap-8 lg:grid-cols-12 lg:gap-10 items-center">
-        {/* Left Column (Hero Content) */}
-        <div className="space-y-6 lg:col-span-7">
-          {/* Category Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1 text-xs sm:text-sm font-bold tracking-wider text-primary uppercase shadow-2xs">
-            <Sparkles className="size-3.5 text-amber-500 shrink-0" />
-            <span>{categoryName}</span>
-          </div>
-
-          {/* Course Main Title */}
-          <h1 className="text-3xl sm:text-4xl lg:text-[44px] xl:text-[50px] font-black tracking-tight text-foreground leading-[1.15] break-words">
-            {title}
-          </h1>
-
-          {/* Short Description */}
-          {description && (
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl break-words">
-              {description}
-            </p>
-          )}
-
-          {/* Metadata Badges Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Clock className="size-4.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "കാലാവധി" : "Duration"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {duration}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <GraduationCap className="size-4.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "ലെവൽ" : "Level"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {level}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <BookOpen className="size-4.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "രീതി" : "Mode"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {isMl ? "ലാബ് & തിയറി" : "Hands-On Lab"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/80 p-2.5 sm:p-3 shadow-2xs">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Award className="size-4.5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {isMl ? "സർട്ടിഫിക്കറ്റ്" : "Certificate"}
-                </span>
-                <span className="block text-xs sm:text-sm font-bold text-foreground truncate">
-                  {certText}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-3.5 pt-2">
-            <a
-              href="#admission-enquiry"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm sm:text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 sm:pt-36 sm:pb-28 lg:px-8 lg:pt-[172px] lg:pb-[148px]">
+          {/* Breadcrumb */}
+          <Reveal y={12} duration={0.5}>
+            <nav
+              aria-label="Breadcrumb"
+              className="flex flex-wrap items-center gap-1.5 text-[13px] text-white/60"
             >
-              <span>{isMl ? "ഇപ്പോൾ അഡ്മിഷൻ നേടൂ" : "Enroll Now"}</span>
-              <ArrowRight className="size-4.5" />
-            </a>
+              <Link
+                href="/courses"
+                className="transition-colors hover:text-white"
+              >
+                Courses
+              </Link>
+              {categoryName && (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <span>{categoryName}</span>
+                </>
+              )}
+              <span aria-hidden="true">/</span>
+              <span
+                aria-current="page"
+                className="font-semibold uppercase text-white"
+              >
+                {title}
+              </span>
+            </nav>
+          </Reveal>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-3.5 text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-300 transition-all hover:bg-emerald-500/20 hover:border-emerald-500/50 hover:-translate-y-0.5"
-            >
-              <WhatsAppIcon className="size-4.5" />
-              <span>{isMl ? "വാട്സ്ആപ്പിൽ ചോദിക്കൂ" : "WhatsApp Us"}</span>
-            </a>
-          </div>
+          <div className="mt-6 grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-12 xl:gap-16">
+            {/* Left column */}
+            <RevealGroup stagger={0.09} className="flex flex-col items-start">
+              {/* Category / duration pills */}
+              {(categoryName || durationText) && (
+                <RevealItem className="flex flex-wrap items-center gap-3">
+                  {categoryName && (
+                    <span className="inline-flex h-[26px] items-center rounded-full bg-[rgba(237,237,237,0.2)] px-2.5 text-sm font-semibold tracking-[-0.06em] text-white sm:text-[15.5px]">
+                      {categoryName}
+                    </span>
+                  )}
+                  {durationText && (
+                    <span className="inline-flex h-[26px] items-center rounded-full bg-[rgba(237,237,237,0.2)] px-2.5 text-sm font-semibold tracking-[-0.06em] text-white sm:text-[15.5px]">
+                      {durationText}
+                    </span>
+                  )}
+                </RevealItem>
+              )}
 
-          {/* Trust Value Strip */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2 text-xs sm:text-sm font-semibold text-muted-foreground">
-            <div className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{isMl ? "100% പ്ലേസ്‌മെന്റ് പിന്തുണ" : "100% Placement Assistance"}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-primary shrink-0" />
-              <span>{isMl ? "ഐഎസ്ഒ 9001:2015 അംഗീകാരം" : "ISO 9001:2015 Certified"}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <Sparkles className="size-4 text-amber-500 shrink-0" />
-              <span>{isMl ? "ഫ്ലെക്സിബിൾ ബാച്ച് സമയം" : "Flexible Batch Timings"}</span>
-            </div>
-          </div>
-        </div>
+              <RevealItem>
+                <h1 className="mt-7 max-w-[720px] break-words text-4xl font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-5xl lg:text-[56px]">
+                  {title}
+                </h1>
+              </RevealItem>
 
-        {/* Right Column (Hero Visual Card) */}
-        <div className="lg:col-span-5">
-          <div className="relative group overflow-hidden rounded-2xl border border-border/80 bg-card p-2.5 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-primary/40">
-            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden rounded-xl bg-muted">
-              <Image
-                src={imageSrc}
-                alt={title}
-                fill
-                priority
-                unoptimized={imageSrc.startsWith("/api/media/")}
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 45vw, 400px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              {description && (
+                <RevealItem>
+                  <p className="mt-5 max-w-[680px] break-words text-base font-light leading-[1.5] tracking-[-0.02em] text-white/80 sm:text-lg">
+                    {description}
+                  </p>
+                </RevealItem>
+              )}
 
-              {/* Floating Top Badge */}
-              <div className="absolute top-3.5 left-3.5 inline-flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur-md border border-border/60 px-3 py-1 text-xs font-bold text-foreground shadow-sm">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{isMl ? "അഡ്മിഷൻ ആരംഭിച്ചു" : "Admissions Open 2025-26"}</span>
+              {/* Quick facts */}
+              <RevealItem className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm font-semibold text-white sm:text-[15px]">
+                {durationText && (
+                  <span className="flex items-center gap-2">
+                    <Clock className="size-[18px]" aria-hidden="true" />
+                    {durationText}
+                  </span>
+                )}
+                <span className="flex items-center gap-2">
+                  <ChartNoAxesColumn
+                    className="size-[18px]"
+                    aria-hidden="true"
+                  />
+                  Beginner to Advanced
+                </span>
+                <span className="flex items-center gap-2">
+                  <Monitor className="size-[18px]" aria-hidden="true" />
+                  Hands-On Lab
+                </span>
+                {certificationName && (
+                  <span className="flex items-center gap-2 uppercase">
+                    <Award className="size-[18px]" aria-hidden="true" />
+                    {certificationName}
+                  </span>
+                )}
+              </RevealItem>
+            </RevealGroup>
+
+            {/* Right column: cover image (Figma #9:43) */}
+            <Reveal x={30} y={0} delay={0.15} duration={0.7}>
+              <div className="relative aspect-440/360 w-full overflow-hidden rounded-[24px] shadow-2xl">
+                <Image
+                  src={image}
+                  alt={title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 440px"
+                  className="object-cover"
+                  priority
+                />
+                <span className="absolute left-4 top-4 inline-flex items-center rounded-[18px] bg-linear-to-r from-[#D1D1D1] via-[#8D8D8D] to-[#DFDFDF] px-3.5 py-2 text-xs font-bold tracking-[-0.02em] text-black">
+                  Admissions Open 2025-26
+                </span>
               </div>
-
-              {/* Bottom Card Overlay Details */}
-              <div className="absolute bottom-3.5 inset-x-3.5 text-white">
-                <div className="flex items-center justify-between text-xs font-semibold bg-black/40 backdrop-blur-md rounded-lg px-3 py-2 border border-white/10">
-                  <span>{isMl ? "പ്രാക്ടിക്കൽ ലാബ് ട്രെയിനിംഗ്" : "Hands-On Lab Training"}</span>
-                  <span className="text-amber-400 font-bold">{duration}</span>
-                </div>
-              </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </div>
+
+      {/* Overlapping CTA card (Figma #9:18) */}
+      <div className="relative z-20 mx-auto -mt-16 max-w-7xl px-4 sm:-mt-20 sm:px-6 lg:-mt-[110px] lg:px-8">
+        <Reveal y={24} delay={0.25}>
+          <div className="flex flex-col items-center justify-between gap-5 rounded-[30px] bg-white px-5 py-5 shadow-[9px_8px_25px_rgba(0,0,0,0.06)] sm:px-8 sm:py-6 lg:min-h-[110px] lg:flex-row">
+            <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4 lg:w-auto">
+              <EnquiryButton
+                courseId={courseId}
+                source="course-hero"
+                className="group flex items-center justify-between gap-2.5 rounded-full bg-[#0B1220] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-black active:scale-[0.98] sm:justify-center sm:text-lg"
+              >
+                <span>Enroll Now</span>
+                <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] transition-transform group-hover:scale-105">
+                  <ArrowUpRight className="size-5" aria-hidden="true" />
+                </span>
+              </EnquiryButton>
+              <a
+                href={`https://wa.me/${siteConfig.whatsappNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-between gap-2.5 rounded-full bg-[#2EB700] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-[#28a100] active:scale-[0.98] sm:justify-center sm:text-lg"
+              >
+                <span>WhatsApp Us</span>
+                <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded-full bg-[#067914] transition-transform group-hover:scale-105">
+                  <PhoneCall className="size-5" aria-hidden="true" />
+                </span>
+              </a>
+            </div>
+
+            {/* Trust strip */}
+            <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm font-semibold text-[#374151]">
+              <li className="flex items-center gap-2">
+                <ShieldCheck
+                  className="size-5 text-[#1753DA]"
+                  aria-hidden="true"
+                />
+                100% Placement Assistance
+              </li>
+              <li className="flex items-center gap-2">
+                <ShieldCheck
+                  className="size-5 text-[#1753DA]"
+                  aria-hidden="true"
+                />
+                ISO 9001:2015 Certified
+              </li>
+              <li className="flex items-center gap-2">
+                <Clock className="size-5 text-[#1753DA]" aria-hidden="true" />
+                Flexible Batch Timings
+              </li>
+            </ul>
+          </div>
+        </Reveal>
+      </div>
     </section>
+  );
+}
+
+/** Decorative layers shared by the course hero and the courses listing hero. */
+export function CourseHeroBackdrop() {
+  return (
+    <>
+      {/* Faded classroom photo (Figma #9:6, image 21) */}
+      <div
+        className="pointer-events-none absolute -left-4 top-0 aspect-735/935 w-[101%] -translate-y-[20.6%] opacity-[0.06]"
+        aria-hidden="true"
+      >
+        <Image
+          src="/images/figma/course-hero-photo.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+
+      {/* Geometric pattern, rotated −90° as in Figma (#9:7, image 7) */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[44%] aspect-819/1024 w-[max(82%,1185px)] -translate-x-1/2 -translate-y-1/2 -rotate-90 opacity-[0.08]"
+        aria-hidden="true"
+      >
+        <Image
+          src="/images/figma/course-hero-pattern.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+    </>
   );
 }

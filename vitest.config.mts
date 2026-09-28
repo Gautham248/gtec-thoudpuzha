@@ -18,5 +18,10 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: ["node_modules/**", "tests/e2e/**"],
+    server: {
+      deps: {
+        inline: ["next-intl"],
+      },
+    },
   },
 });

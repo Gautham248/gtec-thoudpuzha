@@ -4,15 +4,18 @@ import { Footer } from "@/components/shared/Footer";
 import { getCachedSiteSettings } from "@/lib/data-cache";
 import { getCachedPublishedCourses } from "@/lib/data-cache";
 import { logger } from "@/lib/logger";
+import { toNavCourse } from "@/lib/nav-courses";
+import { EnquiryModalProvider } from "@/components/enquiry/EnquiryModal";
 
 export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let settings: import("@/lib/site-settings").SiteSettingsWithCards | undefined;
+  let address: string | null | undefined;
   try {
-    settings = await getCachedSiteSettings();
+    const settings = await getCachedSiteSettings();
+    address = settings.address;
   } catch {
     logger.warn("public-layout", "Failed to load SiteSettings", {
       source: "getCachedSiteSettings",
@@ -20,26 +23,25 @@ export default async function PublicLayout({
   }
 
   const courses = await getCachedPublishedCourses()
-    .then((c) =>
-      c.map(({ slug, titleEn, titleMl }) => ({
-        slug,
-        titleEn,
-        titleMl,
-      })),
-    )
+    .then((c) => c.map(toNavCourse))
     .catch((err) => {
-      logger.exception("public-layout", "Failed to load published courses", err);
+      logger.exception(
+        "public-layout",
+        "Failed to load published courses",
+        err,
+      );
       return [];
     });
-
   return (
-    <div className="relative min-h-screen w-full flex flex-col">
-      <Header courses={courses} />
-      <FlashNewsBar />
-      <div className="flex-1 w-full max-w-full overflow-x-hidden">
-        {children}
+    <EnquiryModalProvider courses={courses}>
+      <div className="relative min-h-screen w-full flex flex-col">
+        <FlashNewsBar />
+        <Header courses={courses} />
+        <div className="flex-1 w-full max-w-full overflow-x-hidden">
+          {children}
+        </div>
+        <Footer address={address} />
       </div>
-      <Footer settings={settings} address={settings?.address} />
-    </div>
+    </EnquiryModalProvider>
   );
 }

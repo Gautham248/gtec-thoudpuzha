@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -19,6 +19,13 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
+});
+
+const sora = Sora({
+  variable: "--font-sora",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 const APP_NAME = "GTEC Thodupuzha";
@@ -74,10 +81,11 @@ export default async function LocaleLayout({
       afterSignOutUrl={`/${locale}`}
     >
       <html
+        suppressHydrationWarning
         lang={locale}
-        className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased max-w-full overflow-x-clip`}
+        className={`${inter.variable} ${jetbrainsMono.variable} ${sora.variable} h-full antialiased max-w-full overflow-x-clip`}
       >
-        <body className="min-h-full flex flex-col w-full max-w-full overflow-x-clip relative">
+        <body className="min-h-full flex flex-col w-full max-w-full overflow-x-clip relative font-sora">
           <Preloader />
           <PWARegistry>
             <NextIntlClientProvider locale={locale} messages={messages}>

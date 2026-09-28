@@ -1,106 +1,196 @@
+"use client";
+
 import Link from "next/link";
-import { MessageCircle, Phone, ArrowRight, ShieldCheck, Award, GraduationCap, CheckCircle2 } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { motion, type Variants } from "framer-motion";
+import { ArrowUpRight, MessageCircle, Phone } from "lucide-react";
 import { siteConfig } from "@/lib/site";
+import { EASE_OUT } from "@/components/motion/Reveal";
 
 interface HeroSectionProps {
   t: {
-    badge: string;
-    headline: string;
-    subhead: string;
-    applyNow: string;
-    whatsappUs: string;
-    callNow: string;
+    badge?: string;
+    headline?: string;
+    subhead?: string;
+    applyNow?: string;
+    whatsappUs?: string;
+    callNow?: string;
   };
 }
 
-const trustHighlights = [
-  { text: "25+ Years Global Legacy", icon: Award },
-  { text: "ISO 9001:2015 Certified", icon: ShieldCheck },
-  { text: "100% Placement Assistance", icon: GraduationCap },
-  { text: "Globally Recognized", icon: CheckCircle2 },
-];
+const copy: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
+};
+
+const copyItem: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE_OUT } },
+};
 
 export function HeroSection({ t }: HeroSectionProps) {
   return (
-    <div className="flex flex-col justify-center gap-6 sm:gap-8 py-2 sm:py-4">
-      {/* Premium Badge with Live Pulse */}
-      <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/25 bg-primary/8 px-4 py-2 text-sm font-bold text-primary shadow-2xs backdrop-blur-sm w-fit transition-colors hover:bg-primary/12">
-        <span className="relative flex size-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-          <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
-        </span>
-        <span className="tracking-wider uppercase font-extrabold text-sm">
-          {t.badge}
-        </span>
-      </div>
+    // Dark backing so the hero's rounded bottom corners blend into the next section.
+    <div className="w-full bg-[#121926]">
+      <section
+        aria-label="Admissions"
+        className="relative isolate w-full overflow-hidden rounded-b-[28px] bg-[#0B57D0] text-white shadow-2xl sm:rounded-b-[40px] lg:rounded-b-[56px]"
+      >
+        {/* ── SUBTLE GEOMETRIC TRIANGLE PATTERN OVERLAY (#1:73) ── sits above the bands (z-0) */}
+        <div
+          className="pointer-events-none absolute inset-0 z-1 bg-cover bg-center opacity-25 mix-blend-overlay"
+          style={{ backgroundImage: `url('/images/figma/hero-bg.png')` }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-0 z-1 bg-[radial-gradient(circle_at_-44%_8%,rgba(0,0,0,0.35)_52%,rgba(0,0,0,0)_100%)]"
+          aria-hidden="true"
+        />
 
-      {/* Main Impact Headline */}
-      <h1 className="max-w-2xl text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-[1.18]">
-        {t.headline}
-      </h1>
+        {/* ── SOFT LIGHT BEAMS (Figma #1:113, #1:114) ── */}
+        <div
+          className="pointer-events-none absolute left-[22%] -top-[14%] z-1 h-[148%] w-[39%] bg-white/10 blur-[160px]"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[68%] -top-[24%] z-1 h-[148%] w-[39%] bg-white/5 blur-[160px]"
+          aria-hidden="true"
+        />
 
-      {/* Subhead narrative */}
-      <p className="max-w-xl text-base sm:text-lg leading-relaxed text-muted-foreground font-normal">
-        {t.subhead}
-      </p>
+        {/* No z-index on the wrappers below, so the bands / photo / copy layer
+            against the pattern overlay inside the section's stacking context. */}
+        <div className="relative mx-auto grid max-w-7xl grid-cols-1 px-4 sm:px-6 lg:min-h-[max(720px,min(100svh,62vw))] lg:grid-cols-12 lg:gap-8 lg:px-8">
+          {/* Left Column: Headings & Call to Actions */}
+          <motion.div
+            variants={copy}
+            initial="hidden"
+            animate="show"
+            className="relative z-10 flex flex-col items-start gap-5 pt-32 pb-10 sm:pt-36 lg:col-span-7 lg:justify-center lg:gap-6 lg:pt-32 lg:pb-24"
+          >
+            {/* Admission Badge (Figma #1:133) */}
+            <motion.div
+              variants={copyItem}
+              className="inline-flex items-center rounded-full bg-linear-to-r from-[#9A9A9A] via-[#E8E8E8] to-[#DFDFDF] px-4 py-1.5 shadow-sm"
+            >
+              <span className="text-xs font-semibold uppercase tracking-tight text-black sm:text-sm">
+                {t.badge}
+              </span>
+            </motion.div>
 
-      {/* Action CTA Button Cluster */}
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-1">
-        <Link
-          href="#enquiry"
-          className={cn(
-            buttonVariants({ size: "lg" }),
-            "relative w-full sm:w-auto justify-center rounded-2xl bg-primary text-primary-foreground font-bold text-sm sm:text-base px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 group overflow-hidden"
-          )}
-        >
-          <span>{t.applyNow}</span>
-          <ArrowRight className="ml-2 size-4.5 transition-transform group-hover:translate-x-1" />
-          <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-        </Link>
-        <a
-          href={`https://wa.me/${siteConfig.whatsappNumber}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            buttonVariants({ size: "lg" }),
-            "w-full sm:w-auto justify-center rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base px-5 py-3 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
-          )}
-        >
-          <MessageCircle className="mr-2 size-4.5" />
-          {t.whatsappUs}
-        </a>
-        <a
-          href={`tel:${siteConfig.phoneNumber.replace(/[^0-9+]/g, "")}`}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "lg" }),
-            "w-full sm:w-auto justify-center rounded-2xl border-border/80 bg-background/80 hover:bg-muted/80 text-foreground font-bold text-sm sm:text-base px-5 py-3 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
-          )}
-        >
-          <Phone className="mr-2 size-4.5 text-muted-foreground" />
-          {t.callNow}
-        </a>
-      </div>
+            {/* Main Headline (Figma #1:110, #1:111) */}
+            <motion.h1
+              variants={copyItem}
+              className="text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.06em] text-white sm:text-6xl lg:text-[3.5rem] xl:text-[4.25rem]"
+            >
+              {t.headline}
+            </motion.h1>
 
-      {/* Trust Highlights Strip */}
-      <div className="pt-4 border-t border-border/60">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          {trustHighlights.map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={idx}
-                className="flex items-center gap-2.5 text-sm font-semibold text-muted-foreground"
+            {/* Subhead (Figma #1:112) */}
+            <motion.p
+              variants={copyItem}
+              className="max-w-xl text-base font-light leading-snug tracking-[-0.04em] text-white/95 sm:text-xl lg:text-[1.4rem]"
+            >
+              {t.subhead}
+            </motion.p>
+
+            {/* Gradient Divider Line (Figma #1:116) */}
+            <motion.div
+              variants={copyItem}
+              className="h-px w-full max-w-md bg-linear-to-r from-white/70 via-white/40 to-transparent"
+            />
+
+            {/* Action Buttons (Figma #1:100, #1:105) */}
+            <motion.div
+              variants={copyItem}
+              className="flex w-full flex-row items-center gap-2.5 sm:w-auto sm:gap-4"
+            >
+              <Link
+                href="#enquiry"
+                className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-[#0B1220] py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl transition-all hover:bg-black active:scale-[0.98] sm:justify-start sm:text-base"
               >
-                <Icon className="size-4.5 text-primary shrink-0" />
-                <span className="truncate">{item.text}</span>
-              </div>
-            );
-          })}
+                <span className="min-w-0 truncate">{t.applyNow}</span>
+                <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white shadow-sm transition-transform group-hover:scale-105">
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+              </Link>
+
+              <a
+                href={`https://wa.me/${siteConfig.whatsappNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-[#2EB700] py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl transition-all hover:bg-[#28a100] active:scale-[0.98] sm:justify-start sm:text-base"
+              >
+                <span className="min-w-0 truncate">{t.whatsappUs}</span>
+                <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-[#067914] text-white shadow-sm transition-transform group-hover:scale-105">
+                  <MessageCircle className="h-4 w-4" />
+                </span>
+              </a>
+
+              <a
+                href={`tel:${siteConfig.phoneNumber.replace(/[^0-9+]/g, "")}`}
+                className="group flex items-center min-w-0 flex-1 justify-between gap-2 whitespace-nowrap rounded-full bg-white/15 py-1.5 pl-4 pr-1.5 text-[13px] sm:flex-none sm:gap-6 sm:py-2 sm:pl-6 sm:pr-2 font-semibold text-white shadow-xl backdrop-blur-sm transition-all hover:bg-white/25 active:scale-[0.98] sm:justify-start sm:text-base"
+              >
+                <span className="min-w-0 truncate">{t.callNow}</span>
+                <span className="flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white shadow-sm transition-transform group-hover:scale-105">
+                  <Phone className="h-4 w-4" />
+                </span>
+              </a>
+            </motion.div>
+          </motion.div>
+
+          {/* Right Column: photo pinned to the section floor, bands positioned relative to it */}
+          <div className="relative mx-auto aspect-square w-full max-w-[560px] lg:col-span-5 lg:mx-0 lg:aspect-auto lg:max-w-none">
+            <div className="absolute bottom-0 right-0 aspect-square w-full lg:w-[140%] xl:-right-[13%] xl:w-[156%]">
+              {/* Burgundy 45° bands (Figma #1:68–#1:72). Drawn in the 2000×1203
+                  Figma frame's coordinates, offset so the photo box lines up with
+                  where it sits in that frame; overflow is clipped by the section. */}
+              <motion.svg
+                className="pointer-events-none absolute z-0 overflow-visible"
+                style={{
+                  left: "-9%",
+                  top: "-13.8%",
+                  width: "189.2%",
+                  height: "113.8%",
+                }}
+                viewBox="0 0 2000 1203"
+                aria-hidden="true"
+                initial={{ opacity: 0, x: -60, y: 60 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 1, ease: EASE_OUT }}
+              >
+                <path
+                  d="M4935 -3000 L-1065 3000"
+                  stroke="#810000"
+                  strokeWidth={205}
+                />
+                <path
+                  d="M5305 -3000 L1690 615"
+                  stroke="#810000"
+                  strokeWidth={233}
+                  strokeLinecap="round"
+                />
+              </motion.svg>
+
+              {/* Student photo (Figma #1:122) */}
+              <motion.div
+                className="absolute inset-0 z-2"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.15, ease: EASE_OUT }}
+              >
+                <Image
+                  src="/images/figma/hero-person.png"
+                  alt=""
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 760px"
+                  className="object-contain object-bottom"
+                  priority
+                />
+              </motion.div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
-

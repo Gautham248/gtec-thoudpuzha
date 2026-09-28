@@ -132,7 +132,7 @@ export function CoursePageContent({
   );
 }
 
-function CourseListSection({ list }: { list: CourseListBlock }) {
+export function CourseListSection({ list }: { list: CourseListBlock }) {
   return (
     <div className="space-y-3">
       {list.heading && (
