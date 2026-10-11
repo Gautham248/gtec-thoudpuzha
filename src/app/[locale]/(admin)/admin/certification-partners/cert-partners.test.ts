@@ -2,6 +2,8 @@
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { renderToString } from "react-dom/server";
+import { db } from "@/db";
+import { resetMockDb, setMockRows } from "@/__tests__/drizzle-mock";
 import { createPartner as _createPartner, updatePartner as _updatePartner, deletePartner as _deletePartner, movePartner } from "./actions";
 
 /* ─── Hoisted mocks ─── */
@@ -39,6 +41,9 @@ vi.mock("@/lib/db", () => ({
     auditLogEntry: { create: mockAuditCreate },
   },
 }));
+
+// Public reads (the partner strip) go through Drizzle; admin actions still use Prisma.
+vi.mock("@/db", async () => (await import("@/__tests__/drizzle-mock")).mockDbModule());
 
 vi.mock("@/lib/audit", () => ({ logAdminAction: mockAuditCreate }));
 
@@ -109,10 +114,16 @@ const partnersInOrder = [
 describe("CertificationPartnerStrip rendering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetMockDb(db);
   });
 
   test("1. renders partners in sortOrder", async () => {
-    mockFindMany.mockResolvedValue(partnersInOrder);
+    // Seeded out of order: the query's orderBy must sort them.
+    setMockRows(db, "certificationPartner", [
+      partnersInOrder[2],
+      partnersInOrder[0],
+      partnersInOrder[1],
+    ]);
 
     const { CertificationPartnerStrip } = await import(
       "@/components/shared/CertificationPartnerStrip"
@@ -120,6 +131,7 @@ describe("CertificationPartnerStrip rendering", () => {
     const element = await CertificationPartnerStrip({ heading: "Our Certification Partners" });
     const html = renderToString(element);
 
+    expect(html).toContain("Adobe");
     const adobeIdx = html.indexOf("Adobe");
     const sapIdx = html.indexOf("SAP");
     const tallyIdx = html.indexOf("Tally");
@@ -128,7 +140,9 @@ describe("CertificationPartnerStrip rendering", () => {
   });
 
   test("2. partner with no link renders as non-clickable logo", async () => {
-    mockFindMany.mockResolvedValue(
+    setMockRows(
+      db,
+      "certificationPartner",
       partnersInOrder.filter((p) => p.id === "cp_2"),
     );
 

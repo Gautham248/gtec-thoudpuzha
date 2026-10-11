@@ -4,6 +4,8 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import { getPublishedCourses } from "@/lib/courses";
 import { createCourse, uploadCourseImage } from "@/app/[locale]/(admin)/admin/courses/actions";
 import { requireRole, Role } from "@/lib/auth";
+import { db } from "@/db";
+import { resetMockDb, setMockRows } from "@/__tests__/drizzle-mock";
 
 /* ─── Mock store ─── */
 type MockCourse = {
@@ -28,15 +30,6 @@ type MockCourse = {
 };
 
 let mockStore: MockCourse[] = [];
-
-const mockCourseFindMany = vi.hoisted(() =>
-  vi.fn().mockImplementation((args?: { where?: { status?: string } }) => {
-    if (args?.where?.status) {
-      return Promise.resolve(mockStore.filter((c) => c.status === args.where?.status));
-    }
-    return Promise.resolve(mockStore);
-  }),
-);
 
 const mockCourseCreate = vi.hoisted(() =>
   vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => {
@@ -76,7 +69,6 @@ const mockUserFindUnique = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db", () => ({
   prisma: {
     course: {
-      findMany: mockCourseFindMany,
       create: mockCourseCreate,
       update: mockCourseUpdate,
     },
@@ -88,6 +80,8 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+
+vi.mock("@/db", async () => (await import("@/__tests__/drizzle-mock")).mockDbModule());
 
 vi.mock("@/lib/audit", () => ({
   logAdminAction: mockLogAdminAction,
@@ -126,6 +120,7 @@ describe("getPublishedCourses", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore = [];
+    resetMockDb(db);
   });
 
   test("a DRAFT course is not returned by getPublishedCourses()", async () => {
@@ -150,6 +145,7 @@ describe("getPublishedCourses", () => {
       category: null,
     });
 
+    setMockRows(db, "course", mockStore);
     const result = await getPublishedCourses();
     expect(result).toHaveLength(0);
   });
@@ -176,6 +172,7 @@ describe("getPublishedCourses", () => {
       category: { id: "cat_1", nameEn: "IT", nameMl: null },
     });
 
+    setMockRows(db, "course", mockStore);
     const result = await getPublishedCourses();
 
     expect(result).toHaveLength(1);
@@ -184,6 +181,29 @@ describe("getPublishedCourses", () => {
     expect(result[0]).not.toHaveProperty("status");
     expect(result[0]).not.toHaveProperty("syllabus");
     expect(result[0].category?.nameEn).toBe("IT");
+  });
+
+  test("orders featured courses first, then newest", async () => {
+    const make = (slug: string, featured: boolean, day: number) => ({
+      id: slug, slug, titleEn: slug, status: "PUBLISHED", featured,
+      createdAt: new Date(2026, 0, day), certifications: [], category: null,
+    });
+    setMockRows(db, "course", [
+      make("old", false, 1),
+      make("new", false, 5),
+      make("featured-old", true, 2),
+    ]);
+
+    const result = await getPublishedCourses();
+
+    expect(result.map((c) => c.slug)).toEqual(["featured-old", "new", "old"]);
+  });
+
+  test("returns an empty list instead of throwing when the database fails", async () => {
+    const { failMockQuery } = await import("@/__tests__/drizzle-mock");
+    failMockQuery(db, "course");
+
+    await expect(getPublishedCourses()).resolves.toEqual([]);
   });
 });
 

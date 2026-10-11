@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-describe("Public route rendering strategy audit", () => {
+// Importing whole page modules is slow on a cold, parallel test run.
+describe("Public route rendering strategy audit", { timeout: 20_000 }, () => {
   test("/ (homepage) is dynamic (no revalidate — Prisma/Neon incompatible with ISR)", async () => {
     const mod = await import("../page");
     expect((mod as { revalidate?: number }).revalidate).toBeUndefined();

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { logger } from "@/lib/logger";
 import { routing } from "@/lib/i18n/routing";
 
@@ -42,13 +42,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const [courses, news] = await Promise.all([
-      prisma.course.findMany({
-        where: { status: "PUBLISHED" },
-        select: { slug: true, updatedAt: true },
+      db.query.course.findMany({
+        where: (c, { eq }) => eq(c.status, "PUBLISHED"),
+        columns: { slug: true, updatedAt: true },
       }),
-      prisma.newsEvent.findMany({
-        where: { publishedAt: { not: null } },
-        select: { slug: true, updatedAt: true },
+      db.query.newsEvent.findMany({
+        where: (n, { isNotNull }) => isNotNull(n.publishedAt),
+        columns: { slug: true, updatedAt: true },
       }),
     ]);
 

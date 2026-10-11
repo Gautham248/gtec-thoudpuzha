@@ -1,57 +1,56 @@
-import { describe, expect, test, vi } from "vitest";
-import { renderToString as _renderToString } from "react-dom/server";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { resetMockDb, setMockRows } from "@/__tests__/drizzle-mock";
 
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
+vi.mock("@/db", async () => (await import("@/__tests__/drizzle-mock")).mockDbModule());
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    newsEvent: {
-      findMany: mockFindMany,
-      findFirst: mockFindFirst,
-    },
-  },
-}));
+const DAY = 24 * 60 * 60 * 1000;
+const daysFromNow = (n: number) => new Date(Date.now() + n * DAY);
+
+function item(
+  slug: string,
+  type: "NEWS" | "EVENT",
+  publishedAt: Date | null,
+  eventDate: Date | null = null,
+) {
+  return {
+    id: `id_${slug}`,
+    slug,
+    type,
+    titleEn: slug,
+    titleMl: null,
+    bodyEn: "Body",
+    bodyMl: null,
+    coverImageUrl: null,
+    eventDate,
+    publishedAt,
+  };
+}
+
+beforeEach(() => {
+  resetMockDb(db);
+});
 
 describe("/news listing page", () => {
-  test("only lists items where publishedAt is not null (query uses not:null filter)", async () => {
-    const publishedItems = [
-      {
-        id: "ne_1",
-        type: "NEWS",
-        titleEn: "Published news",
-        titleMl: null,
-        bodyEn: "Body",
-        bodyMl: null,
-        coverImageUrl: null,
-        eventDate: null,
-        slug: "published-news",
-        publishedAt: new Date("2026-07-22"),
-      },
-    ];
-
-    mockFindMany.mockResolvedValue(publishedItems);
+  test("only lists published items, newest first", async () => {
+    setMockRows(db, "newsEvent", [
+      item("older", "NEWS", new Date("2026-07-20")),
+      item("draft", "NEWS", null),
+      item("newer", "NEWS", new Date("2026-07-22")),
+    ]);
 
     const { getPublishedNews } = await import("@/lib/news-events");
     const result = await getPublishedNews();
 
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { publishedAt: { not: null } },
-      }),
-    );
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe("published-news");
+    expect(result.map((r) => r.slug)).toEqual(["newer", "older"]);
   });
 });
 
 describe("/news/[slug] detail page", () => {
   test("for an unpublished item returns 404", async () => {
-    mockFindFirst.mockResolvedValue(null);
+    setMockRows(db, "newsEvent", [item("unpublished-draft", "NEWS", null)]);
 
-    const { default: NewsDetailPage } = await import(
-      "./[slug]/page"
-    );
+    const { default: NewsDetailPage } = await import("./[slug]/page");
 
     await expect(
       NewsDetailPage({
@@ -61,11 +60,9 @@ describe("/news/[slug] detail page", () => {
   });
 
   test("for a non-existent slug returns 404", async () => {
-    mockFindFirst.mockResolvedValue(null);
+    setMockRows(db, "newsEvent", [item("something-else", "NEWS", new Date())]);
 
-    const { default: NewsDetailPage } = await import(
-      "./[slug]/page"
-    );
+    const { default: NewsDetailPage } = await import("./[slug]/page");
 
     await expect(
       NewsDetailPage({
@@ -73,51 +70,44 @@ describe("/news/[slug] detail page", () => {
       }),
     ).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
   });
+
+  test("returns a published item by slug", async () => {
+    setMockRows(db, "newsEvent", [item("launch", "NEWS", new Date("2026-07-22"))]);
+
+    const { getNewsEventBySlug } = await import("@/lib/news-events");
+
+    expect((await getNewsEventBySlug("launch"))?.slug).toBe("launch");
+  });
 });
 
 describe("Homepage teaser", () => {
-  test("correctly distinguishes NEWS items from the next upcoming EVENT", async () => {
-    const newsItems = [
-      {
-        id: "ne_1",
-        type: "NEWS",
-        titleEn: "First news",
-        titleMl: null,
-        slug: "first-news",
-        publishedAt: new Date("2026-07-22"),
-        eventDate: null,
-      },
-      {
-        id: "ne_2",
-        type: "NEWS",
-        titleEn: "Second news",
-        titleMl: null,
-        slug: "second-news",
-        publishedAt: new Date("2026-07-21"),
-        eventDate: null,
-      },
-    ];
-
-    const nextEvent = {
-      id: "ev_1",
-      type: "EVENT",
-      titleEn: "Upcoming workshop",
-      titleMl: null,
-      slug: "upcoming-workshop",
-      publishedAt: new Date("2026-07-20"),
-      eventDate: new Date("2026-08-15"),
-    };
-
-    mockFindMany.mockResolvedValueOnce(newsItems);
-    mockFindFirst.mockResolvedValueOnce(nextEvent);
+  test("returns the 3 latest NEWS items and the next upcoming EVENT", async () => {
+    setMockRows(db, "newsEvent", [
+      item("news-1", "NEWS", daysFromNow(-1)),
+      item("news-2", "NEWS", daysFromNow(-2)),
+      item("news-3", "NEWS", daysFromNow(-3)),
+      item("news-4", "NEWS", daysFromNow(-4)),
+      item("news-draft", "NEWS", null),
+      item("past-event", "EVENT", daysFromNow(-30), daysFromNow(-5)),
+      item("later-event", "EVENT", daysFromNow(-10), daysFromNow(20)),
+      item("next-event", "EVENT", daysFromNow(-10), daysFromNow(3)),
+      item("draft-event", "EVENT", null, daysFromNow(1)),
+    ]);
 
     const { getHomepageTeaser } = await import("@/lib/news-events");
     const result = await getHomepageTeaser();
 
-    expect(result.newsItems).toHaveLength(2);
-    expect(result.newsItems.every((i) => i.type === "NEWS")).toBe(true);
-    expect(result.nextEvent).not.toBeNull();
-    expect(result.nextEvent!.type).toBe("EVENT");
-    expect(result.nextEvent!.titleEn).toBe("Upcoming workshop");
+    expect(result.newsItems.map((i) => i.slug)).toEqual(["news-1", "news-2", "news-3"]);
+    expect(result.nextEvent?.slug).toBe("next-event");
+  });
+
+  test("has no next event when every event is in the past", async () => {
+    setMockRows(db, "newsEvent", [
+      item("past-event", "EVENT", daysFromNow(-30), daysFromNow(-5)),
+    ]);
+
+    const { getHomepageTeaser } = await import("@/lib/news-events");
+
+    expect((await getHomepageTeaser()).nextEvent).toBeNull();
   });
 });

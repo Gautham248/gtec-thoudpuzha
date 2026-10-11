@@ -113,12 +113,16 @@ describe("Drizzle schema matches prisma/schema.prisma", () => {
       }
     });
 
-    test("keeps Prisma's client-side cuid and @updatedAt defaults", () => {
+    test("keeps Prisma's client-side cuid, list and @updatedAt defaults", () => {
       for (const f of fields) {
         const col = columns.get(f.name)!;
         if (f.cuid) {
           expect(col.defaultFn, `${model}.${f.name} cuid`).toBeTypeOf("function");
           expect(col.defaultFn!()).toMatch(/^[a-z0-9]{24,}$/);
+        }
+        if (f.list) {
+          // Prisma always writes an array, so every list column needs a default.
+          expect(col.hasDefault, `${model}.${f.name} list default`).toBe(true);
         }
         if (f.updatedAt) {
           expect(col.onUpdateFn, `${model}.${f.name} onUpdate`).toBeTypeOf("function");

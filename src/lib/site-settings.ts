@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
-import type { SiteSettings, WhyChooseUsCard } from "@prisma/client";
+import { db } from "@/db";
+import type { SiteSettings, WhyChooseUsCard } from "@/db/types";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 import { getMediaUrl } from "@/lib/media";
 import { logger } from "@/lib/logger";
@@ -43,10 +43,10 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
 
 export async function getSiteSettings(): Promise<SiteSettingsWithCards> {
   try {
-    const settings = await prisma.siteSettings.findFirst({
-      include: {
+    const settings = await db.query.siteSettings.findFirst({
+      with: {
         whyChooseUsCards: {
-          orderBy: { sortOrder: "asc" },
+          orderBy: (c, { asc }) => asc(c.sortOrder),
         },
       },
     });

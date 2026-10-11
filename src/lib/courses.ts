@@ -1,7 +1,7 @@
 import { cache } from "react";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { logger } from "@/lib/logger";
-import type { Course, CourseCategory } from "@prisma/client";
+import type { Course, CourseCategory } from "@/db/types";
 import type { CourseContent } from "@/lib/course-content.types";
 
 export type PublicCourse = Pick<
@@ -24,14 +24,14 @@ export type PublicCourse = Pick<
 };
 
 export async function getPublishedCourses(): Promise<PublicCourse[]> {
-  const courses = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
-    include: {
+  const courses = await db.query.course.findMany({
+    where: (c, { eq }) => eq(c.status, "PUBLISHED"),
+    with: {
       category: {
-        select: { id: true, nameEn: true, nameMl: true, sortOrder: true },
+        columns: { id: true, nameEn: true, nameMl: true, sortOrder: true },
       },
     },
-    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+    orderBy: (c, { desc }) => [desc(c.featured), desc(c.createdAt)],
   }).catch((err) => {
     logger.exception("courses", "Failed to fetch published courses", err);
     return [];
@@ -52,11 +52,11 @@ export type CourseWithCategory = Course & {
 export const getCourseBySlug = cache(
   async (slug: string): Promise<CourseWithCategory | null> => {
     try {
-      const course = await prisma.course.findUnique({
-        where: { slug },
-        include: { category: true },
+      const course = await db.query.course.findFirst({
+        where: (c, { eq }) => eq(c.slug, slug),
+        with: { category: true },
       });
-      return course;
+      return course ?? null;
     } catch (err) {
       logger.exception("courses", "Failed to fetch course by slug", err);
       return null;
@@ -65,9 +65,9 @@ export const getCourseBySlug = cache(
 );
 
 export async function getCourseSlugs(): Promise<string[]> {
-  const courses = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
-    select: { slug: true },
+  const courses = await db.query.course.findMany({
+    where: (c, { eq }) => eq(c.status, "PUBLISHED"),
+    columns: { slug: true },
   });
   return courses.map((c) => c.slug);
 }
@@ -85,52 +85,49 @@ export type RelatedCourse = Pick<
   category: Pick<CourseCategory, "id" | "nameEn" | "nameMl"> | null;
 };
 
+const RELATED_COLUMNS = {
+  slug: true,
+  titleEn: true,
+  titleMl: true,
+  coverImageUrl: true,
+  durationText: true,
+  descriptionEn: true,
+  descriptionMl: true,
+} as const;
+
+const RELATED_WITH = {
+  category: { columns: { id: true, nameEn: true, nameMl: true } },
+} as const;
+
 export async function getRelatedCourses(
   excludeSlug: string,
   limit = 3,
   categoryId?: string | null,
 ): Promise<RelatedCourse[]> {
   try {
-    let related = await prisma.course.findMany({
-      where: {
-        status: "PUBLISHED",
-        slug: { not: excludeSlug },
-        ...(categoryId ? { categoryId } : {}),
-      },
-      select: {
-        slug: true,
-        titleEn: true,
-        titleMl: true,
-        coverImageUrl: true,
-        durationText: true,
-        descriptionEn: true,
-        descriptionMl: true,
-        category: { select: { id: true, nameEn: true, nameMl: true } },
-      },
-      take: limit,
-      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+    let related = await db.query.course.findMany({
+      where: (c, { and, eq, ne }) =>
+        and(
+          eq(c.status, "PUBLISHED"),
+          ne(c.slug, excludeSlug),
+          categoryId ? eq(c.categoryId, categoryId) : undefined,
+        ),
+      columns: RELATED_COLUMNS,
+      with: RELATED_WITH,
+      limit,
+      orderBy: (c, { desc }) => [desc(c.featured), desc(c.createdAt)],
     });
 
     if (related.length < limit) {
       const fallbackLimit = limit - related.length;
       const existingSlugs = [excludeSlug, ...related.map((r) => r.slug)];
-      const more = await prisma.course.findMany({
-        where: {
-          status: "PUBLISHED",
-          slug: { notIn: existingSlugs },
-        },
-        select: {
-          slug: true,
-          titleEn: true,
-          titleMl: true,
-          coverImageUrl: true,
-          durationText: true,
-          descriptionEn: true,
-          descriptionMl: true,
-          category: { select: { id: true, nameEn: true, nameMl: true } },
-        },
-        take: fallbackLimit,
-        orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+      const more = await db.query.course.findMany({
+        where: (c, { and, eq, notInArray }) =>
+          and(eq(c.status, "PUBLISHED"), notInArray(c.slug, existingSlugs)),
+        columns: RELATED_COLUMNS,
+        with: RELATED_WITH,
+        limit: fallbackLimit,
+        orderBy: (c, { desc }) => [desc(c.featured), desc(c.createdAt)],
       });
       related = [...related, ...more];
     }

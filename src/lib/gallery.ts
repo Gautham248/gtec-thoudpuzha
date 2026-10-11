@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 
 export type PublicGalleryCategory = {
   id: string;
@@ -25,13 +25,13 @@ export function slugFromName(name: string): string {
 }
 
 export async function getGalleryData(): Promise<PublicGalleryCategory[]> {
-  const categories = await prisma.galleryCategory.findMany({
-    include: {
+  const categories = await db.query.galleryCategory.findMany({
+    with: {
       items: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: (i, { asc }) => asc(i.sortOrder),
       },
     },
-    orderBy: { sortOrder: "asc" },
+    orderBy: (c, { asc }) => asc(c.sortOrder),
   });
 
   return categories;
@@ -42,12 +42,12 @@ export async function getGalleryCategoryBySlug(
   slug: string,
   limit?: number,
 ): Promise<PublicGalleryCategory | null> {
-  const category = await prisma.galleryCategory.findUnique({
-    where: { slug },
-    include: {
+  const category = await db.query.galleryCategory.findFirst({
+    where: (c, { eq }) => eq(c.slug, slug),
+    with: {
       items: {
-        orderBy: { sortOrder: "asc" },
-        ...(limit !== undefined ? { take: limit } : {}),
+        orderBy: (i, { asc }) => asc(i.sortOrder),
+        ...(limit !== undefined ? { limit } : {}),
       },
     },
   });
