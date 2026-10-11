@@ -3,6 +3,7 @@ import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { updateSiteSettings } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface SiteSettingsPageProps {
   params: Promise<{ locale: string }>;
@@ -45,7 +46,7 @@ export default async function SiteSettingsPage({
     <main className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-semibold">Site Settings</h1>
 
-      <form action={updateSiteSettings} className="mt-6 space-y-8">
+      <ActionForm action={updateSiteSettings} success="Site settings saved" className="mt-6 space-y-8">
         <input type="hidden" name="locale" value={locale} />
 
         <section className="rounded border border-border p-4">
@@ -345,7 +346,7 @@ export default async function SiteSettingsPage({
         </section>
 
         <Button type="submit">Save Settings</Button>
-      </form>
+      </ActionForm>
     </main>
   );
 }

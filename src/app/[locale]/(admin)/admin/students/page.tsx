@@ -8,6 +8,7 @@ import {
   bulkImportStudentsAction,
   updateStudentEmail,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface StudentsPageProps {
   params: Promise<{ locale: string }>;
@@ -55,7 +56,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
       {/* Single-entry create form */}
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add single student</h2>
-        <form action={createStudentRecord} className="mt-4 space-y-4">
+        <ActionForm action={createStudentRecord} success="Student record created" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-1">
@@ -105,7 +106,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
             </div>
           </div>
           <Button type="submit">Create</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* CSV bulk import */}
@@ -115,7 +116,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
           CSV must have columns: studentId,fullName,phone,email. Header row
           is optional.
         </p>
-        <form action={bulkImportStudentsAction} className="mt-4 space-y-4">
+        <ActionForm action={bulkImportStudentsAction} success="Students imported" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <div className="space-y-1">
             <label htmlFor="csv" className="text-sm font-medium">
@@ -131,7 +132,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
             />
           </div>
           <Button type="submit">Import CSV</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* Records table */}
@@ -184,8 +185,8 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                     {record.email ? (
                       record.email
                     ) : (
-                      <form
-                        action={updateStudentEmail}
+                      <ActionForm
+                        action={updateStudentEmail} success="Email saved"
                         className="flex items-center gap-2"
                       >
                         <input type="hidden" name="locale" value={locale} />
@@ -200,7 +201,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                         <Button type="submit" size="sm" variant="outline">
                           Add
                         </Button>
-                      </form>
+                      </ActionForm>
                     )}
                   </td>
                   <td className="border border-border px-3 py-2">
@@ -259,8 +260,8 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                   {record.email ? (
                     <span className="text-foreground text-sm font-mono break-all">{record.email}</span>
                   ) : (
-                    <form
-                      action={updateStudentEmail}
+                    <ActionForm
+                      action={updateStudentEmail} success="Email saved"
                       className="flex items-center gap-2 mt-1"
                     >
                       <input type="hidden" name="locale" value={locale} />
@@ -275,7 +276,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                       <Button type="submit" size="sm" variant="outline">
                         Add
                       </Button>
-                    </form>
+                    </ActionForm>
                   )}
                 </div>
                 <div className="pt-2 border-t flex items-center justify-between">

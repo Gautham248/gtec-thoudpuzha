@@ -3,6 +3,7 @@ import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { uploadResource, updateResource, deleteResource } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -42,7 +43,7 @@ export default async function AcademicResourcesPage({ params }: Props) {
 
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Upload Resource</h2>
-        <form action={uploadResource} className="mt-4 space-y-4">
+        <ActionForm action={uploadResource} success="Resource uploaded" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -124,7 +125,7 @@ export default async function AcademicResourcesPage({ params }: Props) {
           </div>
 
           <Button type="submit">Upload Resource</Button>
-        </form>
+        </ActionForm>
       </section>
 
       <section>
@@ -182,7 +183,7 @@ export default async function AcademicResourcesPage({ params }: Props) {
                         <div className="flex items-center gap-2">
                           <details className="relative">
                             <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
-                            <form action={updateResource} className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
+                            <ActionForm action={updateResource} success="Resource updated" className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={r.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
@@ -206,15 +207,15 @@ export default async function AcademicResourcesPage({ params }: Props) {
                                 <input name="embedUrl" type="url" defaultValue={r.embedUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                            </form>
+                            </ActionForm>
                           </details>
-                          <form action={deleteResource}>
+                          <ActionForm action={deleteResource} success="Resource deleted">
                             <input type="hidden" name="id" value={r.id} />
                             <input type="hidden" name="locale" value={locale} />
                             <Button type="submit" size="xs" variant="destructive">
                               Delete
                             </Button>
-                          </form>
+                          </ActionForm>
                         </div>
                       </td>
                     </tr>
@@ -255,17 +256,17 @@ export default async function AcademicResourcesPage({ params }: Props) {
                   </div>
 
                   <div className="pt-2 border-t space-y-2">
-                    <form action={deleteResource} className="w-full">
+                    <ActionForm action={deleteResource} success="Resource deleted" className="w-full">
                       <input type="hidden" name="id" value={r.id} />
                       <input type="hidden" name="locale" value={locale} />
                       <Button type="submit" size="xs" variant="destructive" className="w-full">
                         Delete Resource
                       </Button>
-                    </form>
+                    </ActionForm>
 
                     <details className="pt-1 border-t">
                       <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
-                      <form action={updateResource} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <ActionForm action={updateResource} success="Resource updated" className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
@@ -289,7 +290,7 @@ export default async function AcademicResourcesPage({ params }: Props) {
                           <input name="embedUrl" type="url" defaultValue={r.embedUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                      </form>
+                      </ActionForm>
                     </details>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -51,6 +51,7 @@ export async function createPartner(formData: FormData) {
   });
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidateTag("cert-partners", "max");
 }
 
 export async function updatePartner(formData: FormData) {
@@ -90,6 +91,7 @@ export async function updatePartner(formData: FormData) {
   });
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidateTag("cert-partners", "max");
 }
 
 export async function deletePartner(formData: FormData) {
@@ -111,6 +113,7 @@ export async function deletePartner(formData: FormData) {
   });
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidateTag("cert-partners", "max");
 }
 
 export async function movePartner(formData: FormData) {
@@ -155,4 +158,5 @@ export async function movePartner(formData: FormData) {
   });
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidateTag("cert-partners", "max");
 }

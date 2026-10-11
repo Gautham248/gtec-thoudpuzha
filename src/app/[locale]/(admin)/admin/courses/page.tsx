@@ -12,6 +12,7 @@ import {
   deleteCourse,
   uploadCourseImage,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface CoursesPageProps {
   params: Promise<{ locale: string }>;
@@ -48,7 +49,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Course Categories</h2>
 
-        <form action={createCategory} className="mt-4 flex flex-wrap items-end gap-3">
+        <ActionForm action={createCategory} success="Category added" resetOnSuccess className="mt-4 flex flex-wrap items-end gap-3">
           <input type="hidden" name="locale" value={locale} />
           <div>
             <label htmlFor="cat-nameEn" className="block text-sm font-medium">
@@ -72,7 +73,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
             />
           </div>
           <Button type="submit">Add Category</Button>
-        </form>
+        </ActionForm>
 
         {categories.length > 0 && (
           <>
@@ -93,18 +94,18 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                     <tr key={cat.id}>
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-1">
-                          <form action={moveCategory}>
+                          <ActionForm action={moveCategory} success="Order updated">
                             <input type="hidden" name="id" value={cat.id} />
                             <input type="hidden" name="direction" value="up" />
                             <input type="hidden" name="locale" value={locale} />
                             <Button type="submit" size="icon-xs" variant="outline" disabled={index === 0} aria-label="Move up">↑</Button>
-                          </form>
-                          <form action={moveCategory}>
+                          </ActionForm>
+                          <ActionForm action={moveCategory} success="Order updated">
                             <input type="hidden" name="id" value={cat.id} />
                             <input type="hidden" name="direction" value="down" />
                             <input type="hidden" name="locale" value={locale} />
                             <Button type="submit" size="icon-xs" variant="outline" disabled={index === categories.length - 1} aria-label="Move down">↓</Button>
-                          </form>
+                          </ActionForm>
                           <span className="ml-1 text-sm">{cat.sortOrder}</span>
                         </div>
                       </td>
@@ -112,11 +113,11 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                       <td className="border border-border px-3 py-2">{cat.nameMl || "—"}</td>
                       <td className="border border-border px-3 py-2">{cat._count.courses}</td>
                       <td className="border border-border px-3 py-2">
-                        <form action={deleteCategory}>
+                        <ActionForm action={deleteCategory} success="Category deleted">
                           <input type="hidden" name="id" value={cat.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="destructive">Delete</Button>
-                        </form>
+                        </ActionForm>
                       </td>
                     </tr>
                   ))}
@@ -136,24 +137,24 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                   <div className="flex items-center justify-between pt-2 border-t text-sm">
                     <div className="flex items-center gap-1">
                       <span className="text-muted-foreground mr-1">Order ({cat.sortOrder}):</span>
-                      <form action={moveCategory}>
+                      <ActionForm action={moveCategory} success="Order updated">
                         <input type="hidden" name="id" value={cat.id} />
                         <input type="hidden" name="direction" value="up" />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="icon-xs" variant="outline" disabled={index === 0}>↑</Button>
-                      </form>
-                      <form action={moveCategory}>
+                      </ActionForm>
+                      <ActionForm action={moveCategory} success="Order updated">
                         <input type="hidden" name="id" value={cat.id} />
                         <input type="hidden" name="direction" value="down" />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="icon-xs" variant="outline" disabled={index === categories.length - 1}>↓</Button>
-                      </form>
+                      </ActionForm>
                     </div>
-                    <form action={deleteCategory}>
+                    <ActionForm action={deleteCategory} success="Category deleted">
                       <input type="hidden" name="id" value={cat.id} />
                       <input type="hidden" name="locale" value={locale} />
                       <Button type="submit" size="xs" variant="destructive">Delete</Button>
-                    </form>
+                    </ActionForm>
                   </div>
                 </div>
               ))}
@@ -169,7 +170,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
       {/* ── Create Course ── */}
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Create Course</h2>
-        <form action={createCourse} className="mt-4 space-y-4">
+        <ActionForm action={createCourse} success="Course created" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -235,7 +236,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
             </div>
           </div>
           <Button type="submit">Create Course</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* ── Course List ── */}
@@ -280,15 +281,15 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                           >
                             Edit Content
                           </a>
-                          <form action={uploadCourseImage} className="flex items-center gap-2">
+                          <ActionForm action={uploadCourseImage} success="Image uploaded" resetOnSuccess className="flex items-center gap-2">
                             <input type="hidden" name="courseId" value={course.id} />
                             <input type="hidden" name="locale" value={locale} />
                             <input type="file" name="coverImage" accept="image/*" required className="text-sm" />
                             <Button type="submit" size="xs" variant="outline">Upload Cover</Button>
-                          </form>
+                          </ActionForm>
                           <details>
                             <summary className="cursor-pointer text-sm text-primary">Edit</summary>
-                            <form action={updateCourse} className="mt-2 space-y-2 border border-border rounded p-2 text-left">
+                            <ActionForm action={updateCourse} success="Course updated" className="mt-2 space-y-2 border border-border rounded p-2 text-left">
                               <input type="hidden" name="id" value={course.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
@@ -353,12 +354,12 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                                 Featured
                               </label>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                            </form>
-                            <form action={deleteCourse} className="mt-2">
+                            </ActionForm>
+                            <ActionForm action={deleteCourse} success="Course deleted" className="mt-2">
                               <input type="hidden" name="id" value={course.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <Button type="submit" size="xs" variant="destructive" className="w-full">Delete</Button>
-                            </form>
+                            </ActionForm>
                           </details>
                         </div>
                       </td>
@@ -400,16 +401,16 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                       Edit Course Content →
                     </a>
 
-                    <form action={uploadCourseImage} className="flex items-center gap-2 pt-1">
+                    <ActionForm action={uploadCourseImage} success="Image uploaded" resetOnSuccess className="flex items-center gap-2 pt-1">
                       <input type="hidden" name="courseId" value={course.id} />
                       <input type="hidden" name="locale" value={locale} />
                       <input type="file" name="coverImage" accept="image/*" required className="text-sm max-w-[170px]" />
                       <Button type="submit" size="xs" variant="outline">Upload Cover</Button>
-                    </form>
+                    </ActionForm>
 
                     <details className="pt-1">
                       <summary className="cursor-pointer text-sm font-medium text-primary">Edit</summary>
-                      <form action={updateCourse} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <ActionForm action={updateCourse} success="Course updated" className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={course.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
@@ -474,12 +475,12 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                           Featured
                         </label>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                      </form>
-                      <form action={deleteCourse} className="mt-2">
+                      </ActionForm>
+                      <ActionForm action={deleteCourse} success="Course deleted" className="mt-2">
                         <input type="hidden" name="id" value={course.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="destructive" className="w-full">Delete Course</Button>
-                      </form>
+                      </ActionForm>
                     </details>
                   </div>
                 </div>

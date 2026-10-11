@@ -12,6 +12,7 @@ import {
   Navigation,
   Phone,
   PhoneCall,
+  Quote,
   Users,
 } from "lucide-react";
 import type { WhyCardIcon } from "@prisma/client";
@@ -202,6 +203,43 @@ export default async function AboutPage({ params }: AboutPageProps) {
                 "/images/figma/hero-person.png",
               ]}
             />
+          </Reveal>
+        </section>
+
+        {/* ── Director's message ── */}
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24 lg:px-8">
+          <Reveal y={40}>
+            <figure className="relative overflow-hidden rounded-[32px] bg-linear-to-br from-[#1759CF] to-[#0A2B68] px-6 py-12 text-white shadow-2xl sm:px-12 sm:py-16 lg:rounded-[40px] lg:px-20 lg:py-20">
+              <div
+                className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full border-[28px] border-white/10"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute -bottom-24 -left-20 size-72 rounded-tr-[1457px] bg-[#2EB700]/20"
+                aria-hidden="true"
+              />
+              <Quote
+                className="relative size-12 fill-white/15 text-white/40 sm:size-16"
+                aria-hidden="true"
+              />
+              <p className="relative mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 sm:text-sm">
+                {aboutPageT("directorEyebrow")}
+              </p>
+              <blockquote className="relative mt-4 max-w-4xl text-xl font-medium leading-[1.45] tracking-[-0.02em] sm:text-2xl lg:text-[28px]">
+                {aboutPageT("directorQuote")}
+              </blockquote>
+              <figcaption className="relative mt-8 flex items-center gap-4">
+                <span className="h-px w-10 bg-[#2EB700]" aria-hidden="true" />
+                <span>
+                  <span className="block text-base font-bold tracking-tight sm:text-lg">
+                    {aboutPageT("directorName")}
+                  </span>
+                  <span className="block text-sm text-white/70">
+                    {aboutPageT("directorRole")}
+                  </span>
+                </span>
+              </figcaption>
+            </figure>
           </Reveal>
         </section>
 

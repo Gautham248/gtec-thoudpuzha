@@ -46,7 +46,7 @@ vi.mock("@/lib/storage", () => ({ uploadFile: mockUploadFile }));
 
 vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
 
-vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
+vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath, revalidateTag: vi.fn() }));
 
 /* ─── Helpers ─── */
 

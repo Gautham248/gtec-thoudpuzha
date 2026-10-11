@@ -75,3 +75,23 @@ export async function getPlacementGalleryData(): Promise<{
     return null;
   }
 }
+
+export const PLACED_STUDENTS_SLUG = "placed-students";
+const POSTER_LIMIT = 12;
+
+/** Fetch placed-student poster images (up to POSTER_LIMIT). Returns null if no such category exists. */
+export async function getPlacedStudentsPosters(): Promise<{
+  slug: string;
+  items: PublicGalleryCategory["items"];
+} | null> {
+  try {
+    const category = await getGalleryCategoryBySlug(PLACED_STUDENTS_SLUG, POSTER_LIMIT);
+    if (!category) return null;
+    return {
+      slug: category.slug,
+      items: category.items.filter((item) => item.mediaType === "IMAGE"),
+    };
+  } catch {
+    return null;
+  }
+}

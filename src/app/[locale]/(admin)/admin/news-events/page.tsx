@@ -2,13 +2,13 @@ import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { ConfirmDeleteForm } from "./confirm-delete-form";
 import {
   createNewsEvent,
   updateNewsEvent,
   deleteNewsEvent,
   togglePublishNewsEvent,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface NewsEventsPageProps {
   params: Promise<{ locale: string }>;
@@ -39,7 +39,7 @@ export default async function NewsEventsPage({
 
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Create new item</h2>
-        <form action={createNewsEvent} className="mt-4 space-y-4">
+        <ActionForm action={createNewsEvent} success="Post created" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -129,7 +129,7 @@ export default async function NewsEventsPage({
             />
           </div>
           <Button type="submit">Create</Button>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="mt-8">
@@ -171,7 +171,7 @@ export default async function NewsEventsPage({
                       </td>
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <form action={togglePublishNewsEvent}>
+                          <ActionForm action={togglePublishNewsEvent} success="Publish status updated">
                             <input type="hidden" name="id" value={item.id} />
                             <input
                               type="hidden"
@@ -186,10 +186,10 @@ export default async function NewsEventsPage({
                             >
                               {item.publishedAt ? "Unpublish" : "Publish"}
                             </Button>
-                          </form>
+                          </ActionForm>
                           <details className="relative">
                             <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
-                            <form action={updateNewsEvent} className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
+                            <ActionForm action={updateNewsEvent} success="Post updated" className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={item.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
@@ -224,10 +224,10 @@ export default async function NewsEventsPage({
                                 <input name="coverImageUrl" defaultValue={item.coverImageUrl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
                               </div>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                            </form>
+                            </ActionForm>
                           </details>
-                          <ConfirmDeleteForm
-                            action={deleteNewsEvent}
+                          <ActionForm
+                            action={deleteNewsEvent} success="Post deleted"
                             confirmMessage="Delete this item?"
                           >
                             <input type="hidden" name="id" value={item.id} />
@@ -239,7 +239,7 @@ export default async function NewsEventsPage({
                             >
                               Delete
                             </Button>
-                          </ConfirmDeleteForm>
+                          </ActionForm>
                         </div>
                       </td>
                     </tr>
@@ -278,7 +278,7 @@ export default async function NewsEventsPage({
 
                   <div className="pt-2 border-t space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <form action={togglePublishNewsEvent} className="flex-1">
+                      <ActionForm action={togglePublishNewsEvent} success="Publish status updated" className="flex-1">
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="publish" value={String(!item.publishedAt)} />
                         <input type="hidden" name="locale" value={locale} />
@@ -290,10 +290,10 @@ export default async function NewsEventsPage({
                         >
                           {item.publishedAt ? "Unpublish" : "Publish"}
                         </Button>
-                      </form>
+                      </ActionForm>
 
-                      <ConfirmDeleteForm
-                        action={deleteNewsEvent}
+                      <ActionForm
+                        action={deleteNewsEvent} success="Post deleted"
                         confirmMessage="Delete this item?"
                       >
                         <input type="hidden" name="id" value={item.id} />
@@ -305,12 +305,12 @@ export default async function NewsEventsPage({
                         >
                           Delete
                         </Button>
-                      </ConfirmDeleteForm>
+                      </ActionForm>
                     </div>
 
                     <details className="pt-1 border-t">
                       <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
-                      <form action={updateNewsEvent} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <ActionForm action={updateNewsEvent} success="Post updated" className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
@@ -345,7 +345,7 @@ export default async function NewsEventsPage({
                           <input name="coverImageUrl" defaultValue={item.coverImageUrl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
                         </div>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                      </form>
+                      </ActionForm>
                     </details>
                   </div>
                 </div>

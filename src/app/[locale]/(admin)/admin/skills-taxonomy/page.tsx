@@ -3,6 +3,7 @@ import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { approveSkill, mergeSkill, deleteSkill } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface SkillsTaxonomyPageProps {
   params: Promise<{ locale: string }>;
@@ -117,17 +118,17 @@ export default async function SkillsTaxonomyPage({
                         <div className="flex flex-wrap items-center gap-2">
                           {/* Approve */}
                           {skill.status === "PENDING" && (
-                            <form action={approveSkill}>
+                            <ActionForm action={approveSkill} success="Skill approved">
                               <input type="hidden" name="id" value={skill.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <Button type="submit" size="xs" variant="default">
                                 Approve
                               </Button>
-                            </form>
+                            </ActionForm>
                           )}
 
                           {/* Merge */}
-                          <form action={mergeSkill} className="flex items-center gap-1">
+                          <ActionForm action={mergeSkill} success="Skills merged" className="flex items-center gap-1">
                             <input type="hidden" name="sourceId" value={skill.id} />
                             <input type="hidden" name="locale" value={locale} />
                             <span className="text-sm text-muted-foreground">merge into</span>
@@ -148,17 +149,17 @@ export default async function SkillsTaxonomyPage({
                             <Button type="submit" size="xs" variant="outline">
                               Merge
                             </Button>
-                          </form>
+                          </ActionForm>
 
                           {/* Delete (only if zero references) */}
                           {canDelete(skill.candidateCount, skill.jobPostingCount) && (
-                            <form action={deleteSkill}>
+                            <ActionForm action={deleteSkill} success="Skill deleted">
                               <input type="hidden" name="id" value={skill.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <Button type="submit" size="xs" variant="destructive">
                                 Delete
                               </Button>
-                            </form>
+                            </ActionForm>
                           )}
                         </div>
                       </td>
@@ -199,17 +200,17 @@ export default async function SkillsTaxonomyPage({
                   <div className="pt-2 border-t space-y-2">
                     {/* Approve */}
                     {skill.status === "PENDING" && (
-                      <form action={approveSkill} className="w-full">
+                      <ActionForm action={approveSkill} success="Skill approved" className="w-full">
                         <input type="hidden" name="id" value={skill.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="default" className="w-full">
                           Approve Skill
                         </Button>
-                      </form>
+                      </ActionForm>
                     )}
 
                     {/* Merge */}
-                    <form action={mergeSkill} className="flex flex-col gap-1.5 bg-muted/30 p-2 rounded border border-border/50">
+                    <ActionForm action={mergeSkill} success="Skills merged" className="flex flex-col gap-1.5 bg-muted/30 p-2 rounded border border-border/50">
                       <input type="hidden" name="sourceId" value={skill.id} />
                       <input type="hidden" name="locale" value={locale} />
                       <label className="text-sm font-medium text-muted-foreground">Merge into target skill:</label>
@@ -232,17 +233,17 @@ export default async function SkillsTaxonomyPage({
                           Merge
                         </Button>
                       </div>
-                    </form>
+                    </ActionForm>
 
                     {/* Delete */}
                     {canDelete(skill.candidateCount, skill.jobPostingCount) && (
-                      <form action={deleteSkill} className="w-full">
+                      <ActionForm action={deleteSkill} success="Skill deleted" className="w-full">
                         <input type="hidden" name="id" value={skill.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="destructive" className="w-full">
                           Delete Skill
                         </Button>
-                      </form>
+                      </ActionForm>
                     )}
                   </div>
                 </div>

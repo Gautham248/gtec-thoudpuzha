@@ -16,6 +16,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 vi.mock("@/lib/db", () => ({

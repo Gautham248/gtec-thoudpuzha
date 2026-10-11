@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -17,6 +17,8 @@ function revalidateGallery(locale: string) {
   revalidatePath(`/${locale}/admin/gallery`);
   revalidatePath(`/${locale}/gallery`);
   revalidatePath("/gallery");
+  // Homepage gallery sections are served from unstable_cache (src/lib/data-cache.ts).
+  revalidateTag("gallery", "max");
 }
 
 /* ─── Category actions ─── */

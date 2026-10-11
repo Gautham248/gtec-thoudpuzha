@@ -16,7 +16,6 @@ import {
   GraduationCap,
   Briefcase,
   Image as ImageIcon,
-  BookOpen,
   Send,
   User,
   ChevronDown,
@@ -28,7 +27,14 @@ import {
 import { useAuth, UserButton } from "@clerk/nextjs";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { siteConfig } from "@/lib/site";
-import { CoursesDropdown } from "@/components/shared/CoursesDropdown";
+import {
+  CoursesDropdown,
+  NAV_COURSES_PER_CATEGORY,
+  categoryHref,
+  courseTitle,
+  groupName,
+} from "@/components/shared/CoursesDropdown";
+import { groupNavCourses, type NavCourse } from "@/lib/nav-courses";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -40,23 +46,16 @@ const navItems: {
   { labelKey: "home", href: "/", icon: Home },
   { labelKey: "about", href: "/about", icon: Info },
   { labelKey: "placement", href: "/placement", icon: Briefcase },
-  { labelKey: "resources", href: "/portal/student", icon: BookOpen },
   { labelKey: "gallery", href: "/gallery", icon: ImageIcon },
   { labelKey: "contact", href: "/contact", icon: Send },
 ];
-
-interface CourseDropdownItem {
-  slug: string;
-  titleEn: string;
-  titleMl: string | null;
-}
 
 const emptySubscribe = () => () => {};
 
 export function Header({
   courses,
 }: {
-  courses?: CourseDropdownItem[];
+  courses?: NavCourse[];
 }) {
   const locale = useLocale();
   const t = useTranslations("nav");
@@ -321,18 +320,37 @@ export function Header({
                 </div>
 
                 {courses && courses.length > 0 && coursesOpenMobile && (
-                  <div className="ml-7 my-1 border-l-2 border-primary/40 pl-3 space-y-1">
-                    {courses.map((course) => (
-                      <Link
-                        key={course.slug}
-                        href={localeHref(`/courses/${course.slug}`)}
-                        className="block rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                        onClick={() => setDrawerOpen(false)}
-                      >
-                        {locale === "ml" && course.titleMl
-                          ? course.titleMl
-                          : course.titleEn}
-                      </Link>
+                  <div className="ml-7 my-1 border-l-2 border-primary/40 pl-3 space-y-3">
+                    {groupNavCourses(courses).map((group) => (
+                      <div key={group.id}>
+                        <p className="px-2 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          {groupName(group, locale)}
+                        </p>
+                        {group.courses
+                          .slice(0, NAV_COURSES_PER_CATEGORY)
+                          .map((course) => (
+                            <Link
+                              key={course.slug}
+                              href={localeHref(`/courses/${course.slug}`)}
+                              className="block rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                              onClick={() => setDrawerOpen(false)}
+                            >
+                              {courseTitle(course, locale)}
+                            </Link>
+                          ))}
+                        {group.courses.length > NAV_COURSES_PER_CATEGORY && (
+                          <Link
+                            href={localeHref(categoryHref(group))}
+                            className="mt-0.5 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10"
+                            onClick={() => setDrawerOpen(false)}
+                          >
+                            {locale === "ml"
+                              ? `എല്ലാ ${group.courses.length} കോഴ്സുകളും കാണുക`
+                              : `View all ${group.courses.length}`}
+                            <ChevronRight className="size-3" />
+                          </Link>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -350,20 +368,6 @@ export function Header({
               >
                 <Briefcase className="size-4 text-slate-500" />
                 <span>{t("placement")}</span>
-              </Link>
-
-              <Link
-                href={localeHref("/portal/student")}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
-                  isLinkActive("/portal/student")
-                    ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-                )}
-                onClick={() => setDrawerOpen(false)}
-              >
-                <BookOpen className="size-4 text-slate-500" />
-                <span>{t("resources")}</span>
               </Link>
 
               <Link

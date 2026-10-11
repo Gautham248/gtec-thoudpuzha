@@ -9,6 +9,7 @@ import {
   toggleFlashNewsActive,
   moveFlashNews,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface FlashNewsPageProps {
   params: Promise<{ locale: string }>;
@@ -43,7 +44,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
 
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Create new item</h2>
-        <form action={createFlashNews} className="mt-4 space-y-4">
+        <ActionForm action={createFlashNews} success="Flash news added" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -91,7 +92,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
             </div>
           </div>
           <Button type="submit">Create</Button>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="mt-8">
@@ -124,7 +125,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                     >
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-1">
-                          <form action={moveFlashNews}>
+                          <ActionForm action={moveFlashNews} success="Order updated">
                             <input type="hidden" name="id" value={item.id} />
                             <input type="hidden" name="direction" value="up" />
                             <input type="hidden" name="locale" value={locale} />
@@ -137,8 +138,8 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                             >
                               ↑
                             </Button>
-                          </form>
-                          <form action={moveFlashNews}>
+                          </ActionForm>
+                          <ActionForm action={moveFlashNews} success="Order updated">
                             <input type="hidden" name="id" value={item.id} />
                             <input type="hidden" name="direction" value="down" />
                             <input type="hidden" name="locale" value={locale} />
@@ -151,7 +152,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                             >
                               ↓
                             </Button>
-                          </form>
+                          </ActionForm>
                           <span className="ml-2 text-sm">{item.sortOrder}</span>
                         </div>
                       </td>
@@ -174,7 +175,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                         )}
                       </td>
                       <td className="border border-border px-3 py-2">
-                        <form action={toggleFlashNewsActive}>
+                        <ActionForm action={toggleFlashNewsActive} success="Flash news updated">
                           <input type="hidden" name="id" value={item.id} />
                           <input
                             type="hidden"
@@ -189,7 +190,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                           >
                             {item.active ? "Active" : "Inactive"}
                           </Button>
-                        </form>
+                        </ActionForm>
                       </td>
                       <td className="border border-border px-3 py-2">
                         {item.expiresAt ? (
@@ -209,7 +210,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                         <div className="flex items-center gap-2">
                           <details className="relative">
                             <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
-                            <form action={updateFlashNews} className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
+                            <ActionForm action={updateFlashNews} success="Flash news updated" className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={item.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
@@ -233,15 +234,15 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                                 Active
                               </label>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                            </form>
+                            </ActionForm>
                           </details>
-                          <form action={deleteFlashNews}>
+                          <ActionForm action={deleteFlashNews} success="Flash news deleted">
                             <input type="hidden" name="id" value={item.id} />
                             <input type="hidden" name="locale" value={locale} />
                             <Button type="submit" size="xs" variant="destructive">
                               Delete
                             </Button>
-                          </form>
+                          </ActionForm>
                         </div>
                       </td>
                     </tr>
@@ -264,7 +265,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                       <span className="font-semibold text-foreground text-sm block leading-snug">{item.textEn}</span>
                       {item.textMl && <span className="text-sm text-muted-foreground block">ML: {item.textMl}</span>}
                     </div>
-                    <form action={toggleFlashNewsActive} className="shrink-0">
+                    <ActionForm action={toggleFlashNewsActive} success="Flash news updated" className="shrink-0">
                       <input type="hidden" name="id" value={item.id} />
                       <input type="hidden" name="active" value={String(!item.active)} />
                       <input type="hidden" name="locale" value={locale} />
@@ -276,7 +277,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                       >
                         {item.active ? "Active" : "Inactive"}
                       </Button>
-                    </form>
+                    </ActionForm>
                   </div>
 
                   <div className="text-sm space-y-1 text-muted-foreground">
@@ -303,32 +304,32 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1 text-sm">
                         <span className="text-muted-foreground mr-1">Order ({item.sortOrder}):</span>
-                        <form action={moveFlashNews}>
+                        <ActionForm action={moveFlashNews} success="Order updated">
                           <input type="hidden" name="id" value={item.id} />
                           <input type="hidden" name="direction" value="up" />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="icon-xs" variant="outline" disabled={index === 0}>↑</Button>
-                        </form>
-                        <form action={moveFlashNews}>
+                        </ActionForm>
+                        <ActionForm action={moveFlashNews} success="Order updated">
                           <input type="hidden" name="id" value={item.id} />
                           <input type="hidden" name="direction" value="down" />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="icon-xs" variant="outline" disabled={index === items.length - 1}>↓</Button>
-                        </form>
+                        </ActionForm>
                       </div>
 
-                      <form action={deleteFlashNews}>
+                      <ActionForm action={deleteFlashNews} success="Flash news deleted">
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="destructive">
                           Delete
                         </Button>
-                      </form>
+                      </ActionForm>
                     </div>
 
                     <details className="pt-1 border-t">
                       <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
-                      <form action={updateFlashNews} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <ActionForm action={updateFlashNews} success="Flash news updated" className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
@@ -352,7 +353,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                           Active
                         </label>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                      </form>
+                      </ActionForm>
                     </details>
                   </div>
                 </div>

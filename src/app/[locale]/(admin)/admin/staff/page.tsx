@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { inviteStaff, deactivateStaff, reactivateStaff, setStaffPermission } from "./actions";
 import { PERMISSION_KEYS, PERMISSION_LABELS } from "./permissions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface StaffPageProps {
   params: Promise<{ locale: string }>;
@@ -32,7 +33,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
       {/* Invite Staff */}
       <section className="rounded border border-border p-4 bg-card">
         <h2 className="text-lg font-medium">Invite Staff</h2>
-        <form action={inviteStaff} className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+        <ActionForm action={inviteStaff} success="Invitation sent" resetOnSuccess className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           <input type="hidden" name="locale" value={locale} />
           <div className="flex-1">
             <label htmlFor="email" className="block text-sm font-medium text-foreground">
@@ -47,7 +48,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
             />
           </div>
           <Button type="submit" size="sm" className="w-full sm:w-auto">Send Invite</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* Staff List */}
@@ -92,21 +93,21 @@ export default async function StaffPage({ params }: StaffPageProps) {
                         {user.role === Role.CENTRE_STAFF && (
                           <>
                             {user.deactivatedAt ? (
-                              <form action={reactivateStaff} className="inline">
+                              <ActionForm action={reactivateStaff} success="Staff member reactivated" className="inline">
                                 <input type="hidden" name="userId" value={user.id} />
                                 <input type="hidden" name="locale" value={locale} />
                                 <Button type="submit" size="xs" variant="outline">
                                   Reactivate
                                 </Button>
-                              </form>
+                              </ActionForm>
                             ) : (
-                              <form action={deactivateStaff} className="inline">
+                              <ActionForm action={deactivateStaff} success="Staff member deactivated" className="inline">
                                 <input type="hidden" name="userId" value={user.id} />
                                 <input type="hidden" name="locale" value={locale} />
                                 <Button type="submit" size="xs" variant="destructive">
                                   Deactivate
                                 </Button>
-                              </form>
+                              </ActionForm>
                             )}
                           </>
                         )}
@@ -148,21 +149,21 @@ export default async function StaffPage({ params }: StaffPageProps) {
                   {user.role === Role.CENTRE_STAFF && (
                     <div className="pt-2 border-t">
                       {user.deactivatedAt ? (
-                        <form action={reactivateStaff} className="w-full">
+                        <ActionForm action={reactivateStaff} success="Staff member reactivated" className="w-full">
                           <input type="hidden" name="userId" value={user.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="outline" className="w-full">
                             Reactivate Staff
                           </Button>
-                        </form>
+                        </ActionForm>
                       ) : (
-                        <form action={deactivateStaff} className="w-full">
+                        <ActionForm action={deactivateStaff} success="Staff member deactivated" className="w-full">
                           <input type="hidden" name="userId" value={user.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="destructive" className="w-full">
                             Deactivate Staff
                           </Button>
-                        </form>
+                        </ActionForm>
                       )}
                     </div>
                   )}
@@ -212,7 +213,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                             key={key}
                             className="border border-border px-3 py-2 text-center"
                           >
-                            <form action={setStaffPermission} className="inline">
+                            <ActionForm action={setStaffPermission} success="Permissions updated" className="inline">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="userId" value={user.id} />
                               <input type="hidden" name="permissionKey" value={key} />
@@ -231,7 +232,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                               >
                                 {currentValue ? "ON" : "OFF"}
                               </button>
-                            </form>
+                            </ActionForm>
                           </td>
                         );
                       })}
@@ -259,7 +260,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                       return (
                         <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
                           <span className="text-sm text-foreground font-medium">{PERMISSION_LABELS[key]}</span>
-                          <form action={setStaffPermission}>
+                          <ActionForm action={setStaffPermission} success="Permissions updated">
                             <input type="hidden" name="locale" value={locale} />
                             <input type="hidden" name="userId" value={user.id} />
                             <input type="hidden" name="permissionKey" value={key} />
@@ -278,7 +279,7 @@ export default async function StaffPage({ params }: StaffPageProps) {
                             >
                               {currentValue ? "ON" : "OFF"}
                             </button>
-                          </form>
+                          </ActionForm>
                         </div>
                       );
                     })}

@@ -12,6 +12,7 @@ export default clerkMiddleware(async (_auth, req: NextRequest) => {
     req.nextUrl.pathname.startsWith("/api") ||
     req.nextUrl.pathname === "/sw.js" ||
     req.nextUrl.pathname === "/robots.txt" ||
+    req.nextUrl.pathname === "/sitemap.xml" ||
     req.nextUrl.pathname.startsWith("/icons/") ||
     req.nextUrl.pathname.startsWith("/images/")
   ) {
@@ -22,6 +23,6 @@ export default clerkMiddleware(async (_auth, req: NextRequest) => {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|robots.txt|icons/.*|images/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?|ico|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|robots.txt|sitemap.xml|icons/.*|images/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?|ico|webmanifest)$).*)",
   ],
 };

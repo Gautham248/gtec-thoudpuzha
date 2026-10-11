@@ -12,6 +12,7 @@ import {
   Layers,
 } from "lucide-react";
 import { updateFooterSettings } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface FooterSettingsPageProps {
   params: Promise<{ locale: string }>;
@@ -61,7 +62,7 @@ export default async function FooterSettingsPage({
         </div>
       </div>
 
-      <form action={updateFooterSettings} className="mt-8 space-y-8">
+      <ActionForm action={updateFooterSettings} success="Footer settings saved" className="mt-8 space-y-8">
         <input type="hidden" name="locale" value={locale} />
 
         {/* Section 1: Google Maps & Location */}
@@ -298,7 +299,7 @@ export default async function FooterSettingsPage({
             Empty fields will automatically be excluded from the live website footer.
           </span>
         </div>
-      </form>
+      </ActionForm>
     </main>
   );
 }

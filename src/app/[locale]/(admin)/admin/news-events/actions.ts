@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -63,6 +63,7 @@ export async function createNewsEvent(formData: FormData) {
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/news-events`);
   revalidatePath(`/${localeFromFormData(formData)}/news`);
+  revalidateTag("news-events", "max");
 }
 
 export async function updateNewsEvent(formData: FormData) {
@@ -107,6 +108,7 @@ export async function updateNewsEvent(formData: FormData) {
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/news-events`);
   revalidatePath(`/${localeFromFormData(formData)}/news`);
+  revalidateTag("news-events", "max");
 }
 
 export async function deleteNewsEvent(formData: FormData) {
@@ -129,6 +131,7 @@ export async function deleteNewsEvent(formData: FormData) {
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/news-events`);
   revalidatePath(`/${localeFromFormData(formData)}/news`);
+  revalidateTag("news-events", "max");
 }
 
 export async function togglePublishNewsEvent(formData: FormData) {
@@ -156,4 +159,5 @@ export async function togglePublishNewsEvent(formData: FormData) {
 
   revalidatePath(`/${localeFromFormData(formData)}/admin/news-events`);
   revalidatePath(`/${localeFromFormData(formData)}/news`);
+  revalidateTag("news-events", "max");
 }

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { enrollStudentInCourses, unenrollStudentFromCourse } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface EnrollmentRecord {
   id: string;
@@ -317,7 +318,7 @@ export default function EnrollmentDashboard({
                             ).toLocaleDateString()}
                           </td>
                           <td className="border border-border px-3 py-2">
-                            <form action={unenrollStudentFromCourse}>
+                            <ActionForm action={unenrollStudentFromCourse} success="Student unenrolled">
                               <input
                                 type="hidden"
                                 name="enrollmentId"
@@ -345,7 +346,7 @@ export default function EnrollmentDashboard({
                               >
                                 Unenroll
                               </Button>
-                            </form>
+                            </ActionForm>
                           </td>
                         </tr>
                       ))}
@@ -361,7 +362,7 @@ export default function EnrollmentDashboard({
                         <div className="font-medium text-sm text-foreground">{enrollment.course.titleEn}</div>
                         <div className="text-sm text-muted-foreground">Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}</div>
                       </div>
-                      <form action={unenrollStudentFromCourse}>
+                      <ActionForm action={unenrollStudentFromCourse} success="Student unenrolled">
                         <input type="hidden" name="enrollmentId" value={enrollment.id} />
                         <input type="hidden" name="studentProfileId" value={selectedStudent.id} />
                         <input type="hidden" name="courseTitle" value={enrollment.course.titleEn} />
@@ -369,7 +370,7 @@ export default function EnrollmentDashboard({
                         <Button type="submit" variant="destructive" size="sm">
                           Unenroll
                         </Button>
-                      </form>
+                      </ActionForm>
                     </div>
                   ))}
                 </div>
@@ -381,8 +382,8 @@ export default function EnrollmentDashboard({
             <h3 className="text-md font-medium">
               Enroll in Additional Courses
             </h3>
-            <form
-              action={enrollStudentInCourses}
+            <ActionForm
+              action={enrollStudentInCourses} success="Enrolled in selected courses" resetOnSuccess
               className="mt-2 space-y-3"
             >
               <input
@@ -435,7 +436,7 @@ export default function EnrollmentDashboard({
               >
                 Enroll Selected Courses
               </Button>
-            </form>
+            </ActionForm>
           </div>
         </section>
       )}

@@ -8,6 +8,7 @@ import {
   approveAndTrustEmployer,
   toggleAutoPublishTrusted,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface EmployersPageProps {
   params: Promise<{ locale: string }>;
@@ -167,7 +168,7 @@ export default async function EmployersPage({
                         <td className="border border-border px-3 py-2">
                           {ep.status === "PENDING" && (
                             <div className="flex flex-wrap gap-1">
-                              <form action={approveEmployer}>
+                              <ActionForm action={approveEmployer} success="Employer approved">
                                 <input type="hidden" name="locale" value={locale} />
                                 <input
                                   type="hidden"
@@ -180,9 +181,9 @@ export default async function EmployersPage({
                                 >
                                   Approve
                                 </button>
-                              </form>
+                              </ActionForm>
 
-                              <form action={approveAndTrustEmployer}>
+                              <ActionForm action={approveAndTrustEmployer} success="Employer approved and trusted">
                                 <input type="hidden" name="locale" value={locale} />
                                 <input
                                   type="hidden"
@@ -195,14 +196,14 @@ export default async function EmployersPage({
                                 >
                                   Approve + Trust
                                 </button>
-                              </form>
+                              </ActionForm>
 
                               <details className="inline-block">
                                 <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90">
                                   Reject
                                 </summary>
-                                <form
-                                  action={rejectEmployer}
+                                <ActionForm
+                                  action={rejectEmployer} success="Employer rejected"
                                   className="mt-1 flex gap-1"
                                 >
                                   <input
@@ -227,13 +228,13 @@ export default async function EmployersPage({
                                   >
                                     Submit
                                   </button>
-                                </form>
+                                </ActionForm>
                               </details>
                             </div>
                           )}
 
                           {ep.status === "REJECTED" && (
-                            <form action={approveEmployer}>
+                            <ActionForm action={approveEmployer} success="Employer approved">
                               <input type="hidden" name="locale" value={locale} />
                               <input
                                 type="hidden"
@@ -246,11 +247,11 @@ export default async function EmployersPage({
                               >
                                 Re-approve
                               </button>
-                            </form>
+                            </ActionForm>
                           )}
 
                           {ep.status === "APPROVED" && (
-                            <form action={toggleAutoPublishTrusted}>
+                            <ActionForm action={toggleAutoPublishTrusted} success="Auto-publish setting updated">
                               <input type="hidden" name="locale" value={locale} />
                               <input
                                 type="hidden"
@@ -265,7 +266,7 @@ export default async function EmployersPage({
                                   ? "Remove Trust"
                                   : "Mark Trusted"}
                               </button>
-                            </form>
+                            </ActionForm>
                           )}
                         </td>
                       )}
@@ -330,7 +331,7 @@ export default async function EmployersPage({
                       {ep.status === "PENDING" && (
                         <>
                           <div className="flex flex-col sm:flex-row gap-2 w-full">
-                            <form action={approveEmployer} className="w-full">
+                            <ActionForm action={approveEmployer} success="Employer approved" className="w-full">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="profileId" value={ep.id} />
                               <button
@@ -339,9 +340,9 @@ export default async function EmployersPage({
                               >
                                 Approve
                               </button>
-                            </form>
+                            </ActionForm>
 
-                            <form action={approveAndTrustEmployer} className="w-full">
+                            <ActionForm action={approveAndTrustEmployer} success="Employer approved and trusted" className="w-full">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="profileId" value={ep.id} />
                               <button
@@ -350,14 +351,14 @@ export default async function EmployersPage({
                               >
                                 Approve + Trust
                               </button>
-                            </form>
+                            </ActionForm>
                           </div>
 
                           <details className="w-full">
                             <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/90">
                               Reject Registration
                             </summary>
-                            <form action={rejectEmployer} className="mt-2 space-y-2">
+                            <ActionForm action={rejectEmployer} success="Employer rejected" className="mt-2 space-y-2">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="profileId" value={ep.id} />
                               <div>
@@ -375,13 +376,13 @@ export default async function EmployersPage({
                               >
                                 Submit Rejection
                               </button>
-                            </form>
+                            </ActionForm>
                           </details>
                         </>
                       )}
 
                       {ep.status === "REJECTED" && (
-                        <form action={approveEmployer} className="w-full">
+                        <ActionForm action={approveEmployer} success="Employer approved" className="w-full">
                           <input type="hidden" name="locale" value={locale} />
                           <input type="hidden" name="profileId" value={ep.id} />
                           <button
@@ -390,11 +391,11 @@ export default async function EmployersPage({
                           >
                             Re-approve Employer
                           </button>
-                        </form>
+                        </ActionForm>
                       )}
 
                       {ep.status === "APPROVED" && (
-                        <form action={toggleAutoPublishTrusted} className="w-full">
+                        <ActionForm action={toggleAutoPublishTrusted} success="Auto-publish setting updated" className="w-full">
                           <input type="hidden" name="locale" value={locale} />
                           <input type="hidden" name="profileId" value={ep.id} />
                           <button
@@ -403,7 +404,7 @@ export default async function EmployersPage({
                           >
                             {ep.autoPublishTrusted ? "Remove Trust Status" : "Mark as Trusted Employer"}
                           </button>
-                        </form>
+                        </ActionForm>
                       )}
                     </div>
                   )}

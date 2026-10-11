@@ -8,6 +8,7 @@ import {
   addProgressEntry,
   deleteProgressEntry,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -52,7 +53,7 @@ export default async function TimetableProgressPage({ params }: Props) {
       {/* ───── Timetable Entry ───── */}
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add Timetable Entry</h2>
-        <form action={addTimetableEntry} className="mt-4 space-y-4">
+        <ActionForm action={addTimetableEntry} success="Timetable entry added" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -91,7 +92,7 @@ export default async function TimetableProgressPage({ params }: Props) {
           </div>
 
           <Button type="submit">Add Timetable Entry</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* ───── Timetable Entries Table ───── */}
@@ -121,13 +122,13 @@ export default async function TimetableProgressPage({ params }: Props) {
                         {e.createdAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
-                        <form action={deleteTimetableEntry}>
+                        <ActionForm action={deleteTimetableEntry} success="Timetable entry deleted">
                           <input type="hidden" name="id" value={e.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="destructive">
                             Delete
                           </Button>
-                        </form>
+                        </ActionForm>
                       </td>
                     </tr>
                   ))}
@@ -147,13 +148,13 @@ export default async function TimetableProgressPage({ params }: Props) {
                   <p className="text-sm text-foreground whitespace-pre-wrap">{e.contentText}</p>
 
                   <div className="pt-2 border-t flex justify-end">
-                    <form action={deleteTimetableEntry} className="w-full">
+                    <ActionForm action={deleteTimetableEntry} success="Timetable entry deleted" className="w-full">
                       <input type="hidden" name="id" value={e.id} />
                       <input type="hidden" name="locale" value={locale} />
                       <Button type="submit" size="xs" variant="destructive" className="w-full">
                         Delete Timetable Entry
                       </Button>
-                    </form>
+                    </ActionForm>
                   </div>
                 </div>
               ))}
@@ -167,7 +168,7 @@ export default async function TimetableProgressPage({ params }: Props) {
       {/* ───── Student Progress Entry ───── */}
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add Progress Note for Student</h2>
-        <form action={addProgressEntry} className="mt-4 space-y-4">
+        <ActionForm action={addProgressEntry} success="Progress entry added" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -225,7 +226,7 @@ export default async function TimetableProgressPage({ params }: Props) {
           </div>
 
           <Button type="submit">Add Progress Note</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* ───── Progress Entries Table ───── */}
@@ -257,13 +258,13 @@ export default async function TimetableProgressPage({ params }: Props) {
                         {e.recordedAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
-                        <form action={deleteProgressEntry}>
+                        <ActionForm action={deleteProgressEntry} success="Progress entry deleted">
                           <input type="hidden" name="id" value={e.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="destructive">
                             Delete
                           </Button>
-                        </form>
+                        </ActionForm>
                       </td>
                     </tr>
                   ))}
@@ -286,13 +287,13 @@ export default async function TimetableProgressPage({ params }: Props) {
                   <p className="text-sm text-foreground">{e.noteEn}</p>
 
                   <div className="pt-2 border-t flex justify-end">
-                    <form action={deleteProgressEntry} className="w-full">
+                    <ActionForm action={deleteProgressEntry} success="Progress entry deleted" className="w-full">
                       <input type="hidden" name="id" value={e.id} />
                       <input type="hidden" name="locale" value={locale} />
                       <Button type="submit" size="xs" variant="destructive" className="w-full">
                         Delete Progress Entry
                       </Button>
-                    </form>
+                    </ActionForm>
                   </div>
                 </div>
               ))}

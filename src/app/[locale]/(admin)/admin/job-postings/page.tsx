@@ -7,6 +7,7 @@ import {
   rejectJobPosting,
   editAndApproveJobPosting,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface JobPostingsPageProps {
   params: Promise<{ locale: string }>;
@@ -182,7 +183,7 @@ export default async function JobPostingsPage({
                         <td className="border border-border px-3 py-2">
                           {jp.status === "PENDING" && (
                             <div className="flex flex-wrap gap-1">
-                              <form action={approveJobPosting}>
+                              <ActionForm action={approveJobPosting} success="Job posting approved">
                                 <input type="hidden" name="locale" value={locale} />
                                 <input
                                   type="hidden"
@@ -195,14 +196,14 @@ export default async function JobPostingsPage({
                                 >
                                   Approve
                                 </button>
-                              </form>
+                              </ActionForm>
 
                               <details className="inline-block">
                                 <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90">
                                   Reject
                                 </summary>
-                                <form
-                                  action={rejectJobPosting}
+                                <ActionForm
+                                  action={rejectJobPosting} success="Job posting rejected"
                                   className="mt-1 flex gap-1"
                                 >
                                   <input
@@ -227,15 +228,15 @@ export default async function JobPostingsPage({
                                   >
                                     Submit
                                   </button>
-                                </form>
+                                </ActionForm>
                               </details>
 
                               <details className="inline-block">
                                 <summary className="cursor-pointer rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary/90">
                                   Edit & Approve
                                 </summary>
-                                <form
-                                  action={editAndApproveJobPosting}
+                                <ActionForm
+                                  action={editAndApproveJobPosting} success="Job posting updated and approved"
                                   className="mt-1 flex flex-col gap-1"
                                 >
                                   <input
@@ -281,13 +282,13 @@ export default async function JobPostingsPage({
                                   >
                                     Save & Approve
                                   </button>
-                                </form>
+                                </ActionForm>
                               </details>
                             </div>
                           )}
 
                           {jp.status === "REJECTED" && (
-                            <form action={approveJobPosting}>
+                            <ActionForm action={approveJobPosting} success="Job posting approved">
                               <input type="hidden" name="locale" value={locale} />
                               <input
                                 type="hidden"
@@ -300,7 +301,7 @@ export default async function JobPostingsPage({
                               >
                                 Re-approve
                               </button>
-                            </form>
+                            </ActionForm>
                           )}
                         </td>
                       )}
@@ -357,7 +358,7 @@ export default async function JobPostingsPage({
                       {jp.status === "PENDING" && (
                         <>
                           <div className="flex gap-2">
-                            <form action={approveJobPosting} className="flex-1">
+                            <ActionForm action={approveJobPosting} success="Job posting approved" className="flex-1">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="postingId" value={jp.id} />
                               <button
@@ -366,14 +367,14 @@ export default async function JobPostingsPage({
                               >
                                 Approve
                               </button>
-                            </form>
+                            </ActionForm>
                           </div>
 
                           <details className="w-full">
                             <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/90">
                               Reject Job Posting
                             </summary>
-                            <form action={rejectJobPosting} className="mt-2 space-y-2">
+                            <ActionForm action={rejectJobPosting} success="Job posting rejected" className="mt-2 space-y-2">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="postingId" value={jp.id} />
                               <input
@@ -388,14 +389,14 @@ export default async function JobPostingsPage({
                               >
                                 Submit Rejection
                               </button>
-                            </form>
+                            </ActionForm>
                           </details>
 
                           <details className="w-full">
                             <summary className="cursor-pointer text-center rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90">
                               Edit & Approve
                             </summary>
-                            <form action={editAndApproveJobPosting} className="mt-2 space-y-2 border border-border rounded p-3 bg-muted/20">
+                            <ActionForm action={editAndApproveJobPosting} success="Job posting updated and approved" className="mt-2 space-y-2 border border-border rounded p-3 bg-muted/20">
                               <input type="hidden" name="locale" value={locale} />
                               <input type="hidden" name="postingId" value={jp.id} />
                               <div>
@@ -416,13 +417,13 @@ export default async function JobPostingsPage({
                               >
                                 Save & Approve Posting
                               </button>
-                            </form>
+                            </ActionForm>
                           </details>
                         </>
                       )}
 
                       {jp.status === "REJECTED" && (
-                        <form action={approveJobPosting} className="w-full">
+                        <ActionForm action={approveJobPosting} success="Job posting approved" className="w-full">
                           <input type="hidden" name="locale" value={locale} />
                           <input type="hidden" name="postingId" value={jp.id} />
                           <button
@@ -431,7 +432,7 @@ export default async function JobPostingsPage({
                           >
                             Re-approve Posting
                           </button>
-                        </form>
+                        </ActionForm>
                       )}
                     </div>
                   )}

@@ -9,6 +9,7 @@ import {
   deletePartner,
   movePartner,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -34,7 +35,7 @@ export default async function CertificationPartnersPage({
 
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add partner</h2>
-        <form action={createPartner} className="mt-4 space-y-4">
+        <ActionForm action={createPartner} success="Partner added" resetOnSuccess className="mt-4 space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -84,7 +85,7 @@ export default async function CertificationPartnersPage({
             </div>
           </div>
           <Button type="submit">Add partner</Button>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="mt-8">
@@ -109,7 +110,7 @@ export default async function CertificationPartnersPage({
                     <tr key={partner.id}>
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-1">
-                          <form action={movePartner}>
+                          <ActionForm action={movePartner} success="Order updated">
                             <input type="hidden" name="id" value={partner.id} />
                             <input type="hidden" name="direction" value="up" />
                             <input type="hidden" name="locale" value={locale} />
@@ -122,8 +123,8 @@ export default async function CertificationPartnersPage({
                             >
                               ↑
                             </Button>
-                          </form>
-                          <form action={movePartner}>
+                          </ActionForm>
+                          <ActionForm action={movePartner} success="Order updated">
                             <input type="hidden" name="id" value={partner.id} />
                             <input type="hidden" name="direction" value="down" />
                             <input type="hidden" name="locale" value={locale} />
@@ -136,7 +137,7 @@ export default async function CertificationPartnersPage({
                             >
                               ↓
                             </Button>
-                          </form>
+                          </ActionForm>
                           <span className="ml-2 text-sm">{partner.sortOrder}</span>
                         </div>
                       </td>
@@ -172,7 +173,7 @@ export default async function CertificationPartnersPage({
                         <div className="flex items-center gap-2">
                           <details className="relative">
                             <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
-                            <form action={updatePartner} className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
+                            <ActionForm action={updatePartner} success="Partner updated" className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
                               <input type="hidden" name="id" value={partner.id} />
                               <input type="hidden" name="locale" value={locale} />
                               <div>
@@ -192,15 +193,15 @@ export default async function CertificationPartnersPage({
                                 <input name="logo" type="file" accept="image/*" className="w-full text-sm" />
                               </div>
                               <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                            </form>
+                            </ActionForm>
                           </details>
-                          <form action={deletePartner}>
+                          <ActionForm action={deletePartner} success="Partner deleted">
                             <input type="hidden" name="id" value={partner.id} />
                             <input type="hidden" name="locale" value={locale} />
                             <Button type="submit" size="xs" variant="destructive">
                               Delete
                             </Button>
-                          </form>
+                          </ActionForm>
                         </div>
                       </td>
                     </tr>
@@ -243,32 +244,32 @@ export default async function CertificationPartnersPage({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1 text-sm">
                         <span className="text-muted-foreground mr-1">Order ({partner.sortOrder}):</span>
-                        <form action={movePartner}>
+                        <ActionForm action={movePartner} success="Order updated">
                           <input type="hidden" name="id" value={partner.id} />
                           <input type="hidden" name="direction" value="up" />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="icon-xs" variant="outline" disabled={index === 0}>↑</Button>
-                        </form>
-                        <form action={movePartner}>
+                        </ActionForm>
+                        <ActionForm action={movePartner} success="Order updated">
                           <input type="hidden" name="id" value={partner.id} />
                           <input type="hidden" name="direction" value="down" />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="icon-xs" variant="outline" disabled={index === partners.length - 1}>↓</Button>
-                        </form>
+                        </ActionForm>
                       </div>
 
-                      <form action={deletePartner}>
+                      <ActionForm action={deletePartner} success="Partner deleted">
                         <input type="hidden" name="id" value={partner.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="destructive">
                           Delete
                         </Button>
-                      </form>
+                      </ActionForm>
                     </div>
 
                     <details className="pt-1 border-t">
                       <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
-                      <form action={updatePartner} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <ActionForm action={updatePartner} success="Partner updated" className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
                         <input type="hidden" name="id" value={partner.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
@@ -288,7 +289,7 @@ export default async function CertificationPartnersPage({
                           <input name="logo" type="file" accept="image/*" className="w-full text-sm" />
                         </div>
                         <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                      </form>
+                      </ActionForm>
                     </details>
                   </div>
                 </div>
