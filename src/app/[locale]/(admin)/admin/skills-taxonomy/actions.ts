@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { arrayContains, count, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { candidateProfile, jobPosting, skill as skillTable } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 
 function localeFromFormData(formData: FormData): string {
@@ -18,10 +21,14 @@ export async function approveSkill(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  const skill = await prisma.skill.update({
-    where: { id },
-    data: { status: "APPROVED" },
-  });
+  const skill = expectRow(
+    await db
+      .update(skillTable)
+      .set({ status: "APPROVED" })
+      .where(eq(skillTable.id, id))
+      .returning(),
+    "Skill",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -48,50 +55,53 @@ export async function mergeSkill(formData: FormData) {
   if (sourceId === targetId) return;
 
   const [sourceSkill, targetSkill] = await Promise.all([
-    prisma.skill.findUnique({ where: { id: sourceId } }),
-    prisma.skill.findUnique({ where: { id: targetId } }),
+    db.query.skill.findFirst({ where: (s, { eq }) => eq(s.id, sourceId) }),
+    db.query.skill.findFirst({ where: (s, { eq }) => eq(s.id, targetId) }),
   ]);
 
   if (!sourceSkill || !targetSkill) {
     redirect(`/${locale}/admin/skills-taxonomy`);
   }
 
-  // Re-point all CandidateProfile references
-  const candidateProfiles = await prisma.candidateProfile.findMany({
-    where: { skillIds: { has: sourceId } },
-    select: { id: true, skillIds: true },
-  });
+  const repoint = (skillIds: string[]) => {
+    const next = skillIds.filter((s) => s !== sourceId);
+    if (!next.includes(targetId)) next.push(targetId);
+    return next;
+  };
 
-  for (const profile of candidateProfiles) {
-    const newSkillIds = profile.skillIds.filter((s) => s !== sourceId);
-    if (!newSkillIds.includes(targetId)) {
-      newSkillIds.push(targetId);
-    }
-    await prisma.candidateProfile.update({
-      where: { id: profile.id },
-      data: { skillIds: { set: newSkillIds } },
-    });
-  }
+  // Re-point every reference and delete the source skill atomically, so a
+  // failure part-way can't leave references to a deleted skill.
+  const { candidateProfiles, jobPostings } = await db.transaction(
+    async (tx) => {
+      const candidateProfiles = await tx
+        .select({
+          id: candidateProfile.id,
+          skillIds: candidateProfile.skillIds,
+        })
+        .from(candidateProfile)
+        .where(arrayContains(candidateProfile.skillIds, [sourceId]));
+      for (const profile of candidateProfiles) {
+        await tx
+          .update(candidateProfile)
+          .set({ skillIds: repoint(profile.skillIds) })
+          .where(eq(candidateProfile.id, profile.id));
+      }
 
-  // Re-point all JobPosting references
-  const jobPostings = await prisma.jobPosting.findMany({
-    where: { skillIds: { has: sourceId } },
-    select: { id: true, skillIds: true },
-  });
+      const jobPostings = await tx
+        .select({ id: jobPosting.id, skillIds: jobPosting.skillIds })
+        .from(jobPosting)
+        .where(arrayContains(jobPosting.skillIds, [sourceId]));
+      for (const posting of jobPostings) {
+        await tx
+          .update(jobPosting)
+          .set({ skillIds: repoint(posting.skillIds) })
+          .where(eq(jobPosting.id, posting.id));
+      }
 
-  for (const posting of jobPostings) {
-    const newSkillIds = posting.skillIds.filter((s) => s !== sourceId);
-    if (!newSkillIds.includes(targetId)) {
-      newSkillIds.push(targetId);
-    }
-    await prisma.jobPosting.update({
-      where: { id: posting.id },
-      data: { skillIds: { set: newSkillIds } },
-    });
-  }
-
-  // Delete source skill
-  await prisma.skill.delete({ where: { id: sourceId } });
+      await tx.delete(skillTable).where(eq(skillTable.id, sourceId));
+      return { candidateProfiles, jobPostings };
+    },
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -120,21 +130,31 @@ export async function deleteSkill(formData: FormData) {
   const id = formData.get("id") as string;
   const locale = localeFromFormData(formData);
 
-  const skill = await prisma.skill.findUnique({ where: { id } });
+  const skill = await db.query.skill.findFirst({
+    where: (s, { eq }) => eq(s.id, id),
+  });
   if (!skill) return;
 
   // Block deletion if skill has active references
-  const [candidateCount, jobPostingCount] = await Promise.all([
-    prisma.candidateProfile.count({ where: { skillIds: { has: id } } }),
-    prisma.jobPosting.count({ where: { skillIds: { has: id } } }),
+  const [[candidates], [postings]] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(candidateProfile)
+      .where(arrayContains(candidateProfile.skillIds, [id])),
+    db
+      .select({ n: count() })
+      .from(jobPosting)
+      .where(arrayContains(jobPosting.skillIds, [id])),
   ]);
+  const candidateCount = candidates.n;
+  const jobPostingCount = postings.n;
 
   if (candidateCount > 0 || jobPostingCount > 0) {
     // Blocked — redirect back without deleting
     redirect(`/${locale}/admin/skills-taxonomy`);
   }
 
-  await prisma.skill.delete({ where: { id } });
+  await db.delete(skillTable).where(eq(skillTable.id, id));
 
   await logAdminAction({
     actorUserId: authResult.userId,

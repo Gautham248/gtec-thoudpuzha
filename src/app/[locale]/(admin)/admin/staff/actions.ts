@@ -2,8 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole, Role, StaffPermissionKeys, type PermissionKey } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import {
+  requireRole,
+  Role,
+  StaffPermissionKeys,
+  type PermissionKey,
+} from "@/lib/auth";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { staffPermission, user } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { clerkClient } from "@clerk/nextjs/server";
 import { logAdminAction } from "@/lib/audit";
 
@@ -48,10 +56,14 @@ export async function deactivateStaff(formData: FormData) {
   const userId = formData.get("userId") as string;
   const locale = localeFromFormData(formData);
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { deactivatedAt: new Date() },
-  });
+  expectRow(
+    await db
+      .update(user)
+      .set({ deactivatedAt: new Date() })
+      .where(eq(user.id, userId))
+      .returning({ id: user.id }),
+    "User",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -73,10 +85,14 @@ export async function reactivateStaff(formData: FormData) {
   const userId = formData.get("userId") as string;
   const locale = localeFromFormData(formData);
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { deactivatedAt: null },
-  });
+  expectRow(
+    await db
+      .update(user)
+      .set({ deactivatedAt: null })
+      .where(eq(user.id, userId))
+      .returning({ id: user.id }),
+    "User",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -107,16 +123,13 @@ export async function setStaffPermission(formData: FormData) {
     throw new Error(`Invalid permission key: ${permissionKey}`);
   }
 
-  await prisma.staffPermission.upsert({
-    where: { userId: targetUserId },
-    create: {
-      userId: targetUserId,
-      [permissionKey]: value,
-    },
-    update: {
-      [permissionKey]: value,
-    },
-  });
+  await db
+    .insert(staffPermission)
+    .values({ userId: targetUserId, [permissionKey]: value })
+    .onConflictDoUpdate({
+      target: staffPermission.userId,
+      set: { [permissionKey]: value },
+    });
 
   await logAdminAction({
     actorUserId: authResult.userId,

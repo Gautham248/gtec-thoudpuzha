@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { studentRecord } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 
 function localeFromFormData(formData: FormData): string {
@@ -37,10 +40,14 @@ export async function updateStudentEmail(formData: FormData) {
     throw new Error(`"${email}" is not a valid email address`);
   }
 
-  const record = await prisma.studentRecord.update({
-    where: { id: recordId },
-    data: { email },
-  });
+  const record = expectRow(
+    await db
+      .update(studentRecord)
+      .set({ email })
+      .where(eq(studentRecord.id, recordId))
+      .returning(),
+    "Student record",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -73,16 +80,18 @@ export async function createStudentRecord(formData: FormData) {
     throw new Error(`"${email}" is not a valid email address`);
   }
 
-  const existing = await prisma.studentRecord.findUnique({
-    where: { studentId },
+  const existing = await db.query.studentRecord.findFirst({
+    where: (r, { eq }) => eq(r.studentId, studentId),
+    columns: { id: true },
   });
   if (existing) {
     throw new Error(`Student ID "${studentId}" already exists`);
   }
 
-  const record = await prisma.studentRecord.create({
-    data: { studentId, fullName, phone, email },
-  });
+  const [record] = await db
+    .insert(studentRecord)
+    .values({ studentId, fullName, phone, email })
+    .returning();
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -121,10 +130,7 @@ export async function bulkImportStudents(formData: FormData) {
 
   // Skip header row if first line looks like a header
   const startIndex =
-    lines.length > 0 &&
-    lines[0].toLowerCase().includes("studentid")
-      ? 1
-      : 0;
+    lines.length > 0 && lines[0].toLowerCase().includes("studentid") ? 1 : 0;
 
   const results: CsvRowResult[] = [];
   let createdCount = 0;
@@ -166,8 +172,9 @@ export async function bulkImportStudents(formData: FormData) {
     }
 
     try {
-      const existing = await prisma.studentRecord.findUnique({
-        where: { studentId },
+      const existing = await db.query.studentRecord.findFirst({
+        where: (r, { eq }) => eq(r.studentId, studentId),
+        columns: { id: true },
       });
       if (existing) {
         results.push({
@@ -179,9 +186,9 @@ export async function bulkImportStudents(formData: FormData) {
         continue;
       }
 
-      await prisma.studentRecord.create({
-        data: { studentId, fullName, phone, email },
-      });
+      await db
+        .insert(studentRecord)
+        .values({ studentId, fullName, phone, email });
 
       results.push({ row: rowNumber, studentId, success: true });
       createdCount++;
@@ -190,8 +197,7 @@ export async function bulkImportStudents(formData: FormData) {
         row: rowNumber,
         studentId,
         success: false,
-        error:
-          err instanceof Error ? err.message : "Unknown error",
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
   }

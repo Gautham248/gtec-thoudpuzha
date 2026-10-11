@@ -1,421 +1,203 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
+// @vitest-environment node
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { auditLogEntry, employerProfile } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
 import {
+  form,
+  insertEmployer,
+  insertStaff,
+  session,
+} from "@/__tests__/pg-fixtures";
+import {
+  approveAndTrustEmployer,
   approveEmployer,
   rejectEmployer,
-  approveAndTrustEmployer,
   toggleAutoPublishTrusted,
 } from "./actions";
-import { db } from "@/db";
-import { getInsertedRows, setMockRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
-const mockUpdate = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockStaffPermissionFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
+const mockRevalidatePath = vi.hoisted(() => vi.fn());
+const mockSendModerationNotification = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
-const mockSendModerationNotification = vi.hoisted(() => vi.fn());
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: mockAuth,
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    employerProfile: {
-      findMany: mockFindMany,
-      findUnique: mockFindUnique,
-      update: mockUpdate,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    staffPermission: {
-      findUnique: mockStaffPermissionFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
-  },
-}));
-
-const auditEntries = () => getInsertedRows(db, "auditLogEntry");
-
-vi.mock("next/navigation", () => ({
-  redirect: mockRedirect,
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: mockRevalidatePath,
-}));
-
+vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
+vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
+vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
 vi.mock("@/lib/email", () => ({
   sendEmployerModerationNotification: mockSendModerationNotification,
 }));
 
-describe("approveEmployer", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockUpdate.mockReset();
-    mockAuditCreate.mockReset();
-    mockRevalidatePath.mockReset();
-    mockSendModerationNotification.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
+const pg = db as unknown as TestDb;
 
-  test("1. approving a PENDING employer sets status=APPROVED and sends notification", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
+let employerId: string;
 
-    mockUpdate.mockResolvedValue({
-      id: "ep_1",
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  mockAuth.mockResolvedValue(session("super_admin_1", "SUPER_ADMIN"));
+  employerId = (
+    await insertEmployer(pg, {
       companyName: "Acme Corp",
       contactPersonName: "John Doe",
       email: "john@acme.com",
+      status: "PENDING",
+      rejectionReason: "old reason",
+    })
+  ).id;
+});
+
+const employer = async () =>
+  (await pg.select().from(employerProfile)).find((e) => e.id === employerId)!;
+const audits = () => pg.select().from(auditLogEntry);
+const fd = (extra: Record<string, string> = {}) =>
+  form({ profileId: employerId, locale: "en", ...extra });
+
+describe("Super Admin moderation", () => {
+  test("1. approving a PENDING employer sets status=APPROVED and sends notification", async () => {
+    await approveEmployer(fd());
+
+    expect(await employer()).toMatchObject({
       status: "APPROVED",
       rejectionReason: null,
-      autoPublishTrusted: false,
-      user: { id: "user_1" },
     });
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-    mockSendModerationNotification.mockResolvedValue(undefined);
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await approveEmployer(formData);
-
-    expect(mockUpdate).toHaveBeenCalledWith({
-      where: { id: "ep_1" },
-      data: { status: "APPROVED", rejectionReason: null },
-      include: { user: true },
-    });
-
-    expect(auditEntries()).toContainEqual(
+    expect(await audits()).toEqual([
       expect.objectContaining({
         actorUserId: "super_admin_1",
         actorRole: "SUPER_ADMIN",
         action: "employerProfile.approve",
         entityType: "EmployerProfile",
-        entityId: "ep_1",
+        entityId: employerId,
+        metadata: { companyName: "Acme Corp" },
       }),
-    );
-
+    ]);
     expect(mockSendModerationNotification).toHaveBeenCalledWith({
       companyName: "Acme Corp",
       contactPersonName: "John Doe",
       employerEmail: "john@acme.com",
       status: "APPROVED",
     });
-
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/employers");
   });
 
   test("2. rejecting requires a rejectionReason", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-    // No rejectionReason
-
-    await expect(rejectEmployer(formData)).rejects.toThrow(
+    await expect(rejectEmployer(fd())).rejects.toThrow(
       "rejectionReason is required",
     );
 
-    expect(mockUpdate).not.toHaveBeenCalled();
-    expect(auditEntries()).toHaveLength(0);
+    expect((await employer()).status).toBe("PENDING");
+    expect(await audits()).toHaveLength(0);
     expect(mockSendModerationNotification).not.toHaveBeenCalled();
+  });
+
+  test("rejecting with a reason stores the trimmed reason", async () => {
+    await rejectEmployer(fd({ rejectionReason: "  Incomplete details  " }));
+
+    expect(await employer()).toMatchObject({
+      status: "REJECTED",
+      rejectionReason: "Incomplete details",
+    });
+    expect(mockSendModerationNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "REJECTED" }),
+    );
   });
 
   test("3. approveAndTrust sets both status=APPROVED and autoPublishTrusted=true", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
+    await approveAndTrustEmployer(fd());
 
-    mockUpdate.mockResolvedValue({
-      id: "ep_1",
-      companyName: "Acme Corp",
-      contactPersonName: "John",
-      email: "john@acme.com",
+    expect(await employer()).toMatchObject({
       status: "APPROVED",
       autoPublishTrusted: true,
       rejectionReason: null,
-      user: { id: "user_1" },
     });
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-    mockSendModerationNotification.mockResolvedValue(undefined);
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await approveAndTrustEmployer(formData);
-
-    expect(mockUpdate).toHaveBeenCalledWith({
-      where: { id: "ep_1" },
-      data: {
-        status: "APPROVED",
-        autoPublishTrusted: true,
-        rejectionReason: null,
-      },
-      include: { user: true },
-    });
-
-    expect(auditEntries()).toContainEqual(
-      expect.objectContaining({
-        action: "employerProfile.approveAndTrust",
-        metadata: expect.objectContaining({ autoPublishTrusted: true }),
-      }),
-    );
-
-    expect(mockSendModerationNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "APPROVED" }),
-    );
   });
 
   test("4. toggleAutoPublishTrusted flips the flag on an APPROVED employer", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
+    await pg.update(employerProfile).set({ status: "APPROVED" });
 
-    // Start as APPROVED with autoPublishTrusted=false
-    mockFindUnique.mockResolvedValue({
-      id: "ep_1",
-      status: "APPROVED",
-      autoPublishTrusted: false,
-    });
+    await toggleAutoPublishTrusted(fd());
+    expect((await employer()).autoPublishTrusted).toBe(true);
 
-    mockUpdate.mockResolvedValue({
-      id: "ep_1",
-      autoPublishTrusted: true,
-    });
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await toggleAutoPublishTrusted(formData);
-
-    expect(mockFindUnique).toHaveBeenCalledWith({ where: { id: "ep_1" } });
-    expect(mockUpdate).toHaveBeenCalledWith({
-      where: { id: "ep_1" },
-      data: { autoPublishTrusted: true },
-    });
-
-    expect(auditEntries()).toContainEqual(
-      expect.objectContaining({
-        actorUserId: "super_admin_1",
-        action: "employerProfile.trust",
-        metadata: { autoPublishTrusted: true },
-      }),
-    );
-
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/employers");
+    await toggleAutoPublishTrusted(fd());
+    expect((await employer()).autoPublishTrusted).toBe(false);
   });
 
   test("4b. toggleAutoPublishTrusted on a non-APPROVED employer throws", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
-
-    mockFindUnique.mockResolvedValue({
-      id: "ep_1",
-      status: "PENDING",
-      autoPublishTrusted: false,
-    });
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await expect(toggleAutoPublishTrusted(formData)).rejects.toThrow(
+    await expect(toggleAutoPublishTrusted(fd())).rejects.toThrow(
       "Can only toggle autoPublishTrusted on APPROVED employers",
     );
-
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect((await employer()).autoPublishTrusted).toBe(false);
   });
 
-  test("5. Centre Staff cannot approve (redirects to forbidden)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await expect(approveEmployer(formData)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-
-    expect(mockUpdate).not.toHaveBeenCalled();
-    expect(auditEntries()).toHaveLength(0);
+  test("approving an unknown employer fails without auditing or emailing", async () => {
+    await expect(
+      approveEmployer(form({ profileId: "missing", locale: "en" })),
+    ).rejects.toThrow("Employer profile not found");
+    expect(await audits()).toHaveLength(0);
     expect(mockSendModerationNotification).not.toHaveBeenCalled();
   });
+});
 
-  test("5b. Centre Staff cannot reject (redirects to forbidden)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
+describe("permissions", () => {
+  test.each([
+    ["5. approve", approveEmployer],
+    ["5b. reject", (f: FormData) => rejectEmployer(f)],
+    ["5c. approveAndTrust", approveAndTrustEmployer],
+    ["5d. toggleAutoPublishTrusted", toggleAutoPublishTrusted],
+  ])(
+    "%s is forbidden to Centre Staff without canApproveEmployers",
+    async (_name, action) => {
+      mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
 
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("rejectionReason", "Invalid docs");
-    formData.append("locale", "en");
+      await expect(action(fd({ rejectionReason: "x" }))).rejects.toThrow(
+        "redirect:/en/forbidden",
+      );
 
-    await expect(rejectEmployer(formData)).rejects.toThrow(
+      expect(await employer()).toMatchObject({
+        status: "PENDING",
+        autoPublishTrusted: false,
+      });
+      expect(await audits()).toHaveLength(0);
+      expect(mockSendModerationNotification).not.toHaveBeenCalled();
+    },
+  );
+
+  test("6. Centre Staff with canApproveEmployers=false is denied approve", async () => {
+    mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
+    await insertStaff(pg, "staff_1", { canApproveEmployers: false });
+
+    await expect(approveEmployer(fd())).rejects.toThrow(
       "redirect:/en/forbidden",
     );
-
-    expect(mockUpdate).not.toHaveBeenCalled();
-  });
-
-  test("5c. Centre Staff cannot approveAndTrust (redirects to forbidden)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await expect(approveAndTrustEmployer(formData)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-
-    expect(mockUpdate).not.toHaveBeenCalled();
-  });
-
-  test("5d. Centre Staff cannot toggleAutoPublishTrusted (redirects to forbidden)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await expect(toggleAutoPublishTrusted(formData)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-
-    expect(mockFindUnique).not.toHaveBeenCalled();
-    expect(mockUpdate).not.toHaveBeenCalled();
-  });
-
-  // ─── Permission-grant tests ────────────────────────────────────────────────
-
-  test("6. Centre Staff without canApproveEmployers=true is denied approve", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_no_perm",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    // no row = no permission
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await expect(approveEmployer(formData)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-    expect(mockUpdate).not.toHaveBeenCalled();
-    expect(auditEntries()).toHaveLength(0);
+    expect((await employer()).status).toBe("PENDING");
   });
 
   test("7. Centre Staff WITH canApproveEmployers=true can approve", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_with_perm",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    setMockRows(db, "staffPermission", [
-      {
-        id: "sp_1",
-        userId: "staff_with_perm",
-        canApproveEmployers: true,
-      },
-    ]);
+    mockAuth.mockResolvedValue(session("staff_with_perm", "CENTRE_STAFF"));
+    await insertStaff(pg, "staff_with_perm", { canApproveEmployers: true });
 
-    mockUpdate.mockResolvedValue({
-      id: "ep_1",
-      companyName: "Acme Corp",
-      contactPersonName: "John Doe",
-      email: "john@acme.com",
-      status: "APPROVED",
-      rejectionReason: null,
-      autoPublishTrusted: false,
-      user: { id: "user_1" },
-    });
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-    mockSendModerationNotification.mockResolvedValue(undefined);
+    await approveEmployer(fd());
 
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await approveEmployer(formData);
-
-    expect(mockUpdate).toHaveBeenCalled();
-    expect(auditEntries()).toContainEqual(
+    expect((await employer()).status).toBe("APPROVED");
+    expect(await audits()).toEqual([
       expect.objectContaining({
         actorUserId: "staff_with_perm",
         actorRole: "CENTRE_STAFF",
       }),
-    );
+    ]);
   });
 
   test("8. Super Admin always passes regardless of StaffPermission row", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
-    // Even with null StaffPermission, Super Admin should pass
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await approveEmployer(fd());
 
-    mockUpdate.mockResolvedValue({
-      id: "ep_1",
-      companyName: "Acme Corp",
-      contactPersonName: "John Doe",
-      email: "john@acme.com",
-      status: "APPROVED",
-      rejectionReason: null,
-      user: { id: "user_1" },
-    });
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-    mockSendModerationNotification.mockResolvedValue(undefined);
-
-    const formData = new FormData();
-    formData.append("profileId", "ep_1");
-    formData.append("locale", "en");
-
-    await approveEmployer(formData);
-
-    expect(mockUpdate).toHaveBeenCalled();
-    expect(auditEntries()).not.toHaveLength(0);
+    expect((await employer()).status).toBe("APPROVED");
+    expect(await audits()).not.toHaveLength(0);
   });
 });

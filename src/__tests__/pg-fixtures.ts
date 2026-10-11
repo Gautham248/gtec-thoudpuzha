@@ -152,3 +152,15 @@ export function form(
 export function session(userId: string, role: string) {
   return { userId, sessionClaims: { metadata: { role } } };
 }
+
+/** A CENTRE_STAFF (or given role) user with an explicit StaffPermission row. */
+export async function insertStaff(
+  db: TestDb,
+  id: string,
+  permissions: Omit<Insert<typeof t.staffPermission>, "userId"> = {},
+  role: "CENTRE_STAFF" | "SUPER_ADMIN" = "CENTRE_STAFF",
+) {
+  const user = await insertUser(db, { id, role });
+  await db.insert(t.staffPermission).values({ ...permissions, userId: id });
+  return user;
+}

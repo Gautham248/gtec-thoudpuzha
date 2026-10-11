@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role, type PermissionKey } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { logger } from "@/lib/logger";
 
@@ -33,8 +33,8 @@ export default async function AdminLayout({
   let permissions: Partial<Record<PermissionKey, boolean>> = {};
   if (!isSuperAdmin) {
     try {
-      const row = await prisma.staffPermission.findUnique({
-        where: { userId },
+      const row = await db.query.staffPermission.findFirst({
+        where: (p, { eq }) => eq(p.userId, userId),
       });
       if (row) {
         permissions = {

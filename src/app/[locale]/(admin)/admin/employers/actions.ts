@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission, StaffPermissionKeys } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { employerProfile } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { sendEmployerModerationNotification } from "@/lib/email";
 
@@ -12,7 +15,9 @@ function localeFromFormData(formData: FormData): string {
 }
 
 export async function approveEmployer(formData: FormData) {
-  const authResult = await requirePermission(StaffPermissionKeys.canApproveEmployers);
+  const authResult = await requirePermission(
+    StaffPermissionKeys.canApproveEmployers,
+  );
   if (!authResult.authorized) {
     redirect(`/${localeFromFormData(formData)}/forbidden`);
   }
@@ -20,11 +25,14 @@ export async function approveEmployer(formData: FormData) {
   const profileId = formData.get("profileId") as string;
   if (!profileId) throw new Error("profileId is required");
 
-  const profile = await prisma.employerProfile.update({
-    where: { id: profileId },
-    data: { status: "APPROVED", rejectionReason: null },
-    include: { user: true },
-  });
+  const profile = expectRow(
+    await db
+      .update(employerProfile)
+      .set({ status: "APPROVED", rejectionReason: null })
+      .where(eq(employerProfile.id, profileId))
+      .returning(),
+    "Employer profile",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -46,7 +54,9 @@ export async function approveEmployer(formData: FormData) {
 }
 
 export async function rejectEmployer(formData: FormData) {
-  const authResult = await requirePermission(StaffPermissionKeys.canApproveEmployers);
+  const authResult = await requirePermission(
+    StaffPermissionKeys.canApproveEmployers,
+  );
   if (!authResult.authorized) {
     redirect(`/${localeFromFormData(formData)}/forbidden`);
   }
@@ -59,11 +69,14 @@ export async function rejectEmployer(formData: FormData) {
     throw new Error("rejectionReason is required");
   }
 
-  const profile = await prisma.employerProfile.update({
-    where: { id: profileId },
-    data: { status: "REJECTED", rejectionReason: rejectionReason.trim() },
-    include: { user: true },
-  });
+  const profile = expectRow(
+    await db
+      .update(employerProfile)
+      .set({ status: "REJECTED", rejectionReason: rejectionReason.trim() })
+      .where(eq(employerProfile.id, profileId))
+      .returning(),
+    "Employer profile",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -86,7 +99,9 @@ export async function rejectEmployer(formData: FormData) {
 }
 
 export async function approveAndTrustEmployer(formData: FormData) {
-  const authResult = await requirePermission(StaffPermissionKeys.canApproveEmployers);
+  const authResult = await requirePermission(
+    StaffPermissionKeys.canApproveEmployers,
+  );
   if (!authResult.authorized) {
     redirect(`/${localeFromFormData(formData)}/forbidden`);
   }
@@ -94,15 +109,18 @@ export async function approveAndTrustEmployer(formData: FormData) {
   const profileId = formData.get("profileId") as string;
   if (!profileId) throw new Error("profileId is required");
 
-  const profile = await prisma.employerProfile.update({
-    where: { id: profileId },
-    data: {
-      status: "APPROVED",
-      autoPublishTrusted: true,
-      rejectionReason: null,
-    },
-    include: { user: true },
-  });
+  const profile = expectRow(
+    await db
+      .update(employerProfile)
+      .set({
+        status: "APPROVED",
+        autoPublishTrusted: true,
+        rejectionReason: null,
+      })
+      .where(eq(employerProfile.id, profileId))
+      .returning(),
+    "Employer profile",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId,
@@ -124,7 +142,9 @@ export async function approveAndTrustEmployer(formData: FormData) {
 }
 
 export async function toggleAutoPublishTrusted(formData: FormData) {
-  const authResult = await requirePermission(StaffPermissionKeys.canApproveEmployers);
+  const authResult = await requirePermission(
+    StaffPermissionKeys.canApproveEmployers,
+  );
   if (!authResult.authorized) {
     redirect(`/${localeFromFormData(formData)}/forbidden`);
   }
@@ -132,8 +152,8 @@ export async function toggleAutoPublishTrusted(formData: FormData) {
   const profileId = formData.get("profileId") as string;
   if (!profileId) throw new Error("profileId is required");
 
-  const current = await prisma.employerProfile.findUnique({
-    where: { id: profileId },
+  const current = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.id, profileId),
   });
   if (!current) throw new Error("EmployerProfile not found");
   if (current.status !== "APPROVED") {
@@ -142,17 +162,15 @@ export async function toggleAutoPublishTrusted(formData: FormData) {
 
   const nextValue = !current.autoPublishTrusted;
 
-  await prisma.employerProfile.update({
-    where: { id: profileId },
-    data: { autoPublishTrusted: nextValue },
-  });
+  await db
+    .update(employerProfile)
+    .set({ autoPublishTrusted: nextValue })
+    .where(eq(employerProfile.id, profileId));
 
   await logAdminAction({
     actorUserId: authResult.userId,
     actorRole: authResult.role,
-    action: nextValue
-      ? "employerProfile.trust"
-      : "employerProfile.untrust",
+    action: nextValue ? "employerProfile.trust" : "employerProfile.untrust",
     entityType: "EmployerProfile",
     entityId: profileId,
     metadata: { autoPublishTrusted: nextValue },

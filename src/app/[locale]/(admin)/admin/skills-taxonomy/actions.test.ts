@@ -1,262 +1,197 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
-
-// ─── Hoisted mocks ──────────────────────────────────────────────────────────
+// @vitest-environment node
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import {
+  auditLogEntry,
+  candidateProfile,
+  jobPosting,
+  skill,
+} from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  form,
+  insertJobPosting,
+  insertStudentProfile,
+  session,
+} from "@/__tests__/pg-fixtures";
+import { approveSkill, deleteSkill, mergeSkill } from "./actions";
+import SkillsTaxonomyPage from "./page";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindUniqueSkill = vi.hoisted(() => vi.fn());
-const mockUpdateSkill = vi.hoisted(() => vi.fn());
-const mockDeleteSkill = vi.hoisted(() => vi.fn());
-const mockFindManyCandidateProfile = vi.hoisted(() => vi.fn());
-const mockUpdateCandidateProfile = vi.hoisted(() => vi.fn());
-const mockCountCandidateProfile = vi.hoisted(() => vi.fn());
-const mockFindManyJobPosting = vi.hoisted(() => vi.fn());
-const mockUpdateJobPosting = vi.hoisted(() => vi.fn());
-const mockCountJobPosting = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
 
-vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    skill: {
-      findUnique: mockFindUniqueSkill,
-      update: mockUpdateSkill,
-      delete: mockDeleteSkill,
-    },
-    candidateProfile: {
-      findMany: mockFindManyCandidateProfile,
-      update: mockUpdateCandidateProfile,
-      count: mockCountCandidateProfile,
-    },
-    jobPosting: {
-      findMany: mockFindManyJobPosting,
-      update: mockUpdateJobPosting,
-      count: mockCountJobPosting,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: { create: mockAuditCreate },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
+vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
+vi.mock("next/navigation", () => ({
+  redirect: mockRedirect,
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
+const pg = db as unknown as TestDb;
 
-vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
+  await pg.insert(skill).values([
+    { id: "skill_a", label: "JS", status: "PENDING" },
+    { id: "skill_b", label: "JavaScript", status: "APPROVED" },
+    { id: "skill_c", label: "CSS", status: "APPROVED" },
+  ]);
+});
 
-vi.mock("@/lib/audit", () => ({ logAdminAction: mockAuditCreate }));
+const skills = async () =>
+  Object.fromEntries((await pg.select().from(skill)).map((s) => [s.id, s]));
+const skillIdsOf = async (table: typeof candidateProfile | typeof jobPosting) =>
+  Object.fromEntries(
+    (
+      await pg.select({ id: table.id, skillIds: table.skillIds }).from(table)
+    ).map((r) => [r.id, r.skillIds]),
+  );
 
-// ─── Tests ───────────────────────────────────────────────────────────────────
+const denyAsJobSeeker = () =>
+  mockAuth.mockResolvedValue(session("js_1", "JOB_SEEKER"));
 
 describe("approveSkill", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-    mockUpdateSkill.mockResolvedValue({
-      id: "skill_1",
-      label: "JavaScript",
-      status: "APPROVED",
-    });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
+  test("1. Approving a PENDING skill sets status to APPROVED and audits it", async () => {
+    await approveSkill(form({ id: "skill_a", locale: "en" }));
 
-  test("1. Approving a PENDING skill sets status to APPROVED", async () => {
-    const { approveSkill } = await import("./actions");
-
-    const formData = new FormData();
-    formData.set("id", "skill_1");
-    formData.set("locale", "en");
-
-    await approveSkill(formData);
-
-    expect(mockUpdateSkill).toHaveBeenCalledWith({
-      where: { id: "skill_1" },
-      data: { status: "APPROVED" },
+    expect((await skills()).skill_a.status).toBe("APPROVED");
+    const [audit] = await pg.select().from(auditLogEntry);
+    expect(audit).toMatchObject({
+      action: "skill.approve",
+      entityId: "skill_a",
+      metadata: { label: "JS" },
     });
   });
 
   test("approveSkill denies job_seeker", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "js_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
+    denyAsJobSeeker();
 
-    const { approveSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("id", "skill_1");
-    formData.set("locale", "en");
-
-    await expect(approveSkill(formData)).rejects.toThrow("redirect:/en/forbidden");
-    expect(mockUpdateSkill).not.toHaveBeenCalled();
+    await expect(
+      approveSkill(form({ id: "skill_a", locale: "en" })),
+    ).rejects.toThrow("redirect:/en/forbidden");
+    expect((await skills()).skill_a.status).toBe("PENDING");
   });
 });
 
 describe("mergeSkill", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-    mockFindUniqueSkill.mockImplementation(
-      (args: { where: { id: string } }) => {
-        if (args.where.id === "skill_a")
-          return Promise.resolve({ id: "skill_a", label: "JS" });
-        if (args.where.id === "skill_b")
-          return Promise.resolve({ id: "skill_b", label: "JavaScript" });
-        return Promise.resolve(null);
-      },
+  const merge = () =>
+    mergeSkill(
+      form({ sourceId: "skill_a", targetId: "skill_b", locale: "en" }),
     );
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
 
   test("2. Merging skill A into skill B re-points all CandidateProfile references", async () => {
-    mockFindManyCandidateProfile.mockResolvedValue([
-      { id: "cp_1", skillIds: ["skill_a", "skill_c"] },
-      { id: "cp_2", skillIds: ["skill_a"] },
-    ]);
-    mockFindManyJobPosting.mockResolvedValue([]);
-    mockUpdateCandidateProfile.mockResolvedValue({});
-
-    const { mergeSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("sourceId", "skill_a");
-    formData.set("targetId", "skill_b");
-    formData.set("locale", "en");
-
-    await mergeSkill(formData);
-
-    // First profile: skill_a replaced with skill_b, skill_c preserved
-    expect(mockUpdateCandidateProfile).toHaveBeenCalledWith({
-      where: { id: "cp_1" },
-      data: { skillIds: { set: ["skill_c", "skill_b"] } },
+    const p1 = await insertStudentProfile(pg, {
+      skillIds: ["skill_a", "skill_c"],
     });
-    // Second profile: skill_a replaced with skill_b
-    expect(mockUpdateCandidateProfile).toHaveBeenCalledWith({
-      where: { id: "cp_2" },
-      data: { skillIds: { set: ["skill_b"] } },
+    const p2 = await insertStudentProfile(pg, { skillIds: ["skill_a"] });
+    const p3 = await insertStudentProfile(pg, {
+      skillIds: ["skill_a", "skill_b"],
     });
-    // Source skill deleted
-    expect(mockDeleteSkill).toHaveBeenCalledWith({ where: { id: "skill_a" } });
+    const untouched = await insertStudentProfile(pg, { skillIds: ["skill_c"] });
+
+    await merge();
+
+    expect(await skillIdsOf(candidateProfile)).toEqual({
+      [p1.id]: ["skill_c", "skill_b"], // skill_a replaced, skill_c preserved
+      [p2.id]: ["skill_b"],
+      [p3.id]: ["skill_b"], // no duplicate when B was already present
+      [untouched.id]: ["skill_c"],
+    });
+    expect(await skills()).not.toHaveProperty("skill_a");
   });
 
   test("3. Merging skill A into skill B re-points all JobPosting references too", async () => {
-    mockFindManyCandidateProfile.mockResolvedValue([]);
-    mockFindManyJobPosting.mockResolvedValue([
-      { id: "jp_1", skillIds: ["skill_a", "skill_x"] },
-    ]);
-    mockUpdateJobPosting.mockResolvedValue({});
-
-    const { mergeSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("sourceId", "skill_a");
-    formData.set("targetId", "skill_b");
-    formData.set("locale", "en");
-
-    await mergeSkill(formData);
-
-    expect(mockUpdateJobPosting).toHaveBeenCalledWith({
-      where: { id: "jp_1" },
-      data: { skillIds: { set: ["skill_x", "skill_b"] } },
+    const posting = await insertJobPosting(pg, {
+      skillIds: ["skill_a", "skill_x"],
     });
-    expect(mockDeleteSkill).toHaveBeenCalledWith({ where: { id: "skill_a" } });
+
+    await merge();
+
+    expect((await skillIdsOf(jobPosting))[posting.id]).toEqual([
+      "skill_x",
+      "skill_b",
+    ]);
+    expect(await skills()).not.toHaveProperty("skill_a");
+    const [audit] = await pg.select().from(auditLogEntry);
+    expect(audit).toMatchObject({
+      action: "skill.merge",
+      entityId: "skill_a",
+      metadata: {
+        mergedIntoId: "skill_b",
+        sourceLabel: "JS",
+        targetLabel: "JavaScript",
+        repointedCandidateProfiles: 0,
+        repointedJobPostings: 1,
+      },
+    });
+  });
+
+  test("merging into an unknown skill changes nothing", async () => {
+    const p = await insertStudentProfile(pg, { skillIds: ["skill_a"] });
+
+    await expect(
+      mergeSkill(form({ sourceId: "skill_a", targetId: "nope", locale: "en" })),
+    ).rejects.toThrow("redirect:/en/admin/skills-taxonomy");
+
+    expect((await skillIdsOf(candidateProfile))[p.id]).toEqual(["skill_a"]);
+    expect(await skills()).toHaveProperty("skill_a");
   });
 
   test("mergeSkill denies job_seeker", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "js_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
+    denyAsJobSeeker();
 
-    const { mergeSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("sourceId", "skill_a");
-    formData.set("targetId", "skill_b");
-    formData.set("locale", "en");
-
-    await expect(mergeSkill(formData)).rejects.toThrow("redirect:/en/forbidden");
-    expect(mockDeleteSkill).not.toHaveBeenCalled();
+    await expect(merge()).rejects.toThrow("redirect:/en/forbidden");
+    expect(await skills()).toHaveProperty("skill_a");
   });
 });
 
 describe("deleteSkill", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-    mockFindUniqueSkill.mockResolvedValue({
-      id: "skill_1",
-      label: "OldSkill",
-    });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+  test("4. Deleting a skill with active references is blocked, suggesting merge instead", async () => {
+    await insertStudentProfile(pg, { skillIds: ["skill_c"] });
+
+    await expect(
+      deleteSkill(form({ id: "skill_c", locale: "en" })),
+    ).rejects.toThrow("redirect:/en/admin/skills-taxonomy");
+    expect(await skills()).toHaveProperty("skill_c");
   });
 
-  test("4. Deleting a skill with active references is blocked, suggesting merge instead", async () => {
-    mockCountCandidateProfile.mockResolvedValue(2);
-    mockCountJobPosting.mockResolvedValue(0);
+  test("a job posting reference also blocks deletion", async () => {
+    await insertJobPosting(pg, { skillIds: ["skill_c"] });
 
-    const { deleteSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("id", "skill_1");
-    formData.set("locale", "en");
-
-    await expect(deleteSkill(formData)).rejects.toThrow(
-      "redirect:/en/admin/skills-taxonomy",
-    );
-    expect(mockDeleteSkill).not.toHaveBeenCalled();
+    await expect(
+      deleteSkill(form({ id: "skill_c", locale: "en" })),
+    ).rejects.toThrow("redirect:/en/admin/skills-taxonomy");
+    expect(await skills()).toHaveProperty("skill_c");
   });
 
   test("deleteSkill succeeds when no references exist", async () => {
-    mockCountCandidateProfile.mockResolvedValue(0);
-    mockCountJobPosting.mockResolvedValue(0);
-    mockDeleteSkill.mockResolvedValue({ id: "skill_1" });
+    await deleteSkill(form({ id: "skill_c", locale: "en" }));
 
-    const { deleteSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("id", "skill_1");
-    formData.set("locale", "en");
-
-    await deleteSkill(formData);
-
-    expect(mockDeleteSkill).toHaveBeenCalledWith({ where: { id: "skill_1" } });
+    expect(await skills()).not.toHaveProperty("skill_c");
   });
 
   test("deleteSkill denies job_seeker", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "js_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
+    denyAsJobSeeker();
 
-    const { deleteSkill } = await import("./actions");
-    const formData = new FormData();
-    formData.set("id", "skill_1");
-    formData.set("locale", "en");
-
-    await expect(deleteSkill(formData)).rejects.toThrow("redirect:/en/forbidden");
-    expect(mockDeleteSkill).not.toHaveBeenCalled();
+    await expect(
+      deleteSkill(form({ id: "skill_c", locale: "en" })),
+    ).rejects.toThrow("redirect:/en/forbidden");
+    expect(await skills()).toHaveProperty("skill_c");
   });
 });
 
 describe("skills-taxonomy page", () => {
   test("5. /admin/skills-taxonomy is denied to a job_seeker-role user", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "js_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
-
-    const { default: SkillsTaxonomyPage } = await import("./page");
+    denyAsJobSeeker();
 
     await expect(
       SkillsTaxonomyPage({
@@ -264,5 +199,29 @@ describe("skills-taxonomy page", () => {
         searchParams: Promise.resolve({}),
       }),
     ).rejects.toThrow("redirect:/en/forbidden");
+  });
+
+  test("shows per-skill usage counts from the grouped queries", async () => {
+    await insertStudentProfile(pg, { skillIds: ["skill_b", "skill_c"] });
+    await insertStudentProfile(pg, { skillIds: ["skill_b"] });
+    await insertJobPosting(pg, { skillIds: ["skill_b"] });
+
+    const { renderToString } = await import("react-dom/server");
+    const html = renderToString(
+      await SkillsTaxonomyPage({
+        params: Promise.resolve({ locale: "en" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(html).toContain("JavaScript");
+    // JavaScript's table row: label cell, status, then 2 candidates and 1 posting.
+    expect(html).toMatch(
+      /JavaScript<\/td>(?:(?!<\/tr>)[\s\S])*?>2<\/td>\s*<td[^>]*>1<\/td>/,
+    );
+    // CSS: 1 candidate, 0 postings.
+    expect(html).toMatch(
+      /CSS<\/td>(?:(?!<\/tr>)[\s\S])*?>1<\/td>\s*<td[^>]*>0<\/td>/,
+    );
   });
 });

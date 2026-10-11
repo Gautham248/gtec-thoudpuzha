@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 
 interface EnquiriesPageProps {
   params: Promise<{ locale: string }>;
@@ -14,11 +14,11 @@ export default async function EnquiriesPage({ params }: EnquiriesPageProps) {
     redirect(`/${locale}/forbidden`);
   }
 
-  const enquiries = await prisma.enquiry.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
+  const enquiries = await db.query.enquiry.findMany({
+    orderBy: (e, { desc }) => desc(e.createdAt),
+    with: {
       course: {
-        select: { titleEn: true },
+        columns: { titleEn: true },
       },
     },
   });
@@ -77,23 +77,39 @@ export default async function EnquiriesPage({ params }: EnquiriesPageProps) {
         {/* Mobile Card Stack */}
         <div className="space-y-3 md:hidden">
           {enquiries.map((enquiry) => (
-            <div key={enquiry.id} className="rounded-lg border border-border bg-card p-4 space-y-2.5 shadow-xs">
+            <div
+              key={enquiry.id}
+              className="rounded-lg border border-border bg-card p-4 space-y-2.5 shadow-xs"
+            >
               <div className="flex items-center justify-between border-b pb-2">
-                <span className="font-semibold text-foreground">{enquiry.name}</span>
-                <span className="text-sm text-muted-foreground">{new Date(enquiry.createdAt).toLocaleDateString()}</span>
+                <span className="font-semibold text-foreground">
+                  {enquiry.name}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {new Date(enquiry.createdAt).toLocaleDateString()}
+                </span>
               </div>
               <div className="text-sm space-y-1.5 text-muted-foreground">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Phone:</span>
-                  <a href={`tel:${enquiry.phone}`} className="text-primary font-mono hover:underline">{enquiry.phone}</a>
+                  <a
+                    href={`tel:${enquiry.phone}`}
+                    className="text-primary font-mono hover:underline"
+                  >
+                    {enquiry.phone}
+                  </a>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Course:</span>
-                  <span className="text-foreground text-right">{enquiry.course?.titleEn || "—"}</span>
+                  <span className="text-foreground text-right">
+                    {enquiry.course?.titleEn || "—"}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Source:</span>
-                  <span className="rounded bg-secondary px-2 py-0.5 text-sm text-secondary-foreground font-medium">{enquiry.source}</span>
+                  <span className="rounded bg-secondary px-2 py-0.5 text-sm text-secondary-foreground font-medium">
+                    {enquiry.source}
+                  </span>
                 </div>
               </div>
             </div>

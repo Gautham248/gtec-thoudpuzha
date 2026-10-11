@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireRole, getAllStaffPermissions, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { ADMIN_ROUTES, isRouteVisible, type AdminRoute } from "@/lib/admin-routes";
+import { count, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { employerProfile, jobPosting, skill } from "@/db/schema";
+import {
+  ADMIN_ROUTES,
+  isRouteVisible,
+  type AdminRoute,
+} from "@/lib/admin-routes";
 
 interface AdminDashboardPageProps {
   params: Promise<{ locale: string }>;
@@ -36,28 +42,48 @@ export default async function AdminDashboardPage({
         canModerateSkillsTaxonomy: true,
       } as Record<string, boolean>)
     : await getAllStaffPermissions(authResult.userId);
-  const { canApproveEmployers, canApproveJobPostings, canModerateSkillsTaxonomy } = permissions;
+  const {
+    canApproveEmployers,
+    canApproveJobPostings,
+    canModerateSkillsTaxonomy,
+  } = permissions;
 
   // Fetch counts and recent enquiries in parallel
-  const [pendingEmployerCount, pendingJobPostingCount, pendingSkillCount, recentEnquiries] =
-    await Promise.all([
-      canApproveEmployers
-        ? prisma.employerProfile.count({ where: { status: "PENDING" } })
-        : Promise.resolve(null),
-      canApproveJobPostings
-        ? prisma.jobPosting.count({ where: { status: "PENDING" } })
-        : Promise.resolve(null),
-      canModerateSkillsTaxonomy
-        ? prisma.skill.count({ where: { status: "PENDING" } })
-        : Promise.resolve(null),
-      prisma.enquiry.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: {
-          course: { select: { titleEn: true } },
-        },
-      }),
-    ]);
+  const [
+    pendingEmployerCount,
+    pendingJobPostingCount,
+    pendingSkillCount,
+    recentEnquiries,
+  ] = await Promise.all([
+    canApproveEmployers
+      ? db
+          .select({ n: count() })
+          .from(employerProfile)
+          .where(eq(employerProfile.status, "PENDING"))
+          .then(([r]) => r.n)
+      : Promise.resolve(null),
+    canApproveJobPostings
+      ? db
+          .select({ n: count() })
+          .from(jobPosting)
+          .where(eq(jobPosting.status, "PENDING"))
+          .then(([r]) => r.n)
+      : Promise.resolve(null),
+    canModerateSkillsTaxonomy
+      ? db
+          .select({ n: count() })
+          .from(skill)
+          .where(eq(skill.status, "PENDING"))
+          .then(([r]) => r.n)
+      : Promise.resolve(null),
+    db.query.enquiry.findMany({
+      orderBy: (e, { desc }) => desc(e.createdAt),
+      limit: 5,
+      with: {
+        course: { columns: { titleEn: true } },
+      },
+    }),
+  ]);
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
@@ -107,7 +133,9 @@ export default async function AdminDashboardPage({
 
         <div className="mt-3">
           {recentEnquiries.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground border rounded">No enquiries yet.</p>
+            <p className="p-4 text-sm text-muted-foreground border rounded">
+              No enquiries yet.
+            </p>
           ) : (
             <>
               {/* Desktop Table View */}
@@ -115,11 +143,21 @@ export default async function AdminDashboardPage({
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-muted/50">
-                      <th className="px-3 py-2 text-left text-sm font-medium">Name</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium">Phone</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium">Course</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium">Source</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium">Date</th>
+                      <th className="px-3 py-2 text-left text-sm font-medium">
+                        Name
+                      </th>
+                      <th className="px-3 py-2 text-left text-sm font-medium">
+                        Phone
+                      </th>
+                      <th className="px-3 py-2 text-left text-sm font-medium">
+                        Course
+                      </th>
+                      <th className="px-3 py-2 text-left text-sm font-medium">
+                        Source
+                      </th>
+                      <th className="px-3 py-2 text-left text-sm font-medium">
+                        Date
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -143,15 +181,44 @@ export default async function AdminDashboardPage({
               {/* Mobile Card Stack */}
               <div className="space-y-3 md:hidden">
                 {recentEnquiries.map((enquiry) => (
-                  <div key={enquiry.id} className="rounded-lg border border-border bg-card p-4 space-y-2">
+                  <div
+                    key={enquiry.id}
+                    className="rounded-lg border border-border bg-card p-4 space-y-2"
+                  >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground text-sm">{enquiry.name}</span>
-                      <span className="text-sm text-muted-foreground">{new Date(enquiry.createdAt).toLocaleDateString()}</span>
+                      <span className="font-semibold text-foreground text-sm">
+                        {enquiry.name}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(enquiry.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="text-sm space-y-1 text-muted-foreground">
-                      <div><span className="font-medium text-foreground">Phone:</span> <a href={`tel:${enquiry.phone}`} className="text-primary underline">{enquiry.phone}</a></div>
-                      <div><span className="font-medium text-foreground">Course:</span> {enquiry.course?.titleEn || "—"}</div>
-                      <div><span className="font-medium text-foreground">Source:</span> <span className="inline-block rounded bg-secondary px-2 py-0.5 text-sm text-secondary-foreground">{enquiry.source}</span></div>
+                      <div>
+                        <span className="font-medium text-foreground">
+                          Phone:
+                        </span>{" "}
+                        <a
+                          href={`tel:${enquiry.phone}`}
+                          className="text-primary underline"
+                        >
+                          {enquiry.phone}
+                        </a>
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">
+                          Course:
+                        </span>{" "}
+                        {enquiry.course?.titleEn || "—"}
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">
+                          Source:
+                        </span>{" "}
+                        <span className="inline-block rounded bg-secondary px-2 py-0.5 text-sm text-secondary-foreground">
+                          {enquiry.source}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -255,7 +322,9 @@ function QuickLinkCard({
       <div className="rounded border border-border bg-muted/30 p-4 opacity-60">
         <div className="flex items-center gap-2">
           <route.icon className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium text-muted-foreground">{route.label}</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {route.label}
+          </h3>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">No access</p>
       </div>

@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { studentCourseEnrollment } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 
 function localeFromFormData(formData: FormData): string {
@@ -23,9 +26,14 @@ export async function enrollStudentInCourses(formData: FormData) {
     throw new Error("studentProfileId and at least one courseIds is required");
   }
 
-  const existing = await prisma.studentCourseEnrollment.findMany({
-    where: { studentProfileId, courseId: { in: courseIds } },
-    select: { courseId: true, course: { select: { titleEn: true } } },
+  const existing = await db.query.studentCourseEnrollment.findMany({
+    where: (e, { and, eq, inArray }) =>
+      and(
+        eq(e.studentProfileId, studentProfileId),
+        inArray(e.courseId, courseIds),
+      ),
+    columns: { courseId: true },
+    with: { course: { columns: { titleEn: true } } },
   });
 
   const existingSet = new Set(existing.map((e) => e.courseId));
@@ -36,9 +44,9 @@ export async function enrollStudentInCourses(formData: FormData) {
   }));
 
   if (toCreate.length > 0) {
-    await prisma.studentCourseEnrollment.createMany({
-      data: toCreate.map((courseId) => ({ studentProfileId, courseId })),
-    });
+    await db
+      .insert(studentCourseEnrollment)
+      .values(toCreate.map((courseId) => ({ studentProfileId, courseId })));
   }
 
   await logAdminAction({
@@ -76,7 +84,13 @@ export async function unenrollStudentFromCourse(formData: FormData) {
     throw new Error("enrollmentId and studentProfileId are required");
   }
 
-  await prisma.studentCourseEnrollment.delete({ where: { id: enrollmentId } });
+  expectRow(
+    await db
+      .delete(studentCourseEnrollment)
+      .where(eq(studentCourseEnrollment.id, enrollmentId))
+      .returning({ id: studentCourseEnrollment.id }),
+    "Enrollment",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
