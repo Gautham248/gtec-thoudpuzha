@@ -41,7 +41,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
 
 describe("Admin forms show bilingual inputs", () => {
   const mockSettings = {

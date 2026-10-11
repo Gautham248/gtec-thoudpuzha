@@ -30,6 +30,7 @@ vi.mock("@/lib/data-cache", () => ({
   getCachedHomepageTeaser: vi.fn(() => Promise.resolve({ newsItems: [], nextEvent: null, flashNews: [], featuredNews: null })),
   getCachedUpcomingEvents: vi.fn(() => Promise.resolve([])),
   getCachedPlacementGalleryData: vi.fn(() => Promise.resolve(null)),
+  getCachedPlacedStudentsPosters: vi.fn(() => Promise.resolve([])),
   getCachedCertificationPartners: vi.fn(() => Promise.resolve([])),
 }));
 
