@@ -5,6 +5,8 @@ import {
   approveAndTrustEmployer,
   toggleAutoPublishTrusted,
 } from "./actions";
+import { db } from "@/db";
+import { getInsertedRows, setMockRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockFindMany = vi.hoisted(() => vi.fn());
@@ -44,6 +46,8 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
+
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
@@ -65,7 +69,6 @@ describe("approveEmployer", () => {
     mockRevalidatePath.mockReset();
     mockSendModerationNotification.mockReset();
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue(null);
   });
 
   test("1. approving a PENDING employer sets status=APPROVED and sends notification", async () => {
@@ -99,15 +102,15 @@ describe("approveEmployer", () => {
       include: { user: true },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "super_admin_1",
         actorRole: "SUPER_ADMIN",
         action: "employerProfile.approve",
         entityType: "EmployerProfile",
         entityId: "ep_1",
       }),
-    });
+    );
 
     expect(mockSendModerationNotification).toHaveBeenCalledWith({
       companyName: "Acme Corp",
@@ -135,7 +138,7 @@ describe("approveEmployer", () => {
     );
 
     expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockAuditCreate).not.toHaveBeenCalled();
+    expect(auditEntries()).toHaveLength(0);
     expect(mockSendModerationNotification).not.toHaveBeenCalled();
   });
 
@@ -174,12 +177,12 @@ describe("approveEmployer", () => {
       include: { user: true },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         action: "employerProfile.approveAndTrust",
         metadata: expect.objectContaining({ autoPublishTrusted: true }),
       }),
-    });
+    );
 
     expect(mockSendModerationNotification).toHaveBeenCalledWith(
       expect.objectContaining({ status: "APPROVED" }),
@@ -217,13 +220,13 @@ describe("approveEmployer", () => {
       data: { autoPublishTrusted: true },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "super_admin_1",
         action: "employerProfile.trust",
         metadata: { autoPublishTrusted: true },
       }),
-    });
+    );
 
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/employers");
   });
@@ -266,7 +269,7 @@ describe("approveEmployer", () => {
     );
 
     expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockAuditCreate).not.toHaveBeenCalled();
+    expect(auditEntries()).toHaveLength(0);
     expect(mockSendModerationNotification).not.toHaveBeenCalled();
   });
 
@@ -331,7 +334,7 @@ describe("approveEmployer", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue(null); // no row = no permission
+    // no row = no permission
 
     const formData = new FormData();
     formData.append("profileId", "ep_1");
@@ -341,7 +344,7 @@ describe("approveEmployer", () => {
       "redirect:/en/forbidden",
     );
     expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockAuditCreate).not.toHaveBeenCalled();
+    expect(auditEntries()).toHaveLength(0);
   });
 
   test("7. Centre Staff WITH canApproveEmployers=true can approve", async () => {
@@ -350,11 +353,13 @@ describe("approveEmployer", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue({
-      id: "sp_1",
-      userId: "staff_with_perm",
-      canApproveEmployers: true,
-    });
+    setMockRows(db, "staffPermission", [
+      {
+        id: "sp_1",
+        userId: "staff_with_perm",
+        canApproveEmployers: true,
+      },
+    ]);
 
     mockUpdate.mockResolvedValue({
       id: "ep_1",
@@ -376,12 +381,12 @@ describe("approveEmployer", () => {
     await approveEmployer(formData);
 
     expect(mockUpdate).toHaveBeenCalled();
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_with_perm",
         actorRole: "CENTRE_STAFF",
       }),
-    });
+    );
   });
 
   test("8. Super Admin always passes regardless of StaffPermission row", async () => {
@@ -390,7 +395,6 @@ describe("approveEmployer", () => {
       sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
     });
     // Even with null StaffPermission, Super Admin should pass
-    mockStaffPermissionFindUnique.mockResolvedValue(null);
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
 
     mockUpdate.mockResolvedValue({
@@ -412,6 +416,6 @@ describe("approveEmployer", () => {
     await approveEmployer(formData);
 
     expect(mockUpdate).toHaveBeenCalled();
-    expect(mockAuditCreate).toHaveBeenCalled();
+    expect(auditEntries()).not.toHaveLength(0);
   });
 });

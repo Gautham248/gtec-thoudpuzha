@@ -1,31 +1,30 @@
 // @vitest-environment node
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { enquiry } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertCourse } from "@/__tests__/pg-fixtures";
 import { submitEnquiry } from "./enquiry";
 
-const mockEnquiryCreate = vi.hoisted(() => vi.fn());
-const mockCourseFindUnique = vi.hoisted(() => vi.fn());
 const mockResendSend = vi.hoisted(() => vi.fn());
 const mockCheckRateLimit = vi.hoisted(() =>
   vi.fn(() => ({ allowed: true, remaining: 4, resetAt: Date.now() + 60000 })),
 );
-const mockGetClientIp = vi.hoisted(() => vi.fn(() => Promise.resolve("127.0.0.1")));
+const mockGetClientIp = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve("127.0.0.1")),
+);
 
 vi.mock("@/lib/rate-limiter", () => ({
   checkRateLimit: mockCheckRateLimit,
   getClientIp: mockGetClientIp,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    enquiry: {
-      create: mockEnquiryCreate,
-    },
-    course: {
-      findUnique: mockCourseFindUnique,
-    },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
+
+const pg = db as unknown as TestDb;
 
 vi.mock("resend", () => ({
   Resend: vi.fn(function () {
@@ -38,49 +37,48 @@ vi.mock("resend", () => ({
 }));
 
 describe("submitEnquiry", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockEnquiryCreate.mockReset();
-    mockCourseFindUnique.mockReset();
+    await truncateAll(pg);
     mockResendSend.mockReset();
     process.env.CENTRE_STAFF_NOTIFICATION_EMAILS = "staff@example.com";
   });
 
   test("creates an Enquiry row with the correct source value", async () => {
-    const courseId = "course_1";
-    mockCourseFindUnique.mockResolvedValue({
-      id: courseId,
+    const course = await insertCourse(pg, {
       titleEn: "Diploma in Computer Application",
-    });
-
-    mockEnquiryCreate.mockResolvedValue({
-      id: "enquiry_1",
-      name: "Jane Doe",
-      phone: "9876543210",
-      courseId,
-      message: "I want to know more.",
-      source: "homepage-hero",
-      createdAt: new Date(),
     });
 
     await submitEnquiry({
       source: "homepage-hero",
-      fullName: "Jane Doe",
+      fullName: "  Jane Doe  ",
       phone: "9876543210",
-      course: courseId,
+      course: course.id,
       message: "I want to know more.",
     });
 
-    expect(mockEnquiryCreate).toHaveBeenCalledTimes(1);
-    expect(mockEnquiryCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        name: "Jane Doe",
-        phone: "9876543210",
-        courseId,
-        message: "I want to know more.",
-        source: "homepage-hero",
-      }),
+    const rows = await pg.select().from(enquiry);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      name: "Jane Doe",
+      phone: "9876543210",
+      courseId: course.id,
+      message: "I want to know more.",
+      source: "homepage-hero",
     });
+  });
+
+  test("stores a null courseId when the course id is unknown", async () => {
+    await submitEnquiry({
+      source: "contact-page",
+      fullName: "Jane Doe",
+      phone: "9876543210",
+      course: "not-a-real-course",
+      message: "",
+    });
+
+    const [row] = await pg.select().from(enquiry);
+    expect(row).toMatchObject({ courseId: null, message: null });
   });
 
   test("rejects invalid data missing phone server-side", async () => {
@@ -94,32 +92,20 @@ describe("submitEnquiry", () => {
       }),
     ).rejects.toThrow("Enter a valid 10-digit Indian mobile number.");
 
-    expect(mockEnquiryCreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(enquiry)).toHaveLength(0);
     expect(mockResendSend).not.toHaveBeenCalled();
   });
 
   test("triggers exactly one Resend email send call on success", async () => {
-    const courseId = "course_1";
-    mockCourseFindUnique.mockResolvedValue({
-      id: courseId,
+    const course = await insertCourse(pg, {
       titleEn: "Diploma in Computer Application",
-    });
-
-    mockEnquiryCreate.mockResolvedValue({
-      id: "enquiry_1",
-      name: "Jane Doe",
-      phone: "9876543210",
-      courseId,
-      message: null,
-      source: "contact-page",
-      createdAt: new Date(),
     });
 
     await submitEnquiry({
       source: "contact-page",
       fullName: "Jane Doe",
       phone: "9876543210",
-      course: courseId,
+      course: course.id,
       message: "",
     });
 

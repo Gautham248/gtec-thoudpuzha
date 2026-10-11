@@ -1,5 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { Role } from "@/lib/auth";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
 
 // ─── Hoisted mocks ──────────────────────────────────────────────────────────
 
@@ -61,9 +63,8 @@ describe("inviteStaff", () => {
   });
 
   test("1. Sending a staff invite creates a Clerk invitation with role=CENTRE_STAFF pre-set", async () => {
-    const { inviteStaff } = await import(
-      "@/app/[locale]/(admin)/admin/staff/actions"
-    );
+    const { inviteStaff } =
+      await import("@/app/[locale]/(admin)/admin/staff/actions");
 
     const formData = new FormData();
     formData.set("email", "staff@example.com");
@@ -85,9 +86,8 @@ describe("inviteStaff", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    const { inviteStaff } = await import(
-      "@/app/[locale]/(admin)/admin/staff/actions"
-    );
+    const { inviteStaff } =
+      await import("@/app/[locale]/(admin)/admin/staff/actions");
 
     const formData = new FormData();
     formData.set("email", "staff@example.com");
@@ -107,13 +107,15 @@ describe("deactivateStaff", () => {
       userId: "super_admin_1",
       sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
     });
-    mockUpdateUser.mockResolvedValue({ id: "staff_1", deactivatedAt: new Date() });
+    mockUpdateUser.mockResolvedValue({
+      id: "staff_1",
+      deactivatedAt: new Date(),
+    });
   });
 
   test("3. Deactivating sets deactivatedAt", async () => {
-    const { deactivateStaff } = await import(
-      "@/app/[locale]/(admin)/admin/staff/actions"
-    );
+    const { deactivateStaff } =
+      await import("@/app/[locale]/(admin)/admin/staff/actions");
 
     const formData = new FormData();
     formData.set("userId", "staff_1");
@@ -133,9 +135,8 @@ describe("deactivateStaff", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    const { deactivateStaff } = await import(
-      "@/app/[locale]/(admin)/admin/staff/actions"
-    );
+    const { deactivateStaff } =
+      await import("@/app/[locale]/(admin)/admin/staff/actions");
 
     const formData = new FormData();
     formData.set("userId", "staff_2");
@@ -159,9 +160,8 @@ describe("reactivateStaff", () => {
   });
 
   test("4. Reactivating clears deactivatedAt", async () => {
-    const { reactivateStaff } = await import(
-      "@/app/[locale]/(admin)/admin/staff/actions"
-    );
+    const { reactivateStaff } =
+      await import("@/app/[locale]/(admin)/admin/staff/actions");
 
     const formData = new FormData();
     formData.set("userId", "staff_1");
@@ -186,9 +186,13 @@ describe("requireRole — deactivation enforcement", () => {
       userId: "deactivated_staff",
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
-    mockFindUniqueUser.mockResolvedValue({
-      deactivatedAt: new Date("2026-07-20"),
-    });
+    setMockRows(db, "user", [
+      {
+        id: "deactivated_staff",
+        role: "CENTRE_STAFF",
+        deactivatedAt: new Date("2026-07-20"),
+      },
+    ]);
 
     const result = await (
       await import("@/lib/auth")
@@ -247,9 +251,8 @@ describe("staff page", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    const { default: StaffPage } = await import(
-      "@/app/[locale]/(admin)/admin/staff/page"
-    );
+    const { default: StaffPage } =
+      await import("@/app/[locale]/(admin)/admin/staff/page");
 
     await expect(
       StaffPage({
@@ -265,9 +268,8 @@ describe("staff page", () => {
     });
     mockFindManyUser.mockResolvedValue([]);
 
-    const { default: StaffPage } = await import(
-      "@/app/[locale]/(admin)/admin/staff/page"
-    );
+    const { default: StaffPage } =
+      await import("@/app/[locale]/(admin)/admin/staff/page");
 
     const _element = await StaffPage({
       params: Promise.resolve({ locale: "en" }),

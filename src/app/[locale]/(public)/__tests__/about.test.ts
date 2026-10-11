@@ -1,9 +1,10 @@
 import { describe, expect, test } from "vitest";
+// Imported at module level so loading the page's (large) module graph happens
+// during collection, not inside the test's time limit.
+import * as aboutPage from "../about/page";
 
-// Importing a whole page module is slow on a cold, parallel test run.
-describe("About page route accessibility", { timeout: 20_000 }, () => {
-  test("/about page module exports default async component", async () => {
-    const mod = await import("../about/page");
-    expect(mod.default).toBeTypeOf("function");
+describe("About page route accessibility", () => {
+  test("/about page module exports default async component", () => {
+    expect(aboutPage.default).toBeTypeOf("function");
   });
 });

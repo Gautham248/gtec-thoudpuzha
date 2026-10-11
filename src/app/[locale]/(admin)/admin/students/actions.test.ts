@@ -4,6 +4,8 @@ import {
   bulkImportStudents,
   updateStudentEmail,
 } from "./actions";
+import { db } from "@/db";
+import { getInsertedRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockFindUnique = vi.hoisted(() => vi.fn());
@@ -39,6 +41,8 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -98,16 +102,16 @@ describe("createStudentRecord", () => {
         email: "john@example.com",
       },
     });
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "studentRecord.create",
         entityType: "StudentRecord",
         entityId: "sr_1",
       }),
-    });
+    );
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/students");
   });
 
@@ -193,15 +197,17 @@ describe("bulkImportStudents", () => {
 
     mockFindUnique.mockResolvedValue(null);
     let createCallCount = 0;
-    mockCreate.mockImplementation(({ data }: { data: { studentId: string; fullName: string } }) => {
-      createCallCount++;
-      return Promise.resolve({
-        id: `sr_${createCallCount}`,
-        ...data,
-        linkedUserId: null,
-        createdAt: new Date(),
-      });
-    });
+    mockCreate.mockImplementation(
+      ({ data }: { data: { studentId: string; fullName: string } }) => {
+        createCallCount++;
+        return Promise.resolve({
+          id: `sr_${createCallCount}`,
+          ...data,
+          linkedUserId: null,
+          createdAt: new Date(),
+        });
+      },
+    );
     mockAuditCreate.mockResolvedValue({ id: "audit_1" });
 
     const csv = [
@@ -222,16 +228,16 @@ describe("bulkImportStudents", () => {
     expect(results).toHaveLength(5);
     results.forEach((r) => expect(r.success).toBe(true));
     expect(mockCreate).toHaveBeenCalledTimes(5);
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "studentRecord.bulkImport",
         entityType: "StudentRecord",
         entityId: "bulk",
       }),
-    });
+    );
   });
 
   test("3. CSV bulk with one duplicate and four valid rows creates 4 and reports duplicate", async () => {
@@ -241,28 +247,32 @@ describe("bulkImportStudents", () => {
     });
 
     // GTEC003 already exists; all others are new
-    mockFindUnique.mockImplementation(({ where }: { where: { studentId: string } }) => {
-      if (where.studentId === "GTEC003") {
-        return Promise.resolve({
-          id: "sr_existing",
-          studentId: "GTEC003",
-          fullName: "Existing Carol",
-          phone: "3333333333",
-        });
-      }
-      return Promise.resolve(null);
-    });
+    mockFindUnique.mockImplementation(
+      ({ where }: { where: { studentId: string } }) => {
+        if (where.studentId === "GTEC003") {
+          return Promise.resolve({
+            id: "sr_existing",
+            studentId: "GTEC003",
+            fullName: "Existing Carol",
+            phone: "3333333333",
+          });
+        }
+        return Promise.resolve(null);
+      },
+    );
 
     let createCallCount = 0;
-    mockCreate.mockImplementation(({ data }: { data: { studentId: string } }) => {
-      createCallCount++;
-      return Promise.resolve({
-        id: `sr_${createCallCount}`,
-        ...data,
-        linkedUserId: null,
-        createdAt: new Date(),
-      });
-    });
+    mockCreate.mockImplementation(
+      ({ data }: { data: { studentId: string } }) => {
+        createCallCount++;
+        return Promise.resolve({
+          id: `sr_${createCallCount}`,
+          ...data,
+          linkedUserId: null,
+          createdAt: new Date(),
+        });
+      },
+    );
     mockAuditCreate.mockResolvedValue({ id: "audit_1" });
 
     const csv = [
@@ -323,9 +333,9 @@ describe("updateStudentEmail — backfill for records created before email was r
       where: { id: "sr_1" },
       data: { email: "student@example.com" },
     });
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ action: "studentRecord.updateEmail" }),
-    });
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({ action: "studentRecord.updateEmail" }),
+    );
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/students");
   });
 

@@ -1,4 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { setMockRows } from "@/__tests__/drizzle-mock";
+import { db } from "@/db";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockEmployerProfileCount = vi.hoisted(() => vi.fn());
@@ -67,11 +69,14 @@ describe("AdminDashboardPage", () => {
     mockSkillCount.mockReset();
     mockEnquiryFindMany.mockReset();
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue({
-      canApproveEmployers: true,
-      canApproveJobPostings: true,
-      canModerateSkillsTaxonomy: true,
-    });
+    setMockRows(db, "staffPermission", [
+      {
+        userId: "staff_1", // every CENTRE_STAFF test below signs in as staff_1
+        canApproveEmployers: true,
+        canApproveJobPostings: true,
+        canModerateSkillsTaxonomy: true,
+      },
+    ]);
     mockRedirect.mockImplementation((url: string) => {
       throw new Error(`redirect:${url}`);
     });
@@ -223,17 +228,20 @@ describe("AdminDashboardPage", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue({
-      canEditCourses: false,
-      canEditGallery: false,
-      canEditCertificationPartners: false,
-      canEditNewsEvents: false,
-      canEditFlashNews: false,
-      canProvisionStudents: false,
-      canApproveEmployers: true,
-      canApproveJobPostings: true,
-      canModerateSkillsTaxonomy: true,
-    });
+    setMockRows(db, "staffPermission", [
+      {
+        userId: "staff_1",
+        canEditCourses: false,
+        canEditGallery: false,
+        canEditCertificationPartners: false,
+        canEditNewsEvents: false,
+        canEditFlashNews: false,
+        canProvisionStudents: false,
+        canApproveEmployers: true,
+        canApproveJobPostings: true,
+        canModerateSkillsTaxonomy: true,
+      },
+    ]);
     mockEmployerProfileCount.mockResolvedValue(0);
     mockJobPostingCount.mockResolvedValue(0);
     mockSkillCount.mockResolvedValue(0);

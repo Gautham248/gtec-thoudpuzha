@@ -6,10 +6,12 @@ import { isProfileComplete } from "./biodata";
  * a complete profile. Sprint 8's employer candidate search MUST use this
  * helper rather than querying CandidateProfile directly.
  */
-export async function getSearchableCandidates(): Promise<CandidateProfileWithCompletion[]> {
-  const { prisma } = await import("@/lib/db");
-  const profiles = await prisma.candidateProfile.findMany({
-    where: { profileVisible: true },
+export async function getSearchableCandidates(): Promise<
+  CandidateProfileWithCompletion[]
+> {
+  const { db } = await import("@/db");
+  const profiles = await db.query.candidateProfile.findMany({
+    where: (p, { eq }) => eq(p.profileVisible, true),
   });
 
   return profiles

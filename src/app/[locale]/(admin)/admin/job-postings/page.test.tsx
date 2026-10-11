@@ -40,7 +40,6 @@ describe("JobPostingsPage filtering", () => {
     mockFindMany.mockReset();
     mockUserFindUnique.mockReset();
     mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue(null);
     mockRedirect.mockImplementation((url: string) => {
       throw new Error(`redirect:${url}`);
     });

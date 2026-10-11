@@ -1,130 +1,112 @@
 // @vitest-environment node
-import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockUpdateMany = vi.hoisted(() => vi.fn());
-const mockAuditLogCreate = vi.hoisted(() => vi.fn());
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    jobPosting: {
-      findMany: mockFindMany,
-      updateMany: mockUpdateMany,
-    },
-    auditLogEntry: {
-      create: mockAuditLogCreate,
-    },
-  },
-}));
-
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { auditLogEntry, jobPosting } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { daysFromNow, insertJobPosting } from "@/__tests__/pg-fixtures";
 import { closeExpiredPostings } from "./close-expired-postings";
 
-function pastPosting(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "jp_1",
-    employerId: "emp_1",
-    title: "Software Engineer",
-    applicationDeadline: new Date("2025-01-01"),
-    status: "APPROVED",
-    deletedAt: null,
-    description: "A great job",
-    department: "Engineering",
-    jobType: "FULL_TIME",
-    salaryMin: null,
-    salaryMax: null,
-    ...overrides,
-  };
-}
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  // Use fake timers so new Date() is predictable
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
-});
+const pg = db as unknown as TestDb;
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+beforeEach(() => truncateAll(pg));
+
+const statusOf = async (id: string) =>
+  (await pg.query.jobPosting.findFirst({ where: eq(jobPosting.id, id) }))!
+    .status;
 
 describe("closeExpiredPostings", () => {
-  test("transitions expired APPROVED postings to CLOSED", async () => {
-    const expired = [pastPosting()];
-    mockFindMany.mockResolvedValue(expired);
-    mockUpdateMany.mockResolvedValue({ count: 1 });
+  test("transitions expired APPROVED postings to CLOSED and audits each one", async () => {
+    const expired = await insertJobPosting(pg, {
+      title: "Software Engineer",
+      applicationDeadline: daysFromNow(-1),
+    });
 
     const result = await closeExpiredPostings();
 
     expect(result).toEqual({ closed: 1 });
-    expect(mockFindMany).toHaveBeenCalledWith({
-      where: {
-        status: "APPROVED",
-        deletedAt: null,
-        applicationDeadline: { lt: new Date("2025-06-15T12:00:00Z") },
+    const after = await pg.query.jobPosting.findFirst({
+      where: eq(jobPosting.id, expired.id),
+    });
+    expect(after!.status).toBe("CLOSED");
+    expect(after!.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      expired.updatedAt.getTime(),
+    );
+
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: null,
+      actorRole: null,
+      action: "VACANCY_AUTO_CLOSE",
+      entityType: "JobPosting",
+      entityId: expired.id,
+      metadata: {
+        title: "Software Engineer",
+        employerId: expired.employerId,
+        deadline: expired.applicationDeadline.toISOString(),
       },
-    });
-    expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: { in: ["jp_1"] } },
-      data: { status: "CLOSED" },
-    });
-    expect(mockAuditLogCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actorUserId: null,
-        actorRole: null,
-        action: "VACANCY_AUTO_CLOSE",
-        entityType: "JobPosting",
-        entityId: "jp_1",
-      }),
     });
   });
 
   test("does not close postings with future deadline", async () => {
-    mockFindMany.mockResolvedValue([]);
+    const open = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(1),
+    });
 
     const result = await closeExpiredPostings();
 
     expect(result).toEqual({ closed: 0 });
-    expect(mockUpdateMany).not.toHaveBeenCalled();
-    expect(mockAuditLogCreate).not.toHaveBeenCalled();
+    expect(await statusOf(open.id)).toBe("APPROVED");
+    expect(await pg.select().from(auditLogEntry)).toHaveLength(0);
   });
 
   test("is idempotent — second run does not error or create duplicate logs", async () => {
-    // First run: one posting found and closed
-    const expired = [pastPosting()];
-    mockFindMany.mockResolvedValue(expired);
-    mockUpdateMany.mockResolvedValue({ count: 1 });
+    await insertJobPosting(pg, { applicationDeadline: daysFromNow(-1) });
 
-    const first = await closeExpiredPostings();
-    expect(first).toEqual({ closed: 1 });
+    expect(await closeExpiredPostings()).toEqual({ closed: 1 });
+    expect(await closeExpiredPostings()).toEqual({ closed: 0 });
 
-    // Second run: no expired postings found (already closed)
-    mockFindMany.mockResolvedValue([]);
-
-    const second = await closeExpiredPostings();
-    expect(second).toEqual({ closed: 0 });
-
-    // updateMany not called on second run
-    expect(mockUpdateMany).toHaveBeenCalledTimes(1);
-    expect(mockAuditLogCreate).toHaveBeenCalledTimes(1);
+    expect(await pg.select().from(auditLogEntry)).toHaveLength(1);
   });
 
-  test("excludes soft-deleted postings even if deadline passed", async () => {
-    // findMany returns nothing because the query filters deletedAt: null
-    mockFindMany.mockResolvedValue([]);
+  test("excludes soft-deleted and non-APPROVED postings even if deadline passed", async () => {
+    const deleted = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(-1),
+      deletedAt: daysFromNow(-2),
+    });
+    const pending = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(-1),
+      status: "PENDING",
+    });
 
     const result = await closeExpiredPostings();
 
     expect(result).toEqual({ closed: 0 });
-    // Verify the query includes the soft-delete exclusion
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          deletedAt: null,
-        }),
-      }),
-    );
-    expect(mockUpdateMany).not.toHaveBeenCalled();
-    expect(mockAuditLogCreate).not.toHaveBeenCalled();
+    expect(await statusOf(deleted.id)).toBe("APPROVED");
+    expect(await statusOf(pending.id)).toBe("PENDING");
+  });
+
+  test("closes only the expired postings in a mixed batch", async () => {
+    const a = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(-3),
+    });
+    const b = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(-1),
+    });
+    const c = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(2),
+    });
+
+    expect(await closeExpiredPostings()).toEqual({ closed: 2 });
+    expect([
+      await statusOf(a.id),
+      await statusOf(b.id),
+      await statusOf(c.id),
+    ]).toEqual(["CLOSED", "CLOSED", "APPROVED"]);
   });
 });

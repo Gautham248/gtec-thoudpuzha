@@ -1,168 +1,146 @@
 // @vitest-environment node
-import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  daysFromNow,
+  insertEmployer,
+  insertJobPosting,
+} from "@/__tests__/pg-fixtures";
+import { getActiveJobPostings, getJobDetail } from "./jobs";
 
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockSkillsFindMany = vi.hoisted(() => vi.fn());
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    jobPosting: {
-      findMany: mockFindMany,
-    },
-    skill: {
-      findMany: mockSkillsFindMany,
-    },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
 
-import { getActiveJobPostings } from "./jobs";
+const pg = db as unknown as TestDb;
 
-function approvedPosting(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "jp_1",
-    employerId: "emp_1",
-    title: "Software Engineer",
-    department: "Engineering",
-    salaryMin: 50000,
-    salaryMax: 80000,
-    salaryVisibility: "DISCLOSE",
-    jobType: "FULL_TIME",
-    skillIds: ["skill_1"],
-    applicationDeadline: new Date("2026-12-31"),
-    description: "A great job",
-    createdAt: new Date("2026-01-01"),
-    status: "APPROVED",
-    deletedAt: null,
-    employer: {
-      companyName: "Tech Corp",
-      companyAddress: "Kochi, Kerala",
-    },
-    ...overrides,
-  };
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+beforeEach(() => truncateAll(pg));
 
 describe("getActiveJobPostings", () => {
   test("excludes PENDING, REJECTED, CLOSED, and soft-deleted postings", async () => {
-    mockFindMany.mockResolvedValue([]);
-
-    await getActiveJobPostings();
-
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: "APPROVED",
-          deletedAt: null,
-          applicationDeadline: { gt: new Date("2026-06-15T12:00:00Z") },
-        }),
-      }),
-    );
-  });
-
-  test("excludes postings past their applicationDeadline", async () => {
-    const past = approvedPosting({
-      applicationDeadline: new Date("2025-01-01"),
+    const live = await insertJobPosting(pg, { status: "APPROVED" });
+    await insertJobPosting(pg, { status: "PENDING" });
+    await insertJobPosting(pg, { status: "REJECTED" });
+    await insertJobPosting(pg, { status: "CLOSED" });
+    await insertJobPosting(pg, {
+      status: "APPROVED",
+      deletedAt: daysFromNow(-1),
     });
-    const future = approvedPosting({
-      id: "jp_2",
-      applicationDeadline: new Date("2026-12-31"),
-    });
-
-    mockFindMany.mockResolvedValue([past, future]);
 
     const results = await getActiveJobPostings();
 
-    // The DB returns both, but the query itself should only ask for future ones
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          applicationDeadline: { gt: new Date("2026-06-15T12:00:00Z") },
-        }),
-      }),
-    );
-    expect(results).toEqual([past, future]);
+    expect(results.map((r) => r.id)).toEqual([live.id]);
+  });
+
+  test("excludes postings past their applicationDeadline", async () => {
+    const open = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(1),
+    });
+    await insertJobPosting(pg, { applicationDeadline: daysFromNow(-1) });
+
+    const results = await getActiveJobPostings();
+
+    expect(results.map((r) => r.id)).toEqual([open.id]);
   });
 
   test("filters by job type correctly", async () => {
-    mockFindMany.mockResolvedValue([]);
+    const partTime = await insertJobPosting(pg, { jobType: "PART_TIME" });
+    await insertJobPosting(pg, { jobType: "FULL_TIME" });
 
-    await getActiveJobPostings({ jobType: "PART_TIME" });
+    const results = await getActiveJobPostings({ jobType: "PART_TIME" });
 
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: "APPROVED",
-          deletedAt: null,
-          jobType: "PART_TIME",
-        }),
-      }),
-    );
+    expect(results.map((r) => r.id)).toEqual([partTime.id]);
   });
 
   test("filters by skill id correctly", async () => {
-    mockFindMany.mockResolvedValue([]);
+    const withSkill = await insertJobPosting(pg, {
+      skillIds: ["skill_1", "skill_2"],
+    });
+    await insertJobPosting(pg, { skillIds: ["skill_3"] });
+    await insertJobPosting(pg, { skillIds: [] });
 
-    await getActiveJobPostings({ skillId: "skill_1" });
+    const results = await getActiveJobPostings({ skillId: "skill_2" });
 
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: "APPROVED",
-          deletedAt: null,
-          skillIds: { has: "skill_1" },
-        }),
-      }),
-    );
+    expect(results.map((r) => r.id)).toEqual([withSkill.id]);
   });
 
   test("filters by location (case-insensitive match on employer address)", async () => {
-    const kochi = approvedPosting({
-      id: "jp_kochi",
-      employer: {
-        companyName: "Tech Corp",
-        companyAddress: "Kochi, Kerala",
-      },
+    const kochiEmployer = await insertEmployer(pg, {
+      companyAddress: "Kochi, Kerala",
     });
-    const bangalore = approvedPosting({
-      id: "jp_blr",
-      employer: {
-        companyName: "Startup Co",
-        companyAddress: "Bangalore, Karnataka",
-      },
+    const blrEmployer = await insertEmployer(pg, {
+      companyAddress: "Bangalore, Karnataka",
     });
+    const kochi = await insertJobPosting(pg, { employerId: kochiEmployer.id });
+    await insertJobPosting(pg, { employerId: blrEmployer.id });
 
-    mockFindMany.mockResolvedValue([kochi, bangalore]);
+    const results = await getActiveJobPostings({ location: "KOCHI" });
 
-    const results = await getActiveJobPostings({ location: "kochi" });
+    expect(results.map((r) => r.id)).toEqual([kochi.id]);
+    expect(results[0].employer).toEqual({
+      companyName: "Tech Corp",
+      companyAddress: "Kochi, Kerala",
+    });
+  });
 
-    expect(results).toHaveLength(1);
-    expect(results[0].id).toBe("jp_kochi");
+  test("returns newest postings first", async () => {
+    const older = await insertJobPosting(pg, { createdAt: daysFromNow(-5) });
+    const newer = await insertJobPosting(pg, { createdAt: daysFromNow(-1) });
+
+    const results = await getActiveJobPostings();
+
+    expect(results.map((r) => r.id)).toEqual([newer.id, older.id]);
   });
 
   test("PRIVATE-salary posting indicates 'disclosed at interview' label", async () => {
-    const posting = approvedPosting({
+    await insertJobPosting(pg, {
       salaryVisibility: "PRIVATE",
       salaryMin: null,
       salaryMax: null,
     });
 
-    expect(posting.salaryVisibility).toBe("PRIVATE");
+    const [posting] = await getActiveJobPostings();
 
+    expect(posting.salaryVisibility).toBe("PRIVATE");
     // The render-time label is determined by salaryVisibility === "DISCLOSE"
     const label =
       posting.salaryVisibility === "DISCLOSE"
         ? "Salary disclosed"
         : "Salary: disclosed at interview";
-
     expect(label).toBe("Salary: disclosed at interview");
+  });
+});
+
+describe("getJobDetail", () => {
+  test("returns an active posting with its employer details", async () => {
+    const employer = await insertEmployer(pg, { companyName: "Acme" });
+    const posting = await insertJobPosting(pg, {
+      employerId: employer.id,
+      title: "Dev",
+    });
+
+    const detail = await getJobDetail(posting.id);
+
+    expect(detail?.title).toBe("Dev");
+    expect(detail?.employer).toEqual({
+      companyName: "Acme",
+      companyAddress: "Kochi, Kerala",
+      industrySector: "IT_SOFTWARE",
+      employeeCountRange: "RANGE_11_50",
+      aboutCompany: "About",
+    });
+  });
+
+  test("returns null for expired, unapproved, deleted or unknown postings", async () => {
+    const expired = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(-1),
+    });
+    const pending = await insertJobPosting(pg, { status: "PENDING" });
+    const deleted = await insertJobPosting(pg, { deletedAt: daysFromNow(-1) });
+
+    for (const id of [expired.id, pending.id, deleted.id, "missing"]) {
+      expect(await getJobDetail(id)).toBeNull();
+    }
   });
 });

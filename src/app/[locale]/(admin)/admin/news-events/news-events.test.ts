@@ -4,6 +4,8 @@ import {
   togglePublishNewsEvent,
   deleteNewsEvent as _deleteNewsEvent,
 } from "./actions";
+import { db } from "@/db";
+import { getInsertedRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockCreate = vi.hoisted(() => vi.fn());
@@ -37,6 +39,8 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -110,16 +114,16 @@ describe("createNewsEvent", () => {
       },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "newsEvent.create",
         entityType: "NewsEvent",
         entityId: "ne_1",
       }),
-    });
+    );
 
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/news-events");
   });

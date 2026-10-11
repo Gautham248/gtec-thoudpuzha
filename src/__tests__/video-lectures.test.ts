@@ -1,11 +1,15 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { getInsertedRows } from "@/__tests__/drizzle-mock";
 
 // --- Test 4: embed URL derivation (pure utility, no mocks needed) ---
 
 describe("deriveEmbedUrl (video URL utility)", () => {
   test("4. converts YouTube watch URL to embed URL", async () => {
     const { deriveEmbedUrl } = await import("@/lib/video");
-    const result = deriveEmbedUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    const result = deriveEmbedUrl(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    );
     expect(result).toBe("https://www.youtube.com/embed/dQw4w9WgXcQ");
   });
 
@@ -31,7 +35,9 @@ describe("validateVideoUrl (video URL utility)", () => {
 
   test("accepts a valid YouTube URL", async () => {
     const { validateVideoUrl } = await import("@/lib/video");
-    const result = validateVideoUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    const result = validateVideoUrl(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    );
     expect(result).toBeNull();
   });
 
@@ -94,6 +100,8 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
+
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
@@ -104,7 +112,13 @@ vi.mock("next/cache", () => ({
 
 vi.mock("next/link", () => ({
   default: vi.fn(
-    ({ href, children }: { href: string; children: React.ReactNode }): string => {
+    ({
+      href,
+      children,
+    }: {
+      href: string;
+      children: React.ReactNode;
+    }): string => {
       let text = "";
       function extract(nodes: React.ReactNode): void {
         if (typeof nodes === "string" || typeof nodes === "number") {
@@ -112,7 +126,10 @@ vi.mock("next/link", () => ({
         } else if (Array.isArray(nodes)) {
           nodes.forEach(extract);
         } else if (nodes && typeof nodes === "object" && "props" in nodes) {
-          extract(((nodes as unknown) as { props: { children: React.ReactNode } }).props.children);
+          extract(
+            (nodes as unknown as { props: { children: React.ReactNode } }).props
+              .children,
+          );
         }
       }
       extract(children);
@@ -146,9 +163,8 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
 
     mockAuditCreate.mockResolvedValue({ id: "audit_1" });
 
-    const { uploadResource } = await import(
-      "@/app/[locale]/(admin)/admin/academic-resources/actions"
-    );
+    const { uploadResource } =
+      await import("@/app/[locale]/(admin)/admin/academic-resources/actions");
 
     const formData = new FormData();
     formData.append("courseId", "course_1");
@@ -170,18 +186,20 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "academicResource.upload",
         entityType: "AcademicResource",
         entityId: "res_lecture_1",
       }),
-    });
+    );
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/academic-resources");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      "/en/admin/academic-resources",
+    );
   });
 
   test("2. adding a LECTURE resource with a non-allowed host URL is rejected", async () => {
@@ -190,9 +208,8 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    const { uploadResource } = await import(
-      "@/app/[locale]/(admin)/admin/academic-resources/actions"
-    );
+    const { uploadResource } =
+      await import("@/app/[locale]/(admin)/admin/academic-resources/actions");
 
     const formData = new FormData();
     formData.append("courseId", "course_1");
@@ -241,11 +258,12 @@ describe("VideoLectureList — course-scoped retrieval", () => {
       },
     ]);
 
-    mockCourseFindMany.mockResolvedValue([{ id: "course_a", titleEn: "Course A" }]);
+    mockCourseFindMany.mockResolvedValue([
+      { id: "course_a", titleEn: "Course A" },
+    ]);
 
-    const { VideoLectureList } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/video-lecture-list"
-    );
+    const { VideoLectureList } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/video-lecture-list");
 
     const { renderToString } = await import("react-dom/server");
     const element = await VideoLectureList({ locale: "en" });

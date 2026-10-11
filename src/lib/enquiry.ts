@@ -1,6 +1,7 @@
 "use server";
 
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { enquiry as enquiryTable } from "@/db/schema";
 import { sendEnquiryNotification } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 
@@ -35,24 +36,23 @@ export async function submitEnquiry(payload: EnquiryPayload): Promise<void> {
   const ip = await getClientIp();
   const rateCheck = checkRateLimit(`enquiry:${ip}`);
   if (!rateCheck.allowed) {
-    throw new Error(
-      "Too many enquiries. Please try again later.",
-    );
+    throw new Error("Too many enquiries. Please try again later.");
   }
 
-  const course = await prisma.course.findUnique({
-    where: { id: payload.course },
+  const course = await db.query.course.findFirst({
+    where: (c, { eq }) => eq(c.id, payload.course),
   });
 
-  const enquiry = await prisma.enquiry.create({
-    data: {
+  const [enquiry] = await db
+    .insert(enquiryTable)
+    .values({
       name: payload.fullName.trim(),
       phone: payload.phone,
       courseId: course?.id ?? null,
       message: payload.message?.trim() || null,
       source: payload.source,
-    },
-  });
+    })
+    .returning();
 
   await sendEnquiryNotification({
     name: enquiry.name,

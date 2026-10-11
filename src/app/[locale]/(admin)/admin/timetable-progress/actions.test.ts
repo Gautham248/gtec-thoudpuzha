@@ -1,4 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { getInsertedRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockTTCreate = vi.hoisted(() => vi.fn());
@@ -55,6 +57,8 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
+
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
@@ -65,7 +69,13 @@ vi.mock("next/cache", () => ({
 
 vi.mock("next/link", () => ({
   default: vi.fn(
-    ({ href, children }: { href: string; children: React.ReactNode }): string => {
+    ({
+      href,
+      children,
+    }: {
+      href: string;
+      children: React.ReactNode;
+    }): string => {
       let text = "";
       function extract(nodes: React.ReactNode): void {
         if (typeof nodes === "string" || typeof nodes === "number") {
@@ -73,7 +83,10 @@ vi.mock("next/link", () => ({
         } else if (Array.isArray(nodes)) {
           nodes.forEach(extract);
         } else if (nodes && typeof nodes === "object" && "props" in nodes) {
-          extract(((nodes as unknown) as { props: { children: React.ReactNode } }).props.children);
+          extract(
+            (nodes as unknown as { props: { children: React.ReactNode } }).props
+              .children,
+          );
         }
       }
       extract(children);
@@ -120,18 +133,20 @@ describe("addTimetableEntry (admin server action)", () => {
       },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "timetableEntry.create",
         entityType: "TimetableEntry",
         entityId: "tt_1",
       }),
-    });
+    );
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/timetable-progress");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      "/en/admin/timetable-progress",
+    );
   });
 });
 
@@ -177,18 +192,20 @@ describe("addProgressEntry (admin server action)", () => {
       },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "studentProgressEntry.create",
         entityType: "StudentProgressEntry",
         entityId: "pe_1",
       }),
-    });
+    );
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/timetable-progress");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      "/en/admin/timetable-progress",
+    );
 
     // Verify the student can see the entry by testing the progress page query
     // We use a fresh mock for the student-facing query
@@ -206,12 +223,13 @@ describe("addProgressEntry (admin server action)", () => {
       },
     ]);
 
-    const { default: MyProgressPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/progress/page"
-    );
+    const { default: MyProgressPage } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await MyProgressPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await MyProgressPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("Showing good progress in module 2");
@@ -247,12 +265,13 @@ describe("Progress isolation — student sees own entries only", () => {
       },
     ]);
 
-    const { default: MyProgressPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/progress/page"
-    );
+    const { default: MyProgressPage } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await MyProgressPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await MyProgressPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     // Own entry appears
@@ -275,12 +294,13 @@ describe("Progress isolation — student sees own entries only", () => {
     // No progress entries
     mockPEFindMany.mockResolvedValue([]);
 
-    const { default: MyProgressPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/progress/page"
-    );
+    const { default: MyProgressPage } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await MyProgressPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await MyProgressPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("My Progress");
@@ -324,12 +344,13 @@ describe("Timetable — course-scoped retrieval", () => {
       { id: "course_b", titleEn: "Course B" },
     ]);
 
-    const { default: TimetablePage } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/timetable/page"
-    );
+    const { default: TimetablePage } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/timetable/page");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await TimetablePage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await TimetablePage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     // Course A's timetable appears
@@ -351,12 +372,13 @@ describe("Timetable — course-scoped retrieval", () => {
     // No enrollments
     mockEnrollFindMany.mockResolvedValue([]);
 
-    const { default: TimetablePage } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/timetable/page"
-    );
+    const { default: TimetablePage } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/timetable/page");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await TimetablePage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await TimetablePage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("Timetable");

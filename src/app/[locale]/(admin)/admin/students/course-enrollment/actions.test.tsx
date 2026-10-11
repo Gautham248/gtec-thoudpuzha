@@ -1,10 +1,9 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import {
-  enrollStudentInCourses,
-  unenrollStudentFromCourse,
-} from "./actions";
+import { enrollStudentInCourses, unenrollStudentFromCourse } from "./actions";
 import EnrollmentDashboard from "./enrollment-dashboard";
+import { db } from "@/db";
+import { getInsertedRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockEnrollmentFindMany = vi.hoisted(() => vi.fn());
@@ -51,6 +50,8 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -299,8 +300,7 @@ describe("enrollStudentInCourses", () => {
       ],
     });
 
-    const auditMeta = mockAuditCreate.mock.calls[0][0].data
-      .metadata as Record<string, unknown>;
+    const auditMeta = auditEntries()[0].metadata as Record<string, unknown>;
     expect(auditMeta.createdCourseIds).toEqual(["c1", "c3"]);
     expect(auditMeta.skippedCourseIds).toEqual(["c2"]);
 
@@ -335,8 +335,7 @@ describe("enrollStudentInCourses", () => {
       ],
     });
 
-    const auditMeta = mockAuditCreate.mock.calls[0][0].data
-      .metadata as Record<string, unknown>;
+    const auditMeta = auditEntries()[0].metadata as Record<string, unknown>;
     expect(auditMeta.createdCourseIds).toEqual(["c1", "c2", "c3"]);
     expect(auditMeta.skippedCourseIds).toEqual([]);
   });
@@ -453,15 +452,15 @@ describe("unenrollStudentFromCourse", () => {
       where: { id: "enc_1" },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "studentCourseEnrollment.unenroll",
         entityType: "StudentCourseEnrollment",
         entityId: "enc_1",
       }),
-    });
+    );
 
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/en/admin/students/course-enrollment",
@@ -615,9 +614,9 @@ describe("audit log on enrollment (requirement 7)", () => {
 
     await expect(enrollStudentInCourses(fd)).rejects.toThrow();
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    expect(auditEntries()).toHaveLength(1);
 
-    const auditData = mockAuditCreate.mock.calls[0][0].data;
+    const auditData = auditEntries()[0];
     expect(auditData.actorUserId).toBe("staff_1");
     expect(auditData.actorRole).toBe("CENTRE_STAFF");
     expect(auditData.action).toBe("studentCourseEnrollment.enroll");
@@ -645,9 +644,9 @@ describe("audit log on enrollment (requirement 7)", () => {
 
     await expect(unenrollStudentFromCourse(fd)).rejects.toThrow();
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    expect(auditEntries()).toHaveLength(1);
 
-    const auditData = mockAuditCreate.mock.calls[0][0].data;
+    const auditData = auditEntries()[0];
     expect(auditData.actorUserId).toBe("staff_1");
     expect(auditData.actorRole).toBe("CENTRE_STAFF");
     expect(auditData.action).toBe("studentCourseEnrollment.unenroll");

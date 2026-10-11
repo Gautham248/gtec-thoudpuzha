@@ -1,3 +1,4 @@
+
 import { db } from "@/db";
 import type { SiteSettings, WhyChooseUsCard } from "@/db/types";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";

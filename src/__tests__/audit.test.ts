@@ -1,7 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { renderToString } from "react-dom/server";
-import { Role } from "@/lib/auth";
-import { logAdminAction } from "@/lib/audit";
 
 const mockCreate = vi.hoisted(() => vi.fn());
 const mockFindMany = vi.hoisted(() => vi.fn());
@@ -33,62 +31,7 @@ vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
 
-describe("logAdminAction", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockCreate.mockReset();
-  });
-
-  test("successfully writes a row with all fields populated", async () => {
-    const createdAt = new Date();
-    mockCreate.mockResolvedValue({
-      id: "audit_1",
-      actorUserId: "user_1",
-      actorRole: "CENTRE_STAFF",
-      action: "course.create",
-      entityType: "Course",
-      entityId: "course_1",
-      metadata: { title: "New Course" },
-      createdAt,
-      updatedAt: createdAt,
-    });
-
-    await logAdminAction({
-      actorUserId: "user_1",
-      actorRole: Role.CENTRE_STAFF,
-      action: "course.create",
-      entityType: "Course",
-      entityId: "course_1",
-      metadata: { title: "New Course" },
-    });
-
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: {
-        actorUserId: "user_1",
-        actorRole: Role.CENTRE_STAFF,
-        action: "course.create",
-        entityType: "Course",
-        entityId: "course_1",
-        metadata: { title: "New Course" },
-      },
-    });
-  });
-
-  test("does not throw when the database write fails", async () => {
-    mockCreate.mockRejectedValue(new Error("DB unavailable"));
-
-    await expect(
-      logAdminAction({
-        actorUserId: "user_2",
-        actorRole: Role.SUPER_ADMIN,
-        action: "user.ban",
-        entityType: "User",
-        entityId: "user_3",
-      }),
-    ).resolves.toBeUndefined();
-  });
-});
+// logAdminAction / logSystemAction are covered in src/lib/audit.test.ts.
 
 describe("AuditLogPage", () => {
   beforeEach(() => {
@@ -108,9 +51,8 @@ describe("AuditLogPage", () => {
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
 
-    const { default: AuditLogPage } = await import(
-      "@/app/[locale]/(admin)/admin/audit-log/page"
-    );
+    const { default: AuditLogPage } =
+      await import("@/app/[locale]/(admin)/admin/audit-log/page");
 
     await expect(
       AuditLogPage({ params: Promise.resolve({ locale: "en" }) }),
@@ -138,9 +80,8 @@ describe("AuditLogPage", () => {
       },
     ]);
 
-    const { default: AuditLogPage } = await import(
-      "@/app/[locale]/(admin)/admin/audit-log/page"
-    );
+    const { default: AuditLogPage } =
+      await import("@/app/[locale]/(admin)/admin/audit-log/page");
 
     const element = await AuditLogPage({
       params: Promise.resolve({ locale: "en" }),

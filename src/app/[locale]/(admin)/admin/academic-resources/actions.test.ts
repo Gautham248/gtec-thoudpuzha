@@ -1,4 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { getInsertedRows } from "@/__tests__/drizzle-mock";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockCreate = vi.hoisted(() => vi.fn());
@@ -43,6 +45,8 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+
+const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -97,18 +101,20 @@ describe("uploadResource (admin server action)", () => {
       },
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(auditEntries()).toHaveLength(1);
+    expect(auditEntries()).toContainEqual(
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "academicResource.upload",
         entityType: "AcademicResource",
         entityId: "res_1",
       }),
-    });
+    );
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/academic-resources");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      "/en/admin/academic-resources",
+    );
   });
 
   test("4. admin upload flow is denied to a student-role user (403)", async () => {
@@ -141,7 +147,13 @@ describe("uploadResource (admin server action)", () => {
 // by importing and rendering the component as the student-dashboard tests do.
 vi.mock("next/link", () => ({
   default: vi.fn(
-    ({ href, children }: { href: string; children: React.ReactNode }): string => {
+    ({
+      href,
+      children,
+    }: {
+      href: string;
+      children: React.ReactNode;
+    }): string => {
       let text = "";
       function extract(nodes: React.ReactNode): void {
         if (typeof nodes === "string" || typeof nodes === "number") {
@@ -149,7 +161,10 @@ vi.mock("next/link", () => ({
         } else if (Array.isArray(nodes)) {
           nodes.forEach(extract);
         } else if (nodes && typeof nodes === "object" && "props" in nodes) {
-          extract(((nodes as unknown) as { props: { children: React.ReactNode } }).props.children);
+          extract(
+            (nodes as unknown as { props: { children: React.ReactNode } }).props
+              .children,
+          );
         }
       }
       extract(children);
@@ -208,12 +223,15 @@ describe("ResourceList — student-facing course-scoped retrieval", () => {
       { id: "course_b", titleEn: "Course B" },
     ]);
 
-    const { ResourceList } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/resource-list"
-    );
+    const { ResourceList } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/resource-list");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await ResourceList({ type: "NOTE", title: "Study Notes", locale: "en" });
+    const element = await ResourceList({
+      type: "NOTE",
+      title: "Study Notes",
+      locale: "en",
+    });
     const html = renderToString(element);
 
     // Course A's notes appear
@@ -237,12 +255,15 @@ describe("ResourceList — student-facing course-scoped retrieval", () => {
     // No enrollments
     mockFindMany.mockResolvedValue([]);
 
-    const { ResourceList } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/resource-list"
-    );
+    const { ResourceList } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/resource-list");
 
     const { renderToString } = await import("react-dom/server");
-    const element = await ResourceList({ type: "NOTE", title: "Study Notes", locale: "en" });
+    const element = await ResourceList({
+      type: "NOTE",
+      title: "Study Notes",
+      locale: "en",
+    });
     const html = renderToString(element);
 
     expect(html).toContain("Study Notes");

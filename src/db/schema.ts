@@ -45,8 +45,8 @@ export const employerProfile = pgTable("EmployerProfile", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("EmployerProfile_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
-	uniqueIndex("EmployerProfile_userId_key").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	index("EmployerProfile_status_idx").using("btree", table.status),
+	uniqueIndex("EmployerProfile_userId_key").using("btree", table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -86,7 +86,7 @@ export const candidateProfile = pgTable("CandidateProfile", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	uniqueIndex("CandidateProfile_userId_key").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("CandidateProfile_userId_key").using("btree", table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -100,7 +100,7 @@ export const skill = pgTable("Skill", {
 	status: skillStatus().default('PENDING').notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	uniqueIndex("Skill_label_key").using("btree", table.label.asc().nullsLast().op("text_ops")),
+	uniqueIndex("Skill_label_key").using("btree", table.label),
 ]);
 
 export const jobPosting = pgTable("JobPosting", {
@@ -122,9 +122,9 @@ export const jobPosting = pgTable("JobPosting", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("JobPosting_createdAt_idx").using("btree", table.createdAt.asc().nullsLast().op("timestamp_ops")),
-	index("JobPosting_employerId_idx").using("btree", table.employerId.asc().nullsLast().op("text_ops")),
-	index("JobPosting_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("JobPosting_createdAt_idx").using("btree", table.createdAt),
+	index("JobPosting_employerId_idx").using("btree", table.employerId),
+	index("JobPosting_status_idx").using("btree", table.status),
 	foreignKey({
 			columns: [table.employerId],
 			foreignColumns: [employerProfile.id],
@@ -142,10 +142,10 @@ export const application = pgTable("Application", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("Application_candidateProfileId_idx").using("btree", table.candidateProfileId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("Application_jobPostingId_candidateProfileId_key").using("btree", table.jobPostingId.asc().nullsLast().op("text_ops"), table.candidateProfileId.asc().nullsLast().op("text_ops")),
-	index("Application_jobPostingId_idx").using("btree", table.jobPostingId.asc().nullsLast().op("text_ops")),
-	index("Application_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("Application_candidateProfileId_idx").using("btree", table.candidateProfileId),
+	uniqueIndex("Application_jobPostingId_candidateProfileId_key").using("btree", table.jobPostingId, table.candidateProfileId),
+	index("Application_jobPostingId_idx").using("btree", table.jobPostingId),
+	index("Application_status_idx").using("btree", table.status),
 	foreignKey({
 			columns: [table.jobPostingId],
 			foreignColumns: [jobPosting.id],
@@ -167,8 +167,8 @@ export const enquiry = pgTable("Enquiry", {
 	source: text().notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("Enquiry_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
-	index("Enquiry_createdAt_idx").using("btree", table.createdAt.asc().nullsLast().op("timestamp_ops")),
+	index("Enquiry_courseId_idx").using("btree", table.courseId),
+	index("Enquiry_createdAt_idx").using("btree", table.createdAt),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -187,8 +187,8 @@ export const flashNewsItem = pgTable("FlashNewsItem", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("FlashNewsItem_active_expiresAt_idx").using("btree", table.active.asc().nullsLast().op("timestamp_ops"), table.expiresAt.asc().nullsLast().op("timestamp_ops")),
-	index("FlashNewsItem_sortOrder_idx").using("btree", table.sortOrder.asc().nullsLast().op("int4_ops")),
+	index("FlashNewsItem_active_expiresAt_idx").using("btree", table.active, table.expiresAt),
+	index("FlashNewsItem_sortOrder_idx").using("btree", table.sortOrder),
 ]);
 
 export const courseCategory = pgTable("CourseCategory", {
@@ -199,7 +199,7 @@ export const courseCategory = pgTable("CourseCategory", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("CourseCategory_sortOrder_idx").using("btree", table.sortOrder.asc().nullsLast().op("int4_ops")),
+	index("CourseCategory_sortOrder_idx").using("btree", table.sortOrder),
 ]);
 
 export const newsEvent = pgTable("NewsEvent", {
@@ -216,10 +216,10 @@ export const newsEvent = pgTable("NewsEvent", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("NewsEvent_eventDate_idx").using("btree", table.eventDate.asc().nullsLast().op("timestamp_ops")),
-	index("NewsEvent_publishedAt_idx").using("btree", table.publishedAt.asc().nullsLast().op("timestamp_ops")),
-	uniqueIndex("NewsEvent_slug_key").using("btree", table.slug.asc().nullsLast().op("text_ops")),
-	index("NewsEvent_type_idx").using("btree", table.type.asc().nullsLast().op("enum_ops")),
+	index("NewsEvent_eventDate_idx").using("btree", table.eventDate),
+	index("NewsEvent_publishedAt_idx").using("btree", table.publishedAt),
+	uniqueIndex("NewsEvent_slug_key").using("btree", table.slug),
+	index("NewsEvent_type_idx").using("btree", table.type),
 ]);
 
 export const galleryCategory = pgTable("GalleryCategory", {
@@ -231,8 +231,8 @@ export const galleryCategory = pgTable("GalleryCategory", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	uniqueIndex("GalleryCategory_slug_key").using("btree", table.slug.asc().nullsLast().op("text_ops")),
-	index("GalleryCategory_sortOrder_idx").using("btree", table.sortOrder.asc().nullsLast().op("int4_ops")),
+	uniqueIndex("GalleryCategory_slug_key").using("btree", table.slug),
+	index("GalleryCategory_sortOrder_idx").using("btree", table.sortOrder),
 ]);
 
 export const siteSettings = pgTable("SiteSettings", {
@@ -267,7 +267,7 @@ export const certificationPartner = pgTable("CertificationPartner", {
 	sortOrder: integer().default(0).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("CertificationPartner_sortOrder_idx").using("btree", table.sortOrder.asc().nullsLast().op("int4_ops")),
+	index("CertificationPartner_sortOrder_idx").using("btree", table.sortOrder),
 ]);
 
 export const studentRecord = pgTable("StudentRecord", {
@@ -280,7 +280,7 @@ export const studentRecord = pgTable("StudentRecord", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	uniqueIndex("StudentRecord_studentId_key").using("btree", table.studentId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("StudentRecord_studentId_key").using("btree", table.studentId),
 ]);
 
 export const studentCourseEnrollment = pgTable("StudentCourseEnrollment", {
@@ -290,9 +290,9 @@ export const studentCourseEnrollment = pgTable("StudentCourseEnrollment", {
 	enrolledAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("StudentCourseEnrollment_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("StudentCourseEnrollment_studentProfileId_courseId_key").using("btree", table.studentProfileId.asc().nullsLast().op("text_ops"), table.courseId.asc().nullsLast().op("text_ops")),
-	index("StudentCourseEnrollment_studentProfileId_idx").using("btree", table.studentProfileId.asc().nullsLast().op("text_ops")),
+	index("StudentCourseEnrollment_courseId_idx").using("btree", table.courseId),
+	uniqueIndex("StudentCourseEnrollment_studentProfileId_courseId_key").using("btree", table.studentProfileId, table.courseId),
+	index("StudentCourseEnrollment_studentProfileId_idx").using("btree", table.studentProfileId),
 	foreignKey({
 			columns: [table.studentProfileId],
 			foreignColumns: [candidateProfile.id],
@@ -315,8 +315,8 @@ export const academicResource = pgTable("AcademicResource", {
 	uploadedAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("AcademicResource_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
-	index("AcademicResource_type_idx").using("btree", table.type.asc().nullsLast().op("enum_ops")),
+	index("AcademicResource_courseId_idx").using("btree", table.courseId),
+	index("AcademicResource_type_idx").using("btree", table.type),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -332,8 +332,8 @@ export const studentProgressEntry = pgTable("StudentProgressEntry", {
 	recordedAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("StudentProgressEntry_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
-	index("StudentProgressEntry_studentProfileId_idx").using("btree", table.studentProfileId.asc().nullsLast().op("text_ops")),
+	index("StudentProgressEntry_courseId_idx").using("btree", table.courseId),
+	index("StudentProgressEntry_studentProfileId_idx").using("btree", table.studentProfileId),
 	foreignKey({
 			columns: [table.studentProfileId],
 			foreignColumns: [candidateProfile.id],
@@ -352,7 +352,7 @@ export const timetableEntry = pgTable("TimetableEntry", {
 	contentText: text().notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("TimetableEntry_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
+	index("TimetableEntry_courseId_idx").using("btree", table.courseId),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -373,7 +373,7 @@ export const staffPermission = pgTable("StaffPermission", {
 	canApproveJobPostings: boolean().default(false).notNull(),
 	canModerateSkillsTaxonomy: boolean().default(true).notNull(),
 }, (table) => [
-	uniqueIndex("StaffPermission_userId_key").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("StaffPermission_userId_key").using("btree", table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -392,9 +392,9 @@ export const auditLogEntry = pgTable("AuditLogEntry", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("AuditLogEntry_actorUserId_idx").using("btree", table.actorUserId.asc().nullsLast().op("text_ops")),
-	index("AuditLogEntry_createdAt_idx").using("btree", table.createdAt.asc().nullsLast().op("timestamp_ops")),
-	index("AuditLogEntry_entityType_entityId_idx").using("btree", table.entityType.asc().nullsLast().op("text_ops"), table.entityId.asc().nullsLast().op("text_ops")),
+	index("AuditLogEntry_actorUserId_idx").using("btree", table.actorUserId),
+	index("AuditLogEntry_createdAt_idx").using("btree", table.createdAt),
+	index("AuditLogEntry_entityType_entityId_idx").using("btree", table.entityType, table.entityId),
 	foreignKey({
 			columns: [table.actorUserId],
 			foreignColumns: [user.id],
@@ -422,10 +422,10 @@ export const course = pgTable("Course", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("Course_categoryId_idx").using("btree", table.categoryId.asc().nullsLast().op("text_ops")),
-	index("Course_featured_idx").using("btree", table.featured.asc().nullsLast().op("bool_ops")),
-	uniqueIndex("Course_slug_key").using("btree", table.slug.asc().nullsLast().op("text_ops")),
-	index("Course_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("Course_categoryId_idx").using("btree", table.categoryId),
+	index("Course_featured_idx").using("btree", table.featured),
+	uniqueIndex("Course_slug_key").using("btree", table.slug),
+	index("Course_status_idx").using("btree", table.status),
 	foreignKey({
 			columns: [table.categoryId],
 			foreignColumns: [courseCategory.id],
@@ -443,8 +443,8 @@ export const galleryItem = pgTable("GalleryItem", {
 	sortOrder: integer().default(0).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("GalleryItem_categoryId_idx").using("btree", table.categoryId.asc().nullsLast().op("text_ops")),
-	index("GalleryItem_sortOrder_idx").using("btree", table.sortOrder.asc().nullsLast().op("int4_ops")),
+	index("GalleryItem_categoryId_idx").using("btree", table.categoryId),
+	index("GalleryItem_sortOrder_idx").using("btree", table.sortOrder),
 	foreignKey({
 			columns: [table.categoryId],
 			foreignColumns: [galleryCategory.id],
@@ -464,8 +464,8 @@ export const whyChooseUsCard = pgTable("WhyChooseUsCard", {
 	createdAt: timestamp({ precision: 3, mode: 'date' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'date' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => [
-	index("WhyChooseUsCard_siteSettingsId_idx").using("btree", table.siteSettingsId.asc().nullsLast().op("text_ops")),
-	index("WhyChooseUsCard_sortOrder_idx").using("btree", table.sortOrder.asc().nullsLast().op("int4_ops")),
+	index("WhyChooseUsCard_siteSettingsId_idx").using("btree", table.siteSettingsId),
+	index("WhyChooseUsCard_sortOrder_idx").using("btree", table.sortOrder),
 	foreignKey({
 			columns: [table.siteSettingsId],
 			foreignColumns: [siteSettings.id],

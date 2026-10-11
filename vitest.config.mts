@@ -16,6 +16,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Many tests import whole page modules; on a cold, fully parallel run
+    // that alone can exceed the 5s default.
+    testTimeout: 20_000,
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: ["node_modules/**", "tests/e2e/**"],
     server: {

@@ -35,7 +35,8 @@ describe("drizzle-mock", () => {
     expect(ascAll.at(-1)).toEqual({ slug: "b" }); // NULLS LAST on ASC
 
     const news = await db.query.newsEvent.findMany({
-      where: (n, { and, eq, isNotNull }) => and(eq(n.type, "NEWS"), isNotNull(n.publishedAt)),
+      where: (n, { and, eq, isNotNull }) =>
+        and(eq(n.type, "NEWS"), isNotNull(n.publishedAt)),
       limit: 1,
       orderBy: (n, { desc }) => desc(n.publishedAt),
     });
@@ -67,13 +68,18 @@ describe("drizzle-mock", () => {
       where: (c, { eq }) => eq(c.slug, "events"),
       with: { items: { orderBy: (i, { asc }) => asc(i.sortOrder), limit: 2 } },
     });
-    expect((withItems!.items as { id: string }[]).map((i) => i.id)).toEqual(["i1", "i2"]);
+    expect((withItems!.items as { id: string }[]).map((i) => i.id)).toEqual([
+      "i1",
+      "i2",
+    ]);
   });
 
   test("findFirst returns undefined when nothing matches; failures reject", async () => {
     const db = createMockDb();
     expect(
-      await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, "x") }),
+      await db.query.course.findFirst({
+        where: (c, { eq }) => eq(c.slug, "x"),
+      }),
     ).toBeUndefined();
 
     failMockQuery(db, "course");
@@ -97,9 +103,55 @@ describe("drizzle-mock", () => {
     expect(live).toEqual([{ id: "1" }, { id: "2" }]);
 
     const others = await db.query.flashNewsItem.findMany({
-      where: (f, { and, ne, notInArray }) => and(ne(f.id, "1"), notInArray(f.id, ["2"])),
+      where: (f, { and, ne, notInArray }) =>
+        and(ne(f.id, "1"), notInArray(f.id, ["2"])),
       columns: { id: true },
     });
     expect(others).toEqual([{ id: "3" }, { id: "4" }]);
+  });
+});
+
+describe("drizzle-mock writes", () => {
+  test("records inserts, upserts, updates and deletes without applying them", async () => {
+    const { getMockWrites } = await import("./drizzle-mock");
+    const { course, user } = await import("@/db/schema");
+    const db = createMockDb();
+
+    const inserted = await db
+      .insert(course)
+      .values({ slug: "s", titleEn: "T" })
+      .returning();
+    await db
+      .insert(user)
+      .values({ id: "u", role: "STUDENT" })
+      .onConflictDoUpdate({ target: user.id, set: { role: "STUDENT" } });
+    await db.update(course).set({ titleEn: "T2" }).where();
+    await db.delete(course).where();
+
+    expect(inserted).toEqual([{ slug: "s", titleEn: "T" }]);
+    expect(getMockWrites(db).map((w) => `${w.op}:${w.table}`)).toEqual([
+      "insert:course",
+      "insert:user",
+      "update:course",
+      "delete:course",
+    ]);
+    expect(getMockWrites(db, "user")[0].onConflict).toEqual({
+      action: "update",
+      set: { role: "STUDENT" },
+    });
+    expect(getMockWrites(db, "course")[1]).toMatchObject({
+      data: { titleEn: "T2" },
+      hasWhere: true,
+    });
+    expect(getMockWrites(db, "course")).toHaveLength(3);
+    expect(await db.query.course.findMany()).toEqual([]); // not applied
+  });
+});
+
+describe("global @/db safety net", () => {
+  test("setup.ts replaces @/db with the in-memory fake", async () => {
+    const { db } = await import("@/db");
+    const { isMockDb } = await import("./drizzle-mock");
+    expect(isMockDb(db)).toBe(true);
   });
 });

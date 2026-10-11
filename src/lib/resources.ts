@@ -1,13 +1,13 @@
-import { prisma } from "@/lib/db";
-import type { ResourceType } from "@prisma/client";
+import { db } from "@/db";
+import type { ResourceType } from "@/db/types";
 
 export async function getStudentResourcePages(
   studentProfileId: string,
   type: ResourceType,
 ) {
-  const enrollments = await prisma.studentCourseEnrollment.findMany({
-    where: { studentProfileId },
-    select: { courseId: true },
+  const enrollments = await db.query.studentCourseEnrollment.findMany({
+    where: (e, { eq }) => eq(e.studentProfileId, studentProfileId),
+    columns: { courseId: true },
   });
 
   if (enrollments.length === 0) return { resources: [], enrolledCourses: [] };
@@ -15,13 +15,14 @@ export async function getStudentResourcePages(
   const courseIds = enrollments.map((e) => e.courseId);
 
   const [resources, courses] = await Promise.all([
-    prisma.academicResource.findMany({
-      where: { courseId: { in: courseIds }, type },
-      orderBy: { uploadedAt: "desc" },
+    db.query.academicResource.findMany({
+      where: (r, { and, eq, inArray }) =>
+        and(inArray(r.courseId, courseIds), eq(r.type, type)),
+      orderBy: (r, { desc }) => desc(r.uploadedAt),
     }),
-    prisma.course.findMany({
-      where: { id: { in: courseIds } },
-      select: { id: true, titleEn: true },
+    db.query.course.findMany({
+      where: (c, { inArray }) => inArray(c.id, courseIds),
+      columns: { id: true, titleEn: true },
     }),
   ]);
 
