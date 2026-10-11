@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { getCourseContent } from "./actions";
 import { CourseContentEditor } from "./content-tabs";
 
@@ -16,8 +16,8 @@ export default async function CourseContentPage({ params }: ContentPageProps) {
     redirect(`/${locale}/forbidden`);
   }
 
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
+  const course = await db.query.course.findFirst({
+    where: (c, { eq }) => eq(c.id, courseId),
   });
 
   if (!course) {

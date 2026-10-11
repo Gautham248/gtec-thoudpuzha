@@ -1,6 +1,9 @@
+// @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { db } from "@/db";
-import { getInsertedRows } from "@/__tests__/drizzle-mock";
+import { academicResource, auditLogEntry } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertCourse } from "@/__tests__/pg-fixtures";
 
 // --- Test 4: embed URL derivation (pure utility, no mocks needed) ---
 
@@ -57,13 +60,10 @@ describe("validateVideoUrl (video URL utility)", () => {
 // --- Hoisted mocks shared by action + component tests ---
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockAcCreate = vi.hoisted(() => vi.fn());
 const mockAcFindMany = vi.hoisted(() => vi.fn());
 const mockEnrollFindMany = vi.hoisted(() => vi.fn());
 const mockProfileFindUnique = vi.hoisted(() => vi.fn());
 const mockCourseFindMany = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -75,11 +75,18 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
+// Admin actions write through Drizzle (in-memory Postgres here); the
+// student-facing VideoLectureList still reads through Prisma until the portal
+// moves to Drizzle.
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
+
+const pg = db as unknown as TestDb;
+
 vi.mock("@/lib/db", () => ({
   prisma: {
     academicResource: {
-      create: mockAcCreate,
-      delete: vi.fn(),
       findMany: mockAcFindMany,
     },
     studentCourseEnrollment: {
@@ -91,16 +98,8 @@ vi.mock("@/lib/db", () => ({
     course: {
       findMany: mockCourseFindMany,
     },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
   },
 }));
-
-const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -139,9 +138,12 @@ vi.mock("next/link", () => ({
 }));
 
 describe("uploadResource — LECTURE type (admin server action)", () => {
-  beforeEach(() => {
+  let courseId: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await truncateAll(pg);
+    courseId = (await insertCourse(pg)).id;
   });
 
   test("1. adding a LECTURE resource with a valid YouTube URL succeeds", async () => {
@@ -150,24 +152,11 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockAcCreate.mockResolvedValue({
-      id: "res_lecture_1",
-      courseId: "course_1",
-      type: "LECTURE",
-      title: "React Hooks Explained",
-      fileUrl: null,
-      embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      uploadedAt: new Date(),
-      createdAt: new Date(),
-    });
-
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-
     const { uploadResource } =
       await import("@/app/[locale]/(admin)/admin/academic-resources/actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", courseId);
     formData.append("type", "LECTURE");
     formData.append("title", "React Hooks Explained");
     formData.append("embedUrl", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
@@ -175,27 +164,24 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
 
     await uploadResource(formData);
 
-    expect(mockAcCreate).toHaveBeenCalledTimes(1);
-    expect(mockAcCreate).toHaveBeenCalledWith({
-      data: {
-        courseId: "course_1",
-        type: "LECTURE",
-        title: "React Hooks Explained",
-        fileUrl: null,
-        embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      },
+    const [resource] = await pg.select().from(academicResource);
+    expect(resource).toMatchObject({
+      courseId,
+      type: "LECTURE",
+      title: "React Hooks Explained",
+      fileUrl: null,
+      embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     });
 
-    expect(auditEntries()).toHaveLength(1);
-    expect(auditEntries()).toContainEqual(
-      expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "academicResource.upload",
-        entityType: "AcademicResource",
-        entityId: "res_lecture_1",
-      }),
-    );
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: "staff_1",
+      actorRole: "CENTRE_STAFF",
+      action: "academicResource.upload",
+      entityType: "AcademicResource",
+      entityId: resource.id,
+    });
 
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/en/admin/academic-resources",
@@ -212,7 +198,7 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       await import("@/app/[locale]/(admin)/admin/academic-resources/actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", courseId);
     formData.append("type", "LECTURE");
     formData.append("title", "Bad Host Lecture");
     formData.append("embedUrl", "https://dailymotion.com/video/abc123");
@@ -222,7 +208,7 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       "Only YouTube and Vimeo URLs are allowed.",
     );
 
-    expect(mockAcCreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(academicResource)).toHaveLength(0);
   });
 });
 

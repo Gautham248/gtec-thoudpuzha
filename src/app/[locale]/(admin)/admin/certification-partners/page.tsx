@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import { getMediaUrl } from "@/lib/media";
 import {
@@ -15,9 +15,7 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function CertificationPartnersPage({
-  params,
-}: PageProps) {
+export default async function CertificationPartnersPage({ params }: PageProps) {
   const { locale } = await params;
   const authResult = await requireRole([Role.CENTRE_STAFF, Role.SUPER_ADMIN]);
 
@@ -25,8 +23,8 @@ export default async function CertificationPartnersPage({
     redirect(`/${locale}/forbidden`);
   }
 
-  const partners = await prisma.certificationPartner.findMany({
-    orderBy: { sortOrder: "asc" },
+  const partners = await db.query.certificationPartner.findMany({
+    orderBy: (p, { asc }) => asc(p.sortOrder),
   });
 
   return (
@@ -35,7 +33,12 @@ export default async function CertificationPartnersPage({
 
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add partner</h2>
-        <ActionForm action={createPartner} success="Partner added" resetOnSuccess className="mt-4 space-y-4">
+        <ActionForm
+          action={createPartner}
+          success="Partner added"
+          resetOnSuccess
+          className="mt-4 space-y-4"
+        >
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -97,12 +100,24 @@ export default async function CertificationPartnersPage({
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="border border-border px-3 py-2 text-left">Order</th>
-                    <th className="border border-border px-3 py-2 text-left">Logo</th>
-                    <th className="border border-border px-3 py-2 text-left">Name (EN)</th>
-                    <th className="border border-border px-3 py-2 text-left">Name (ML)</th>
-                    <th className="border border-border px-3 py-2 text-left">Link</th>
-                    <th className="border border-border px-3 py-2 text-left">Actions</th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Order
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Logo
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Name (EN)
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Name (ML)
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Link
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -110,7 +125,10 @@ export default async function CertificationPartnersPage({
                     <tr key={partner.id}>
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-1">
-                          <ActionForm action={movePartner} success="Order updated">
+                          <ActionForm
+                            action={movePartner}
+                            success="Order updated"
+                          >
                             <input type="hidden" name="id" value={partner.id} />
                             <input type="hidden" name="direction" value="up" />
                             <input type="hidden" name="locale" value={locale} />
@@ -124,9 +142,16 @@ export default async function CertificationPartnersPage({
                               ↑
                             </Button>
                           </ActionForm>
-                          <ActionForm action={movePartner} success="Order updated">
+                          <ActionForm
+                            action={movePartner}
+                            success="Order updated"
+                          >
                             <input type="hidden" name="id" value={partner.id} />
-                            <input type="hidden" name="direction" value="down" />
+                            <input
+                              type="hidden"
+                              name="direction"
+                              value="down"
+                            />
                             <input type="hidden" name="locale" value={locale} />
                             <Button
                               type="submit"
@@ -138,7 +163,9 @@ export default async function CertificationPartnersPage({
                               ↓
                             </Button>
                           </ActionForm>
-                          <span className="ml-2 text-sm">{partner.sortOrder}</span>
+                          <span className="ml-2 text-sm">
+                            {partner.sortOrder}
+                          </span>
                         </div>
                       </td>
                       <td className="border border-border px-3 py-2">
@@ -172,33 +199,87 @@ export default async function CertificationPartnersPage({
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-2">
                           <details className="relative">
-                            <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
-                            <ActionForm action={updatePartner} success="Partner updated" className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
-                              <input type="hidden" name="id" value={partner.id} />
-                              <input type="hidden" name="locale" value={locale} />
+                            <summary className="cursor-pointer text-sm text-primary font-medium">
+                              Edit
+                            </summary>
+                            <ActionForm
+                              action={updatePartner}
+                              success="Partner updated"
+                              className="absolute right-0 top-6 z-20 w-72 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left"
+                            >
+                              <input
+                                type="hidden"
+                                name="id"
+                                value={partner.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Name (English) *</label>
-                                <input name="name" defaultValue={partner.name} required className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Name (English) *
+                                </label>
+                                <input
+                                  name="name"
+                                  defaultValue={partner.name}
+                                  required
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Name (Malayalam)</label>
-                                <input name="nameMl" defaultValue={partner.nameMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Name (Malayalam)
+                                </label>
+                                <input
+                                  name="nameMl"
+                                  defaultValue={partner.nameMl ?? ""}
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Link URL</label>
-                                <input name="link" type="url" defaultValue={partner.link ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Link URL
+                                </label>
+                                <input
+                                  name="link"
+                                  type="url"
+                                  defaultValue={partner.link ?? ""}
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">New Logo (optional)</label>
-                                <input name="logo" type="file" accept="image/*" className="w-full text-sm" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  New Logo (optional)
+                                </label>
+                                <input
+                                  name="logo"
+                                  type="file"
+                                  accept="image/*"
+                                  className="w-full text-sm"
+                                />
                               </div>
-                              <Button type="submit" size="xs" className="w-full">Save Changes</Button>
+                              <Button
+                                type="submit"
+                                size="xs"
+                                className="w-full"
+                              >
+                                Save Changes
+                              </Button>
                             </ActionForm>
                           </details>
-                          <ActionForm action={deletePartner} success="Partner deleted">
+                          <ActionForm
+                            action={deletePartner}
+                            success="Partner deleted"
+                          >
                             <input type="hidden" name="id" value={partner.id} />
                             <input type="hidden" name="locale" value={locale} />
-                            <Button type="submit" size="xs" variant="destructive">
+                            <Button
+                              type="submit"
+                              size="xs"
+                              variant="destructive"
+                            >
                               Delete
                             </Button>
                           </ActionForm>
@@ -213,7 +294,10 @@ export default async function CertificationPartnersPage({
             {/* Mobile Card View */}
             <div className="space-y-3 mt-4 md:hidden">
               {partners.map((partner, index) => (
-                <div key={partner.id} className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div
+                  key={partner.id}
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs"
+                >
                   <div className="flex items-center justify-between border-b pb-2">
                     <div className="flex items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -223,8 +307,14 @@ export default async function CertificationPartnersPage({
                         className="h-10 w-10 object-contain rounded border p-1 bg-background"
                       />
                       <div>
-                        <span className="font-semibold text-foreground text-sm block">{partner.name}</span>
-                        {partner.nameMl && <span className="text-sm text-muted-foreground block">{partner.nameMl}</span>}
+                        <span className="font-semibold text-foreground text-sm block">
+                          {partner.name}
+                        </span>
+                        {partner.nameMl && (
+                          <span className="text-sm text-muted-foreground block">
+                            {partner.nameMl}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -232,7 +322,12 @@ export default async function CertificationPartnersPage({
                   <div className="text-sm flex justify-between text-muted-foreground">
                     <span>Website Link:</span>
                     {partner.link ? (
-                      <a href={partner.link} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      <a
+                        href={partner.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
                         {partner.link}
                       </a>
                     ) : (
@@ -243,22 +338,47 @@ export default async function CertificationPartnersPage({
                   <div className="pt-2 border-t space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1 text-sm">
-                        <span className="text-muted-foreground mr-1">Order ({partner.sortOrder}):</span>
-                        <ActionForm action={movePartner} success="Order updated">
+                        <span className="text-muted-foreground mr-1">
+                          Order ({partner.sortOrder}):
+                        </span>
+                        <ActionForm
+                          action={movePartner}
+                          success="Order updated"
+                        >
                           <input type="hidden" name="id" value={partner.id} />
                           <input type="hidden" name="direction" value="up" />
                           <input type="hidden" name="locale" value={locale} />
-                          <Button type="submit" size="icon-xs" variant="outline" disabled={index === 0}>↑</Button>
+                          <Button
+                            type="submit"
+                            size="icon-xs"
+                            variant="outline"
+                            disabled={index === 0}
+                          >
+                            ↑
+                          </Button>
                         </ActionForm>
-                        <ActionForm action={movePartner} success="Order updated">
+                        <ActionForm
+                          action={movePartner}
+                          success="Order updated"
+                        >
                           <input type="hidden" name="id" value={partner.id} />
                           <input type="hidden" name="direction" value="down" />
                           <input type="hidden" name="locale" value={locale} />
-                          <Button type="submit" size="icon-xs" variant="outline" disabled={index === partners.length - 1}>↓</Button>
+                          <Button
+                            type="submit"
+                            size="icon-xs"
+                            variant="outline"
+                            disabled={index === partners.length - 1}
+                          >
+                            ↓
+                          </Button>
                         </ActionForm>
                       </div>
 
-                      <ActionForm action={deletePartner} success="Partner deleted">
+                      <ActionForm
+                        action={deletePartner}
+                        success="Partner deleted"
+                      >
                         <input type="hidden" name="id" value={partner.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="destructive">
@@ -268,27 +388,62 @@ export default async function CertificationPartnersPage({
                     </div>
 
                     <details className="pt-1 border-t">
-                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
-                      <ActionForm action={updatePartner} success="Partner updated" className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">
+                        Edit
+                      </summary>
+                      <ActionForm
+                        action={updatePartner}
+                        success="Partner updated"
+                        className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left"
+                      >
                         <input type="hidden" name="id" value={partner.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Name (English) *</label>
-                          <input name="name" defaultValue={partner.name} required className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Name (English) *
+                          </label>
+                          <input
+                            name="name"
+                            defaultValue={partner.name}
+                            required
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Name (Malayalam)</label>
-                          <input name="nameMl" defaultValue={partner.nameMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Name (Malayalam)
+                          </label>
+                          <input
+                            name="nameMl"
+                            defaultValue={partner.nameMl ?? ""}
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Link URL</label>
-                          <input name="link" type="url" defaultValue={partner.link ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Link URL
+                          </label>
+                          <input
+                            name="link"
+                            type="url"
+                            defaultValue={partner.link ?? ""}
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">New Logo (optional)</label>
-                          <input name="logo" type="file" accept="image/*" className="w-full text-sm" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            New Logo (optional)
+                          </label>
+                          <input
+                            name="logo"
+                            type="file"
+                            accept="image/*"
+                            className="w-full text-sm"
+                          />
                         </div>
-                        <Button type="submit" size="xs" className="w-full">Save Changes</Button>
+                        <Button type="submit" size="xs" className="w-full">
+                          Save Changes
+                        </Button>
                       </ActionForm>
                     </details>
                   </div>

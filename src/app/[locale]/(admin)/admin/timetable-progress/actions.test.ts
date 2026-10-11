@@ -1,20 +1,21 @@
+// @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { db } from "@/db";
-import { getInsertedRows } from "@/__tests__/drizzle-mock";
+import {
+  auditLogEntry,
+  studentProgressEntry,
+  timetableEntry,
+} from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertCourse, insertStudentProfile } from "@/__tests__/pg-fixtures";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockTTCreate = vi.hoisted(() => vi.fn());
 const mockTTFindMany = vi.hoisted(() => vi.fn());
-const mockTTDelete = vi.hoisted(() => vi.fn());
-const mockPECreate = vi.hoisted(() => vi.fn());
 const mockPEFindMany = vi.hoisted(() => vi.fn());
-const mockPEDelete = vi.hoisted(() => vi.fn());
 const mockProfileFindUnique = vi.hoisted(() => vi.fn());
 const mockProfileFindMany = vi.hoisted(() => vi.fn());
 const mockEnrollFindMany = vi.hoisted(() => vi.fn());
 const mockCourseFindMany = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -26,17 +27,22 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
+// Admin actions write through Drizzle (in-memory Postgres here); the
+// student-facing portal pages below still read through Prisma until the
+// portal moves to Drizzle.
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
+
+const pg = db as unknown as TestDb;
+
 vi.mock("@/lib/db", () => ({
   prisma: {
     timetableEntry: {
-      create: mockTTCreate,
       findMany: mockTTFindMany,
-      delete: mockTTDelete,
     },
     studentProgressEntry: {
-      create: mockPECreate,
       findMany: mockPEFindMany,
-      delete: mockPEDelete,
     },
     candidateProfile: {
       findUnique: mockProfileFindUnique,
@@ -48,16 +54,8 @@ vi.mock("@/lib/db", () => ({
     course: {
       findMany: mockCourseFindMany,
     },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
   },
 }));
-
-const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -96,9 +94,9 @@ vi.mock("next/link", () => ({
 }));
 
 describe("addTimetableEntry (admin server action)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await truncateAll(pg);
   });
 
   test("3. admin entry of a timetable entry against a course persists correctly", async () => {
@@ -107,42 +105,32 @@ describe("addTimetableEntry (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockTTCreate.mockResolvedValue({
-      id: "tt_1",
-      courseId: "course_1",
-      contentText: "Week 1: Intro\nWeek 2: Basics",
-      createdAt: new Date(),
-    });
-
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
+    const course = await insertCourse(pg);
 
     const { addTimetableEntry } = await import("./actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", course.id);
     formData.append("contentText", "Week 1: Intro\nWeek 2: Basics");
     formData.append("locale", "en");
 
     await addTimetableEntry(formData);
 
-    expect(mockTTCreate).toHaveBeenCalledTimes(1);
-    expect(mockTTCreate).toHaveBeenCalledWith({
-      data: {
-        courseId: "course_1",
-        contentText: "Week 1: Intro\nWeek 2: Basics",
-      },
+    const [entry] = await pg.select().from(timetableEntry);
+    expect(entry).toMatchObject({
+      courseId: course.id,
+      contentText: "Week 1: Intro\nWeek 2: Basics",
     });
 
-    expect(auditEntries()).toHaveLength(1);
-    expect(auditEntries()).toContainEqual(
-      expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "timetableEntry.create",
-        entityType: "TimetableEntry",
-        entityId: "tt_1",
-      }),
-    );
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: "staff_1",
+      actorRole: "CENTRE_STAFF",
+      action: "timetableEntry.create",
+      entityType: "TimetableEntry",
+      entityId: entry.id,
+    });
 
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/en/admin/timetable-progress",
@@ -151,9 +139,9 @@ describe("addTimetableEntry (admin server action)", () => {
 });
 
 describe("addProgressEntry (admin server action)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await truncateAll(pg);
   });
 
   test("3. admin entry of a progress note against a specific student persists correctly and is immediately visible to that student", async () => {
@@ -162,46 +150,35 @@ describe("addProgressEntry (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockPECreate.mockResolvedValue({
-      id: "pe_1",
-      studentProfileId: "student_profile_1",
-      courseId: "course_1",
-      noteEn: "Showing good progress in module 2",
-      recordedAt: new Date(),
-      createdAt: new Date(),
-    });
-
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
+    const course = await insertCourse(pg);
+    const student = await insertStudentProfile(pg);
 
     const { addProgressEntry } = await import("./actions");
 
     const formData = new FormData();
-    formData.append("studentProfileId", "student_profile_1");
-    formData.append("courseId", "course_1");
+    formData.append("studentProfileId", student.id);
+    formData.append("courseId", course.id);
     formData.append("noteEn", "Showing good progress in module 2");
     formData.append("locale", "en");
 
     await addProgressEntry(formData);
 
-    expect(mockPECreate).toHaveBeenCalledTimes(1);
-    expect(mockPECreate).toHaveBeenCalledWith({
-      data: {
-        studentProfileId: "student_profile_1",
-        courseId: "course_1",
-        noteEn: "Showing good progress in module 2",
-      },
+    const [entry] = await pg.select().from(studentProgressEntry);
+    expect(entry).toMatchObject({
+      studentProfileId: student.id,
+      courseId: course.id,
+      noteEn: "Showing good progress in module 2",
     });
 
-    expect(auditEntries()).toHaveLength(1);
-    expect(auditEntries()).toContainEqual(
-      expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "studentProgressEntry.create",
-        entityType: "StudentProgressEntry",
-        entityId: "pe_1",
-      }),
-    );
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: "staff_1",
+      actorRole: "CENTRE_STAFF",
+      action: "studentProgressEntry.create",
+      entityType: "StudentProgressEntry",
+      entityId: entry.id,
+    });
 
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/en/admin/timetable-progress",
@@ -388,8 +365,9 @@ describe("Timetable — course-scoped retrieval", () => {
 });
 
 describe("Admin entry flow — role gating", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await truncateAll(pg);
   });
 
   test("4. the admin entry flow is denied to a job_seeker-role user (403)", async () => {
@@ -409,7 +387,7 @@ describe("Admin entry flow — role gating", () => {
       "redirect:/en/forbidden",
     );
 
-    expect(mockTTCreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(timetableEntry)).toHaveLength(0);
   });
 
   test("addProgressEntry is also denied to a job_seeker user", async () => {
@@ -430,6 +408,6 @@ describe("Admin entry flow — role gating", () => {
       "redirect:/en/forbidden",
     );
 
-    expect(mockPECreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(studentProgressEntry)).toHaveLength(0);
   });
 });

@@ -3,7 +3,10 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq, max } from "drizzle-orm";
+import { db } from "@/db";
+import { galleryCategory, galleryItem } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { uploadFile } from "@/lib/storage";
 import { slugFromName } from "@/lib/gallery";
@@ -34,23 +37,27 @@ export async function createCategory(formData: FormData) {
 
   // Generate a unique slug
   let slug = slugFromName(nameEn);
-  const existing = await prisma.galleryCategory.findUnique({ where: { slug } });
+  const existing = await db.query.galleryCategory.findFirst({
+    where: (c, { eq }) => eq(c.slug, slug),
+    columns: { id: true },
+  });
   if (existing) {
     slug = `${slug}-${Date.now()}`;
   }
 
-  const maxOrder = await prisma.galleryCategory.aggregate({
-    _max: { sortOrder: true },
-  });
+  const [maxOrder] = await db
+    .select({ sortOrder: max(galleryCategory.sortOrder) })
+    .from(galleryCategory);
 
-  const category = await prisma.galleryCategory.create({
-    data: {
+  const [category] = await db
+    .insert(galleryCategory)
+    .values({
       slug,
       nameEn,
       nameMl,
-      sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
-    },
-  });
+      sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
+    })
+    .returning();
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -74,10 +81,14 @@ export async function updateCategory(formData: FormData) {
   const nameEn = formData.get("nameEn") as string;
   const nameMl = (formData.get("nameMl") as string) || null;
 
-  await prisma.galleryCategory.update({
-    where: { id },
-    data: { nameEn, nameMl },
-  });
+  expectRow(
+    await db
+      .update(galleryCategory)
+      .set({ nameEn, nameMl })
+      .where(eq(galleryCategory.id, id))
+      .returning({ id: galleryCategory.id }),
+    "Gallery category",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -100,9 +111,15 @@ export async function deleteCategory(formData: FormData) {
   const id = formData.get("id") as string;
   const nameEn = formData.get("nameEn") as string;
 
-  // Cascade-delete: items are removed automatically by Prisma (onDelete: Cascade).
-  // A confirmation is shown client-side before the form submits.
-  await prisma.galleryCategory.delete({ where: { id } });
+  // Cascade-delete: the GalleryItem foreign key is ON DELETE CASCADE, so the
+  // database removes the items. A confirmation is shown client-side first.
+  expectRow(
+    await db
+      .delete(galleryCategory)
+      .where(eq(galleryCategory.id, id))
+      .returning({ id: galleryCategory.id }),
+    "Gallery category",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -125,8 +142,8 @@ export async function moveCategory(formData: FormData) {
   const id = formData.get("id") as string;
   const direction = formData.get("direction") as "up" | "down";
 
-  const categories = await prisma.galleryCategory.findMany({
-    orderBy: { sortOrder: "asc" },
+  const categories = await db.query.galleryCategory.findMany({
+    orderBy: (c, { asc }) => asc(c.sortOrder),
   });
 
   const index = categories.findIndex((c) => c.id === id);
@@ -138,14 +155,15 @@ export async function moveCategory(formData: FormData) {
   const current = categories[index];
   const swap = categories[swapIndex];
 
-  await prisma.galleryCategory.update({
-    where: { id: current.id },
-    data: { sortOrder: swap.sortOrder },
-  });
-
-  await prisma.galleryCategory.update({
-    where: { id: swap.id },
-    data: { sortOrder: current.sortOrder },
+  await db.transaction(async (tx) => {
+    await tx
+      .update(galleryCategory)
+      .set({ sortOrder: swap.sortOrder })
+      .where(eq(galleryCategory.id, current.id));
+    await tx
+      .update(galleryCategory)
+      .set({ sortOrder: current.sortOrder })
+      .where(eq(galleryCategory.id, swap.id));
   });
 
   await logAdminAction({
@@ -179,26 +197,27 @@ export async function uploadGalleryImages(formData: FormData) {
     throw new Error("No files provided");
   }
 
-  const maxOrder = await prisma.galleryItem.aggregate({
-    where: { categoryId },
-    _max: { sortOrder: true },
-  });
-  let sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+  const [maxOrder] = await db
+    .select({ sortOrder: max(galleryItem.sortOrder) })
+    .from(galleryItem)
+    .where(eq(galleryItem.categoryId, categoryId));
+  let sortOrder = (maxOrder?.sortOrder ?? -1) + 1;
 
   const itemIds: string[] = [];
 
   for (const file of files) {
     const url = await uploadFile(file, "gallery");
-    const item = await prisma.galleryItem.create({
-      data: {
+    const [item] = await db
+      .insert(galleryItem)
+      .values({
         categoryId,
         mediaType: "IMAGE",
         url,
         captionEn,
         captionMl,
         sortOrder,
-      },
-    });
+      })
+      .returning({ id: galleryItem.id });
     itemIds.push(item.id);
     sortOrder++;
   }
@@ -238,21 +257,22 @@ export async function addVideoItem(formData: FormData) {
     throw new Error("Video URL is required");
   }
 
-  const maxOrder = await prisma.galleryItem.aggregate({
-    where: { categoryId },
-    _max: { sortOrder: true },
-  });
+  const [maxOrder] = await db
+    .select({ sortOrder: max(galleryItem.sortOrder) })
+    .from(galleryItem)
+    .where(eq(galleryItem.categoryId, categoryId));
 
-  const item = await prisma.galleryItem.create({
-    data: {
+  const [item] = await db
+    .insert(galleryItem)
+    .values({
       categoryId,
       mediaType: "VIDEO",
       url,
       captionEn,
       captionMl,
-      sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
-    },
-  });
+      sortOrder: (maxOrder?.sortOrder ?? -1) + 1,
+    })
+    .returning({ id: galleryItem.id });
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -274,7 +294,13 @@ export async function deleteGalleryItem(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  await prisma.galleryItem.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(galleryItem)
+      .where(eq(galleryItem.id, id))
+      .returning({ id: galleryItem.id }),
+    "Gallery item",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,

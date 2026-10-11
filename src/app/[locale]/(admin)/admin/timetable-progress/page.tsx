@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import {
   addTimetableEntry,
@@ -24,24 +24,24 @@ export default async function TimetableProgressPage({ params }: Props) {
 
   const [courses, candidates, timetableEntries, progressEntries] =
     await Promise.all([
-      prisma.course.findMany({
-        where: { status: "PUBLISHED" },
-        orderBy: { titleEn: "asc" },
-        select: { id: true, titleEn: true },
+      db.query.course.findMany({
+        where: (c, { eq }) => eq(c.status, "PUBLISHED"),
+        orderBy: (c, { asc }) => asc(c.titleEn),
+        columns: { id: true, titleEn: true },
       }),
-      prisma.candidateProfile.findMany({
-        orderBy: { fullName: "asc" },
-        include: { user: { select: { id: true } } },
+      db.query.candidateProfile.findMany({
+        orderBy: (p, { asc }) => asc(p.fullName),
+        with: { user: { columns: { id: true } } },
       }),
-      prisma.timetableEntry.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { course: { select: { titleEn: true } } },
+      db.query.timetableEntry.findMany({
+        orderBy: (t, { desc }) => desc(t.createdAt),
+        with: { course: { columns: { titleEn: true } } },
       }),
-      prisma.studentProgressEntry.findMany({
-        orderBy: { recordedAt: "desc" },
-        include: {
-          course: { select: { titleEn: true } },
-          studentProfile: { select: { fullName: true } },
+      db.query.studentProgressEntry.findMany({
+        orderBy: (p, { desc }) => desc(p.recordedAt),
+        with: {
+          course: { columns: { titleEn: true } },
+          studentProfile: { columns: { fullName: true } },
         },
       }),
     ]);
@@ -53,7 +53,12 @@ export default async function TimetableProgressPage({ params }: Props) {
       {/* ───── Timetable Entry ───── */}
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add Timetable Entry</h2>
-        <ActionForm action={addTimetableEntry} success="Timetable entry added" resetOnSuccess className="mt-4 space-y-4">
+        <ActionForm
+          action={addTimetableEntry}
+          success="Timetable entry added"
+          resetOnSuccess
+          className="mt-4 space-y-4"
+        >
           <input type="hidden" name="locale" value={locale} />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -105,16 +110,26 @@ export default async function TimetableProgressPage({ params }: Props) {
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="border border-border px-3 py-2 text-left">Course</th>
-                    <th className="border border-border px-3 py-2 text-left">Content</th>
-                    <th className="border border-border px-3 py-2 text-left">Created</th>
-                    <th className="border border-border px-3 py-2 text-left">Actions</th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Course
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Content
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Created
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {timetableEntries.map((e) => (
                     <tr key={e.id}>
-                      <td className="border border-border px-3 py-2 font-medium">{e.course.titleEn}</td>
+                      <td className="border border-border px-3 py-2 font-medium">
+                        {e.course.titleEn}
+                      </td>
                       <td className="border border-border px-3 py-2 text-sm whitespace-pre-wrap">
                         {e.contentText}
                       </td>
@@ -122,7 +137,10 @@ export default async function TimetableProgressPage({ params }: Props) {
                         {e.createdAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
-                        <ActionForm action={deleteTimetableEntry} success="Timetable entry deleted">
+                        <ActionForm
+                          action={deleteTimetableEntry}
+                          success="Timetable entry deleted"
+                        >
                           <input type="hidden" name="id" value={e.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="destructive">
@@ -139,19 +157,37 @@ export default async function TimetableProgressPage({ params }: Props) {
             {/* Mobile Card View */}
             <div className="space-y-3 mt-4 md:hidden">
               {timetableEntries.map((e) => (
-                <div key={e.id} className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div
+                  key={e.id}
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs"
+                >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="font-semibold text-foreground text-sm">{e.course.titleEn}</span>
-                    <span className="text-sm font-mono text-muted-foreground">{e.createdAt.toISOString().slice(0, 10)}</span>
+                    <span className="font-semibold text-foreground text-sm">
+                      {e.course.titleEn}
+                    </span>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {e.createdAt.toISOString().slice(0, 10)}
+                    </span>
                   </div>
 
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{e.contentText}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {e.contentText}
+                  </p>
 
                   <div className="pt-2 border-t flex justify-end">
-                    <ActionForm action={deleteTimetableEntry} success="Timetable entry deleted" className="w-full">
+                    <ActionForm
+                      action={deleteTimetableEntry}
+                      success="Timetable entry deleted"
+                      className="w-full"
+                    >
                       <input type="hidden" name="id" value={e.id} />
                       <input type="hidden" name="locale" value={locale} />
-                      <Button type="submit" size="xs" variant="destructive" className="w-full">
+                      <Button
+                        type="submit"
+                        size="xs"
+                        variant="destructive"
+                        className="w-full"
+                      >
                         Delete Timetable Entry
                       </Button>
                     </ActionForm>
@@ -161,14 +197,21 @@ export default async function TimetableProgressPage({ params }: Props) {
             </div>
           </>
         ) : (
-          <p className="mt-4 text-muted-foreground">No timetable entries yet.</p>
+          <p className="mt-4 text-muted-foreground">
+            No timetable entries yet.
+          </p>
         )}
       </section>
 
       {/* ───── Student Progress Entry ───── */}
       <section className="rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add Progress Note for Student</h2>
-        <ActionForm action={addProgressEntry} success="Progress entry added" resetOnSuccess className="mt-4 space-y-4">
+        <ActionForm
+          action={addProgressEntry}
+          success="Progress entry added"
+          resetOnSuccess
+          className="mt-4 space-y-4"
+        >
           <input type="hidden" name="locale" value={locale} />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -239,11 +282,21 @@ export default async function TimetableProgressPage({ params }: Props) {
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="border border-border px-3 py-2 text-left">Student</th>
-                    <th className="border border-border px-3 py-2 text-left">Course</th>
-                    <th className="border border-border px-3 py-2 text-left">Note</th>
-                    <th className="border border-border px-3 py-2 text-left">Recorded</th>
-                    <th className="border border-border px-3 py-2 text-left">Actions</th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Student
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Course
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Note
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Recorded
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,13 +305,20 @@ export default async function TimetableProgressPage({ params }: Props) {
                       <td className="border border-border px-3 py-2 font-medium">
                         {e.studentProfile.fullName ?? e.studentProfileId}
                       </td>
-                      <td className="border border-border px-3 py-2">{e.course.titleEn}</td>
-                      <td className="border border-border px-3 py-2 text-sm">{e.noteEn}</td>
+                      <td className="border border-border px-3 py-2">
+                        {e.course.titleEn}
+                      </td>
+                      <td className="border border-border px-3 py-2 text-sm">
+                        {e.noteEn}
+                      </td>
                       <td className="border border-border px-3 py-2 text-sm font-mono">
                         {e.recordedAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="border border-border px-3 py-2">
-                        <ActionForm action={deleteProgressEntry} success="Progress entry deleted">
+                        <ActionForm
+                          action={deleteProgressEntry}
+                          success="Progress entry deleted"
+                        >
                           <input type="hidden" name="id" value={e.id} />
                           <input type="hidden" name="locale" value={locale} />
                           <Button type="submit" size="xs" variant="destructive">
@@ -275,22 +335,40 @@ export default async function TimetableProgressPage({ params }: Props) {
             {/* Mobile Card View */}
             <div className="space-y-3 mt-4 md:hidden">
               {progressEntries.map((e) => (
-                <div key={e.id} className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div
+                  key={e.id}
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs"
+                >
                   <div className="flex items-center justify-between border-b pb-2">
                     <div>
-                      <span className="font-semibold text-foreground text-sm block">{e.studentProfile.fullName ?? e.studentProfileId}</span>
-                      <span className="text-sm text-muted-foreground">{e.course.titleEn}</span>
+                      <span className="font-semibold text-foreground text-sm block">
+                        {e.studentProfile.fullName ?? e.studentProfileId}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {e.course.titleEn}
+                      </span>
                     </div>
-                    <span className="text-sm font-mono text-muted-foreground">{e.recordedAt.toISOString().slice(0, 10)}</span>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {e.recordedAt.toISOString().slice(0, 10)}
+                    </span>
                   </div>
 
                   <p className="text-sm text-foreground">{e.noteEn}</p>
 
                   <div className="pt-2 border-t flex justify-end">
-                    <ActionForm action={deleteProgressEntry} success="Progress entry deleted" className="w-full">
+                    <ActionForm
+                      action={deleteProgressEntry}
+                      success="Progress entry deleted"
+                      className="w-full"
+                    >
                       <input type="hidden" name="id" value={e.id} />
                       <input type="hidden" name="locale" value={locale} />
-                      <Button type="submit" size="xs" variant="destructive" className="w-full">
+                      <Button
+                        type="submit"
+                        size="xs"
+                        variant="destructive"
+                        className="w-full"
+                      >
                         Delete Progress Entry
                       </Button>
                     </ActionForm>

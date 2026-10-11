@@ -3,8 +3,10 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import type { Prisma } from "@prisma/client";
+import { eq, max } from "drizzle-orm";
+import { db } from "@/db";
+import { course as courseTable, courseCategory } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { uploadFile } from "@/lib/storage";
 
@@ -23,17 +25,18 @@ export async function createCategory(formData: FormData) {
   const nameEn = formData.get("nameEn") as string;
   const nameMl = (formData.get("nameMl") as string) || null;
 
-  const maxOrder = await prisma.courseCategory.aggregate({
-    _max: { sortOrder: true },
-  });
+  const [maxOrder] = await db
+    .select({ sortOrder: max(courseCategory.sortOrder) })
+    .from(courseCategory);
 
-  const category = await prisma.courseCategory.create({
-    data: {
+  const [category] = await db
+    .insert(courseCategory)
+    .values({
       nameEn,
       nameMl,
-      sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
-    },
-  });
+      sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
+    })
+    .returning();
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -59,10 +62,14 @@ export async function updateCategory(formData: FormData) {
   const nameEn = formData.get("nameEn") as string;
   const nameMl = (formData.get("nameMl") as string) || null;
 
-  await prisma.courseCategory.update({
-    where: { id },
-    data: { nameEn, nameMl },
-  });
+  expectRow(
+    await db
+      .update(courseCategory)
+      .set({ nameEn, nameMl })
+      .where(eq(courseCategory.id, id))
+      .returning({ id: courseCategory.id }),
+    "Course category",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -86,7 +93,13 @@ export async function deleteCategory(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  await prisma.courseCategory.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(courseCategory)
+      .where(eq(courseCategory.id, id))
+      .returning({ id: courseCategory.id }),
+    "Course category",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -110,8 +123,8 @@ export async function moveCategory(formData: FormData) {
   const id = formData.get("id") as string;
   const direction = formData.get("direction") as "up" | "down";
 
-  const categories = await prisma.courseCategory.findMany({
-    orderBy: { sortOrder: "asc" },
+  const categories = await db.query.courseCategory.findMany({
+    orderBy: (c, { asc }) => asc(c.sortOrder),
   });
 
   const index = categories.findIndex((c) => c.id === id);
@@ -123,14 +136,15 @@ export async function moveCategory(formData: FormData) {
   const current = categories[index];
   const swap = categories[swapIndex];
 
-  await prisma.courseCategory.update({
-    where: { id: current.id },
-    data: { sortOrder: swap.sortOrder },
-  });
-
-  await prisma.courseCategory.update({
-    where: { id: swap.id },
-    data: { sortOrder: current.sortOrder },
+  await db.transaction(async (tx) => {
+    await tx
+      .update(courseCategory)
+      .set({ sortOrder: swap.sortOrder })
+      .where(eq(courseCategory.id, current.id));
+    await tx
+      .update(courseCategory)
+      .set({ sortOrder: current.sortOrder })
+      .where(eq(courseCategory.id, swap.id));
   });
 
   await logAdminAction({
@@ -165,7 +179,8 @@ export async function createCourse(formData: FormData) {
   const careerOutcomesEn = (formData.get("careerOutcomesEn") as string) || null;
   const careerOutcomesMl = (formData.get("careerOutcomesMl") as string) || null;
   const featured = formData.get("featured") === "on";
-  const status = (formData.get("status") as "DRAFT" | "PUBLISHED" | "ARCHIVED") || "DRAFT";
+  const status =
+    (formData.get("status") as "DRAFT" | "PUBLISHED" | "ARCHIVED") || "DRAFT";
   const certificationsRaw = (formData.get("certifications") as string) || "";
   const certifications = certificationsRaw
     .split(",")
@@ -182,8 +197,9 @@ export async function createCourse(formData: FormData) {
     // ignore invalid JSON
   }
 
-  const course = await prisma.course.create({
-    data: {
+  const [course] = await db
+    .insert(courseTable)
+    .values({
       titleEn,
       titleMl,
       slug,
@@ -191,14 +207,14 @@ export async function createCourse(formData: FormData) {
       descriptionEn,
       descriptionMl,
       durationText,
-      syllabus: syllabus as Prisma.InputJsonValue,
+      syllabus,
       certifications,
       careerOutcomesEn,
       careerOutcomesMl,
       featured,
       status,
-    },
-  });
+    })
+    .returning();
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -231,7 +247,8 @@ export async function updateCourse(formData: FormData) {
   const careerOutcomesEn = (formData.get("careerOutcomesEn") as string) || null;
   const careerOutcomesMl = (formData.get("careerOutcomesMl") as string) || null;
   const featured = formData.get("featured") === "on";
-  const status = (formData.get("status") as "DRAFT" | "PUBLISHED" | "ARCHIVED") || "DRAFT";
+  const status =
+    (formData.get("status") as "DRAFT" | "PUBLISHED" | "ARCHIVED") || "DRAFT";
   const certificationsRaw = (formData.get("certifications") as string) || "";
   const certifications = certificationsRaw
     .split(",")
@@ -248,24 +265,28 @@ export async function updateCourse(formData: FormData) {
     // ignore invalid JSON
   }
 
-  await prisma.course.update({
-    where: { id },
-    data: {
-      titleEn,
-      titleMl,
-      slug,
-      categoryId,
-      descriptionEn,
-      descriptionMl,
-      durationText,
-      syllabus: syllabus as Prisma.InputJsonValue,
-      certifications,
-      careerOutcomesEn,
-      careerOutcomesMl,
-      featured,
-      status,
-    },
-  });
+  expectRow(
+    await db
+      .update(courseTable)
+      .set({
+        titleEn,
+        titleMl,
+        slug,
+        categoryId,
+        descriptionEn,
+        descriptionMl,
+        durationText,
+        syllabus,
+        certifications,
+        careerOutcomesEn,
+        careerOutcomesMl,
+        featured,
+        status,
+      })
+      .where(eq(courseTable.id, id))
+      .returning({ id: courseTable.id }),
+    "Course",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -289,7 +310,13 @@ export async function deleteCourse(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  await prisma.course.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(courseTable)
+      .where(eq(courseTable.id, id))
+      .returning({ id: courseTable.id }),
+    "Course",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -320,10 +347,14 @@ export async function uploadCourseImage(formData: FormData) {
 
   const key = await uploadFile(file, "course-covers");
 
-  await prisma.course.update({
-    where: { id: courseId },
-    data: { coverImageUrl: key },
-  });
+  expectRow(
+    await db
+      .update(courseTable)
+      .set({ coverImageUrl: key })
+      .where(eq(courseTable.id, courseId))
+      .returning({ id: courseTable.id }),
+    "Course",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,

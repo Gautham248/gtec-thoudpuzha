@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { academicResource } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { validateVideoUrl } from "@/lib/video";
-import type { Prisma, ResourceType } from "@prisma/client";
+import type { ResourceType } from "@/db/types";
 
 function localeFromFormData(formData: FormData): string {
   return (formData.get("locale") as string) || "en";
@@ -38,17 +41,16 @@ export async function uploadResource(formData: FormData) {
     }
   }
 
-  const data: Prisma.AcademicResourceUncheckedCreateInput = {
-    courseId,
-    type,
-    title,
-    fileUrl,
-  };
-  if (type === "LECTURE") {
-    data.embedUrl = embedUrl;
-  }
-
-  const resource = await prisma.academicResource.create({ data });
+  const [resource] = await db
+    .insert(academicResource)
+    .values({
+      courseId,
+      type,
+      title,
+      fileUrl,
+      ...(type === "LECTURE" ? { embedUrl } : {}),
+    })
+    .returning({ id: academicResource.id });
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -85,15 +87,19 @@ export async function updateResource(formData: FormData) {
     }
   }
 
-  await prisma.academicResource.update({
-    where: { id },
-    data: {
-      type,
-      title,
-      fileUrl,
-      embedUrl: type === "LECTURE" ? embedUrl : null,
-    },
-  });
+  expectRow(
+    await db
+      .update(academicResource)
+      .set({
+        type,
+        title,
+        fileUrl,
+        embedUrl: type === "LECTURE" ? embedUrl : null,
+      })
+      .where(eq(academicResource.id, id))
+      .returning({ id: academicResource.id }),
+    "Academic resource",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -115,7 +121,13 @@ export async function deleteResource(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  await prisma.academicResource.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(academicResource)
+      .where(eq(academicResource.id, id))
+      .returning({ id: academicResource.id }),
+    "Academic resource",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,

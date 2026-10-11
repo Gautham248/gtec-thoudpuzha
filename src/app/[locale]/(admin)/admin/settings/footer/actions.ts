@@ -3,7 +3,9 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { siteSettings } from "@/db/schema";
 import { logAdminAction } from "@/lib/audit";
 import { validateUrlOrNull } from "@/lib/url-validation";
 
@@ -24,7 +26,7 @@ export async function updateFooterSettings(formData: FormData) {
     redirect(`/${locale}/forbidden`);
   }
 
-  const settings = await prisma.siteSettings.findFirst();
+  const settings = await db.query.siteSettings.findFirst();
 
   if (!settings) {
     throw new Error("Site settings have not been initialized.");
@@ -41,17 +43,26 @@ export async function updateFooterSettings(formData: FormData) {
   const rawLinkedinUrl = getNullableString(formData, "linkedinUrl");
 
   const mapsUrl = await validateUrlOrNull(rawMapsUrl, "Google Maps URL");
-  const instagramUrl = await validateUrlOrNull(rawInstagramUrl, "Instagram URL");
+  const instagramUrl = await validateUrlOrNull(
+    rawInstagramUrl,
+    "Instagram URL",
+  );
   const facebookUrl = await validateUrlOrNull(rawFacebookUrl, "Facebook URL");
   const whatsappNumber = await validateUrlOrNull(rawWhatsappNumber, "WhatsApp");
-  const googleReviewsUrl = await validateUrlOrNull(rawGoogleReviewsUrl, "Google Reviews URL");
-  const mapEmbedUrl = await validateUrlOrNull(rawMapEmbedUrl, "Google Maps Embed URL");
+  const googleReviewsUrl = await validateUrlOrNull(
+    rawGoogleReviewsUrl,
+    "Google Reviews URL",
+  );
+  const mapEmbedUrl = await validateUrlOrNull(
+    rawMapEmbedUrl,
+    "Google Maps Embed URL",
+  );
   const youtubeUrl = await validateUrlOrNull(rawYoutubeUrl, "YouTube URL");
   const linkedinUrl = await validateUrlOrNull(rawLinkedinUrl, "LinkedIn URL");
 
-  await prisma.siteSettings.update({
-    where: { id: settings.id },
-    data: {
+  await db
+    .update(siteSettings)
+    .set({
       address,
       mapsUrl,
       instagramUrl,
@@ -61,8 +72,8 @@ export async function updateFooterSettings(formData: FormData) {
       mapEmbedUrl,
       youtubeUrl,
       linkedinUrl,
-    },
-  });
+    })
+    .where(eq(siteSettings.id, settings.id));
 
   await logAdminAction({
     actorUserId: authResult.userId,

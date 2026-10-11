@@ -1,10 +1,11 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { renderToString } from "react-dom/server";
 import FooterSettingsPage from "./page";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
 
 const mockRequireRole = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({
   requireRole: mockRequireRole,
@@ -17,14 +18,6 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
   useRouter: () => ({ refresh: vi.fn() }),
-}));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    siteSettings: {
-      findFirst: mockFindFirst,
-    },
-  },
 }));
 
 function createSettings() {
@@ -50,8 +43,7 @@ describe("FooterSettingsPage", () => {
     vi.clearAllMocks();
     mockRequireRole.mockReset();
     mockRedirect.mockReset();
-    mockFindFirst.mockReset();
-    mockFindFirst.mockResolvedValue(createSettings());
+    setMockRows(db, "siteSettings", [createSettings()]);
   });
 
   test("is denied to non-superadmin users and redirects to forbidden", async () => {
@@ -93,7 +85,9 @@ describe("FooterSettingsPage", () => {
     expect(html).toContain("Save Footer Settings");
 
     // Values from database
-    expect(html).toContain("East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School");
+    expect(html).toContain(
+      "East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School",
+    );
     expect(html).toContain("https://instagram.com/gtec_thodupuzha");
     expect(html).toContain("https://facebook.com/gtectdpa");
     expect(html).toContain("919744221113");

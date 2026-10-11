@@ -3,11 +3,13 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { siteSettings, whyChooseUsCard } from "@/db/schema";
 import { logAdminAction } from "@/lib/audit";
 import { uploadFile } from "@/lib/storage";
 import { validateUrlOrNull } from "@/lib/url-validation";
-import type { WhyCardIcon } from "@prisma/client";
+import type { WhyCardIcon } from "@/db/types";
 
 function localeFromFormData(formData: FormData): string {
   return (formData.get("locale") as string) || "en";
@@ -28,8 +30,8 @@ export async function updateSiteSettings(formData: FormData) {
     redirect(`/${localeFromFormData(formData)}/forbidden`);
   }
 
-  const settings = await prisma.siteSettings.findFirst({
-    include: { whyChooseUsCards: { orderBy: { sortOrder: "asc" } } },
+  const settings = await db.query.siteSettings.findFirst({
+    with: { whyChooseUsCards: { orderBy: (c, { asc }) => asc(c.sortOrder) } },
   });
 
   if (!settings) {
@@ -40,7 +42,11 @@ export async function updateSiteSettings(formData: FormData) {
 
   let aboutPhotoUrl = getNullableString(formData, "aboutPhotoUrl");
   const aboutPhotoFile = formData.get("aboutPhotoFile") as File | null;
-  if (aboutPhotoFile && aboutPhotoFile.size > 0 && typeof aboutPhotoFile.arrayBuffer === "function") {
+  if (
+    aboutPhotoFile &&
+    aboutPhotoFile.size > 0 &&
+    typeof aboutPhotoFile.arrayBuffer === "function"
+  ) {
     try {
       const key = await uploadFile(aboutPhotoFile, "about");
       aboutPhotoUrl = `/api/media/${key}`;
@@ -86,9 +92,9 @@ export async function updateSiteSettings(formData: FormData) {
     "Google Reviews URL",
   );
 
-  await prisma.siteSettings.update({
-    where: { id: settings.id },
-    data: {
+  await db
+    .update(siteSettings)
+    .set({
       yearsInOperation: getString(formData, "yearsInOperation"),
       studentsTrained: getString(formData, "studentsTrained"),
       centresWorldwide: getString(formData, "centresWorldwide"),
@@ -106,21 +112,21 @@ export async function updateSiteSettings(formData: FormData) {
       youtubeUrl,
       linkedinUrl,
       googleReviewsUrl,
-    },
-  });
+    })
+    .where(eq(siteSettings.id, settings.id));
 
   for (let i = 0; i < settings.whyChooseUsCards.length; i++) {
     const card = settings.whyChooseUsCards[i];
-    await prisma.whyChooseUsCard.update({
-      where: { id: card.id },
-      data: {
+    await db
+      .update(whyChooseUsCard)
+      .set({
         icon: getString(formData, `card_${i}_icon`) as WhyCardIcon,
         titleEn: getString(formData, `card_${i}_titleEn`),
         titleMl: getNullableString(formData, `card_${i}_titleMl`),
         descriptionEn: getString(formData, `card_${i}_descriptionEn`),
         descriptionMl: getNullableString(formData, `card_${i}_descriptionMl`),
-      },
-    });
+      })
+      .where(eq(whyChooseUsCard.id, card.id));
   }
 
   await logAdminAction({

@@ -80,3 +80,75 @@ export async function insertCourse(
     .returning();
   return row;
 }
+
+export async function insertCategory(
+  db: TestDb,
+  values: Insert<typeof t.courseCategory> = {},
+) {
+  const [row] = await db
+    .insert(t.courseCategory)
+    .values({ nameEn: next("Category"), ...values })
+    .returning();
+  return row;
+}
+
+export async function insertGalleryCategory(
+  db: TestDb,
+  values: Insert<typeof t.galleryCategory> = {},
+) {
+  const slug = values.slug ?? next("gallery");
+  const [row] = await db
+    .insert(t.galleryCategory)
+    .values({ nameEn: slug, ...values, slug })
+    .returning();
+  return row;
+}
+
+export async function insertSiteSettings(
+  db: TestDb,
+  values: Insert<typeof t.siteSettings> = {},
+  cards: Insert<typeof t.whyChooseUsCard>[] = [],
+) {
+  const [settings] = await db.insert(t.siteSettings).values(values).returning();
+  if (cards.length) {
+    await db.insert(t.whyChooseUsCard).values(
+      cards.map((c, i) => ({
+        titleEn: `Card ${i}`,
+        descriptionEn: `Description ${i}`,
+        icon: "AWARD" as const,
+        sortOrder: i,
+        ...c,
+        siteSettingsId: settings.id,
+      })),
+    );
+  }
+  return settings;
+}
+
+export async function insertStudentProfile(
+  db: TestDb,
+  values: Insert<typeof t.candidateProfile> = {},
+) {
+  const userId = values.userId ?? (await insertUser(db)).id;
+  const [row] = await db
+    .insert(t.candidateProfile)
+    .values({ fullName: "Student", ...values, userId })
+    .returning();
+  return row;
+}
+
+/** FormData from a plain object (arrays become repeated fields). */
+export function form(
+  fields: Record<string, string | File | (string | File)[]>,
+) {
+  const fd = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    for (const v of [value].flat()) fd.append(key, v);
+  }
+  return fd;
+}
+
+/** Clerk `auth()` result for a signed-in user with a role claim. */
+export function session(userId: string, role: string) {
+  return { userId, sessionClaims: { metadata: { role } } };
+}

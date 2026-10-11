@@ -3,7 +3,10 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq, max } from "drizzle-orm";
+import { db } from "@/db";
+import { certificationPartner } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { uploadFile } from "@/lib/storage";
 
@@ -23,23 +26,25 @@ export async function createPartner(formData: FormData) {
   const logoFile = formData.get("logo") as File | null;
 
   if (!name) throw new Error("Name is required");
-  if (!logoFile || logoFile.size === 0) throw new Error("Logo file is required");
+  if (!logoFile || logoFile.size === 0)
+    throw new Error("Logo file is required");
 
   const logoUrl = await uploadFile(logoFile, "cert-partners");
 
-  const maxOrder = await prisma.certificationPartner.aggregate({
-    _max: { sortOrder: true },
-  });
+  const [maxOrder] = await db
+    .select({ sortOrder: max(certificationPartner.sortOrder) })
+    .from(certificationPartner);
 
-  const partner = await prisma.certificationPartner.create({
-    data: {
+  const [partner] = await db
+    .insert(certificationPartner)
+    .values({
       name,
       nameMl,
       logoUrl,
       link,
-      sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
-    },
-  });
+      sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
+    })
+    .returning();
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -50,7 +55,9 @@ export async function createPartner(formData: FormData) {
     metadata: { name, nameMl, link },
   });
 
-  revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidatePath(
+    `/${localeFromFormData(formData)}/admin/certification-partners`,
+  );
   revalidateTag("cert-partners", "max");
 }
 
@@ -73,13 +80,14 @@ export async function updatePartner(formData: FormData) {
     logoUrl = await uploadFile(logoFile, "cert-partners");
   }
 
-  const data: Record<string, unknown> = { name, nameMl, link };
-  if (logoUrl) data.logoUrl = logoUrl;
-
-  const partner = await prisma.certificationPartner.update({
-    where: { id },
-    data,
-  });
+  const partner = expectRow(
+    await db
+      .update(certificationPartner)
+      .set({ name, nameMl, link, ...(logoUrl ? { logoUrl } : {}) })
+      .where(eq(certificationPartner.id, id))
+      .returning(),
+    "Certification partner",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -90,7 +98,9 @@ export async function updatePartner(formData: FormData) {
     metadata: { name, nameMl, link, logoUpdated: !!logoUrl },
   });
 
-  revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidatePath(
+    `/${localeFromFormData(formData)}/admin/certification-partners`,
+  );
   revalidateTag("cert-partners", "max");
 }
 
@@ -102,7 +112,13 @@ export async function deletePartner(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  await prisma.certificationPartner.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(certificationPartner)
+      .where(eq(certificationPartner.id, id))
+      .returning({ id: certificationPartner.id }),
+    "Certification partner",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -112,7 +128,9 @@ export async function deletePartner(formData: FormData) {
     entityId: id,
   });
 
-  revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidatePath(
+    `/${localeFromFormData(formData)}/admin/certification-partners`,
+  );
   revalidateTag("cert-partners", "max");
 }
 
@@ -125,8 +143,8 @@ export async function movePartner(formData: FormData) {
   const id = formData.get("id") as string;
   const direction = formData.get("direction") as "up" | "down";
 
-  const partners = await prisma.certificationPartner.findMany({
-    orderBy: { sortOrder: "asc" },
+  const partners = await db.query.certificationPartner.findMany({
+    orderBy: (p, { asc }) => asc(p.sortOrder),
   });
 
   const index = partners.findIndex((p) => p.id === id);
@@ -138,14 +156,15 @@ export async function movePartner(formData: FormData) {
   const current = partners[index];
   const swap = partners[swapIndex];
 
-  await prisma.certificationPartner.update({
-    where: { id: current.id },
-    data: { sortOrder: swap.sortOrder },
-  });
-
-  await prisma.certificationPartner.update({
-    where: { id: swap.id },
-    data: { sortOrder: current.sortOrder },
+  await db.transaction(async (tx) => {
+    await tx
+      .update(certificationPartner)
+      .set({ sortOrder: swap.sortOrder })
+      .where(eq(certificationPartner.id, current.id));
+    await tx
+      .update(certificationPartner)
+      .set({ sortOrder: current.sortOrder })
+      .where(eq(certificationPartner.id, swap.id));
   });
 
   await logAdminAction({
@@ -157,6 +176,8 @@ export async function movePartner(formData: FormData) {
     metadata: { direction, swappedWith: swap.id },
   });
 
-  revalidatePath(`/${localeFromFormData(formData)}/admin/certification-partners`);
+  revalidatePath(
+    `/${localeFromFormData(formData)}/admin/certification-partners`,
+  );
   revalidateTag("cert-partners", "max");
 }

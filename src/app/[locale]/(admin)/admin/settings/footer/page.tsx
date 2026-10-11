@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import {
   MapPin,
@@ -28,7 +28,7 @@ export default async function FooterSettingsPage({
     redirect(`/${locale}/forbidden`);
   }
 
-  const settings = await prisma.siteSettings.findFirst();
+  const settings = await db.query.siteSettings.findFirst();
 
   if (!settings) {
     throw new Error("Site settings have not been initialized.");
@@ -45,24 +45,32 @@ export default async function FooterSettingsPage({
           Footer &amp; Contact Settings
         </h1>
         <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
-          Manage the dynamic location address, Google Maps, Instagram, Facebook, WhatsApp,
-          and Google Reviews links displayed in the website footer. If any field is left empty,
-          it will be automatically hidden from the public website.
+          Manage the dynamic location address, Google Maps, Instagram, Facebook,
+          WhatsApp, and Google Reviews links displayed in the website footer. If
+          any field is left empty, it will be automatically hidden from the
+          public website.
         </p>
       </div>
 
       <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3 text-sm text-foreground">
         <Info className="size-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-primary">Live Database Synchronization</p>
+          <p className="font-semibold text-primary">
+            Live Database Synchronization
+          </p>
           <p className="text-muted-foreground text-xs mt-0.5 leading-relaxed">
-            Changes saved here update the database and invalidate the server cache immediately.
-            The public website footer will instantly display your updated contact and social links.
+            Changes saved here update the database and invalidate the server
+            cache immediately. The public website footer will instantly display
+            your updated contact and social links.
           </p>
         </div>
       </div>
 
-      <ActionForm action={updateFooterSettings} success="Footer settings saved" className="mt-8 space-y-8">
+      <ActionForm
+        action={updateFooterSettings}
+        success="Footer settings saved"
+        className="mt-8 space-y-8"
+      >
         <input type="hidden" name="locale" value={locale} />
 
         {/* Section 1: Google Maps & Location */}
@@ -76,16 +84,22 @@ export default async function FooterSettingsPage({
                 Google Maps &amp; Campus Location
               </h2>
               <p className="text-xs text-muted-foreground">
-                Physical address and interactive Google Maps link for students and visitors.
+                Physical address and interactive Google Maps link for students
+                and visitors.
               </p>
             </div>
           </div>
 
           <div className="grid gap-5">
             <div className="space-y-1.5">
-              <label htmlFor="address" className="text-sm font-semibold flex items-center justify-between">
+              <label
+                htmlFor="address"
+                className="text-sm font-semibold flex items-center justify-between"
+              >
                 <span>Centre Address / Location Text</span>
-                <span className="text-xs text-muted-foreground font-normal">Shown on footer &amp; location card</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Shown on footer &amp; location card
+                </span>
               </label>
               <textarea
                 id="address"
@@ -98,9 +112,14 @@ export default async function FooterSettingsPage({
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="mapsUrl" className="text-sm font-semibold flex items-center justify-between">
+              <label
+                htmlFor="mapsUrl"
+                className="text-sm font-semibold flex items-center justify-between"
+              >
                 <span>Google Maps Direct Link URL</span>
-                <span className="text-xs text-muted-foreground font-normal">Opens in new tab when clicked</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Opens in new tab when clicked
+                </span>
               </label>
               <input
                 id="mapsUrl"
@@ -113,9 +132,14 @@ export default async function FooterSettingsPage({
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="mapEmbedUrl" className="text-sm font-semibold flex items-center justify-between">
+              <label
+                htmlFor="mapEmbedUrl"
+                className="text-sm font-semibold flex items-center justify-between"
+              >
                 <span>Google Maps Embed URL (Iframe)</span>
-                <span className="text-xs text-muted-foreground font-normal">Used on Contact page embed</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Used on Contact page embed
+                </span>
               </label>
               <input
                 id="mapEmbedUrl"
@@ -140,7 +164,8 @@ export default async function FooterSettingsPage({
                 Social Media &amp; Instant Messaging
               </h2>
               <p className="text-xs text-muted-foreground">
-                Official handles and channels for student communication and social proof.
+                Official handles and channels for student communication and
+                social proof.
               </p>
             </div>
           </div>
@@ -148,7 +173,10 @@ export default async function FooterSettingsPage({
           <div className="grid gap-5 sm:grid-cols-2">
             {/* Instagram */}
             <div className="space-y-1.5 sm:col-span-1">
-              <label htmlFor="instagramUrl" className="text-sm font-semibold flex items-center gap-1.5">
+              <label
+                htmlFor="instagramUrl"
+                className="text-sm font-semibold flex items-center gap-1.5"
+              >
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -176,7 +204,10 @@ export default async function FooterSettingsPage({
 
             {/* Facebook */}
             <div className="space-y-1.5 sm:col-span-1">
-              <label htmlFor="facebookUrl" className="text-sm font-semibold flex items-center gap-1.5">
+              <label
+                htmlFor="facebookUrl"
+                className="text-sm font-semibold flex items-center gap-1.5"
+              >
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -202,7 +233,10 @@ export default async function FooterSettingsPage({
 
             {/* WhatsApp */}
             <div className="space-y-1.5 sm:col-span-1">
-              <label htmlFor="whatsappNumber" className="text-sm font-semibold flex items-center gap-1.5">
+              <label
+                htmlFor="whatsappNumber"
+                className="text-sm font-semibold flex items-center gap-1.5"
+              >
                 <MessageCircle className="size-4 text-emerald-600" />
                 <span>WhatsApp Number or URL</span>
               </label>
@@ -221,7 +255,10 @@ export default async function FooterSettingsPage({
 
             {/* Google Reviews */}
             <div className="space-y-1.5 sm:col-span-1">
-              <label htmlFor="googleReviewsUrl" className="text-sm font-semibold flex items-center gap-1.5">
+              <label
+                htmlFor="googleReviewsUrl"
+                className="text-sm font-semibold flex items-center gap-1.5"
+              >
                 <Star className="size-4 text-amber-500 fill-amber-500" />
                 <span>Google Reviews URL</span>
               </label>
@@ -241,7 +278,8 @@ export default async function FooterSettingsPage({
         </section>
 
         {/* Section 3: Additional Channels (if configured) */}
-        {(settings.youtubeUrl !== undefined || settings.linkedinUrl !== undefined) && (
+        {(settings.youtubeUrl !== undefined ||
+          settings.linkedinUrl !== undefined) && (
           <section className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-5">
             <div className="flex items-center gap-3 border-b border-border/60 pb-3">
               <div className="flex size-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -296,7 +334,8 @@ export default async function FooterSettingsPage({
             Save Footer Settings
           </Button>
           <span className="text-xs text-muted-foreground">
-            Empty fields will automatically be excluded from the live website footer.
+            Empty fields will automatically be excluded from the live website
+            footer.
           </span>
         </div>
       </ActionForm>

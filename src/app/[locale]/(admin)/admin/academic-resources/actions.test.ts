@@ -1,15 +1,14 @@
+// @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { db } from "@/db";
-import { getInsertedRows } from "@/__tests__/drizzle-mock";
+import { academicResource, auditLogEntry } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertCourse } from "@/__tests__/pg-fixtures";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockCreate = vi.hoisted(() => vi.fn());
-const mockDelete = vi.hoisted(() => vi.fn());
 const mockFindMany = vi.hoisted(() => vi.fn());
 const mockFindUnique = vi.hoisted(() => vi.fn());
 const mockFindManyCourses = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -21,11 +20,18 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
+// Admin actions write through Drizzle (in-memory Postgres here); the
+// student-facing ResourceList below still reads through Prisma until the
+// portal moves to Drizzle.
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
+
+const pg = db as unknown as TestDb;
+
 vi.mock("@/lib/db", () => ({
   prisma: {
     academicResource: {
-      create: mockCreate,
-      delete: mockDelete,
       findMany: mockFindMany,
     },
     studentCourseEnrollment: {
@@ -37,16 +43,8 @@ vi.mock("@/lib/db", () => ({
     course: {
       findMany: mockFindManyCourses,
     },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
   },
 }));
-
-const auditEntries = () => getInsertedRows(db, "auditLogEntry");
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -57,9 +55,12 @@ vi.mock("next/cache", () => ({
 }));
 
 describe("uploadResource (admin server action)", () => {
-  beforeEach(() => {
+  let courseId: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await truncateAll(pg);
+    courseId = (await insertCourse(pg)).id;
   });
 
   test("1. uploading a NOTE resource persists with the right type and courseId", async () => {
@@ -68,22 +69,10 @@ describe("uploadResource (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockCreate.mockResolvedValue({
-      id: "res_1",
-      courseId: "course_1",
-      type: "NOTE",
-      title: "Introduction to Programming",
-      fileUrl: "https://example.com/notes.pdf",
-      uploadedAt: new Date(),
-      createdAt: new Date(),
-    });
-
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-
     const { uploadResource } = await import("./actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", courseId);
     formData.append("type", "NOTE");
     formData.append("title", "Introduction to Programming");
     formData.append("fileUrl", "https://example.com/notes.pdf");
@@ -91,26 +80,24 @@ describe("uploadResource (admin server action)", () => {
 
     await uploadResource(formData);
 
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: {
-        courseId: "course_1",
-        type: "NOTE",
-        title: "Introduction to Programming",
-        fileUrl: "https://example.com/notes.pdf",
-      },
+    const [resource] = await pg.select().from(academicResource);
+    expect(resource).toMatchObject({
+      courseId,
+      type: "NOTE",
+      title: "Introduction to Programming",
+      fileUrl: "https://example.com/notes.pdf",
+      embedUrl: null,
     });
 
-    expect(auditEntries()).toHaveLength(1);
-    expect(auditEntries()).toContainEqual(
-      expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "academicResource.upload",
-        entityType: "AcademicResource",
-        entityId: "res_1",
-      }),
-    );
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: "staff_1",
+      actorRole: "CENTRE_STAFF",
+      action: "academicResource.upload",
+      entityType: "AcademicResource",
+      entityId: resource.id,
+    });
 
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/en/admin/academic-resources",
@@ -139,7 +126,7 @@ describe("uploadResource (admin server action)", () => {
       "redirect:/en/forbidden",
     );
 
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(academicResource)).toHaveLength(0);
   });
 });
 

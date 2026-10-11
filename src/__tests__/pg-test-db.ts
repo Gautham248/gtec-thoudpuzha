@@ -8,7 +8,17 @@
 //   vi.mock("@/db", async () => ({ db: await (await import("@/__tests__/pg-test-db")).createTestDb() }));
 //   import { db } from "@/db";
 //   beforeEach(() => truncateAll(db));
+//
+// Booting PGlite from scratch (initdb) and generating the schema's DDL with
+// drizzle-kit are slow (seconds each), so the empty schema is built once and
+// saved as a data-directory snapshot in the OS temp dir, keyed by a hash of
+// schema.ts. Every test database starts from that snapshot. The vitest
+// globalSetup (./pg-global-setup.ts) builds it before any worker starts.
 
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { is, sql } from "drizzle-orm";
@@ -18,26 +28,55 @@ import * as relations from "@/db/relations";
 
 const schema = { ...tables, ...relations };
 
-let ddl: Promise<string[]> | undefined;
+/** Snapshot file for the current schema.ts (and PGlite build). */
+export function snapshotPath(): string {
+  const schemaSource = readFileSync(
+    join(process.cwd(), "src", "db", "schema.ts"),
+  );
+  const pglite = readFileSync(
+    join(
+      process.cwd(),
+      "node_modules",
+      "@electric-sql",
+      "pglite",
+      "package.json",
+    ),
+  );
+  const hash = createHash("sha256")
+    .update(schemaSource)
+    .update(pglite)
+    .digest("hex");
+  return join(tmpdir(), `gtec-pglite-schema-${hash.slice(0, 16)}.tar.gz`);
+}
 
-/** CREATE statements for the whole schema, computed once per test file. */
-function schemaDdl(): Promise<string[]> {
-  ddl ??= (async () => {
-    const { generateDrizzleJson, generateMigration } =
-      await import("drizzle-kit/api");
-    return generateMigration(
-      generateDrizzleJson({}),
-      generateDrizzleJson(tables),
-    );
-  })();
-  return ddl;
+/** Build the empty-schema snapshot if it isn't on disk yet; returns its path. */
+export async function ensureSnapshot(): Promise<string> {
+  const file = snapshotPath();
+  if (existsSync(file)) return file;
+
+  const { generateDrizzleJson, generateMigration } =
+    await import("drizzle-kit/api");
+  const ddl = await generateMigration(
+    generateDrizzleJson({}),
+    generateDrizzleJson(tables),
+  );
+  const client = new PGlite();
+  for (const statement of ddl) {
+    await client.exec(statement);
+  }
+  const dump = await client.dumpDataDir("gzip");
+  await client.close();
+
+  // Write then rename, so a concurrent reader never sees a partial file.
+  const partial = `${file}.${process.pid}.partial`;
+  writeFileSync(partial, Buffer.from(await dump.arrayBuffer()));
+  renameSync(partial, file);
+  return file;
 }
 
 export async function createTestDb() {
-  const client = new PGlite();
-  for (const statement of await schemaDdl()) {
-    await client.exec(statement);
-  }
+  const file = await ensureSnapshot();
+  const client = new PGlite({ loadDataDir: new Blob([readFileSync(file)]) });
   return drizzle({ client, schema });
 }
 

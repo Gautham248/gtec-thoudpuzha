@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import type { Prisma } from "@prisma/client";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { course as courseTable } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { CourseContentSchema } from "@/lib/course-content.schema";
 import type { CourseContent } from "@/lib/course-content.types";
@@ -34,15 +36,14 @@ export async function saveCourseContent(formData: FormData) {
 
   const validated = CourseContentSchema.parse(parsed);
 
-  await prisma.course.update({
-    where: { id: courseId },
-    data: { contentBlocks: validated as Prisma.InputJsonValue },
-  });
-
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { slug: true, titleEn: true },
-  });
+  const course = expectRow(
+    await db
+      .update(courseTable)
+      .set({ contentBlocks: validated })
+      .where(eq(courseTable.id, courseId))
+      .returning({ slug: courseTable.slug, titleEn: courseTable.titleEn }),
+    "Course",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -64,9 +65,9 @@ export async function saveCourseContent(formData: FormData) {
 export async function getCourseContent(
   courseId: string,
 ): Promise<CourseContent | null> {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { contentBlocks: true },
+  const course = await db.query.course.findFirst({
+    where: (c, { eq }) => eq(c.id, courseId),
+    columns: { contentBlocks: true },
   });
 
   if (!course?.contentBlocks) return null;

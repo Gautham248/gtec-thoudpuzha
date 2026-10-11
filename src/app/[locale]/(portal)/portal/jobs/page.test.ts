@@ -1,4 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+// Imported at module level (vi.mock calls are hoisted above it) so loading the
+// page's module graph happens during collection, not inside a test's time limit.
+import * as mod from "./page";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockFindMany = vi.hoisted(() => vi.fn());
@@ -45,8 +48,6 @@ describe("Jobs page — role-based access", () => {
     mockFindMany.mockResolvedValue([]);
     mockSkillsFindMany.mockResolvedValue([]);
 
-    const mod = await import("./page");
-
     await expect(
       mod.default({
         params: Promise.resolve({ locale: "en" }),
@@ -63,8 +64,6 @@ describe("Jobs page — role-based access", () => {
     mockFindMany.mockResolvedValue([]);
     mockSkillsFindMany.mockResolvedValue([]);
 
-    const mod = await import("./page");
-
     await expect(
       mod.default({
         params: Promise.resolve({ locale: "en" }),
@@ -78,8 +77,6 @@ describe("Jobs page — role-based access", () => {
       userId: "user_emp_1",
       sessionClaims: { metadata: { role: "EMPLOYER" } },
     });
-
-    const mod = await import("./page");
 
     await expect(
       mod.default({

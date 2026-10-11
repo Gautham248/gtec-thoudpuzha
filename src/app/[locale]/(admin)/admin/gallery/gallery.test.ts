@@ -1,271 +1,244 @@
 // @vitest-environment node
 
-import { describe, expect, test, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { auditLogEntry, galleryCategory, galleryItem } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { form, insertGalleryCategory, session } from "@/__tests__/pg-fixtures";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockItemCreate = vi.hoisted(() => vi.fn());
-const mockItemAggregate = vi.hoisted(() => vi.fn());
-const mockItemDelete = vi.hoisted(() => vi.fn());
-const mockItemFindMany = vi.hoisted(() => vi.fn());
-const mockCatAggregate = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockUploadFile = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: mockAuth,
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
-
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    galleryItem: {
-      create: mockItemCreate,
-      aggregate: mockItemAggregate,
-      delete: mockItemDelete,
-      findMany: mockItemFindMany,
-    },
-    galleryCategory: {
-      aggregate: mockCatAggregate,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
-  },
-}));
-
-vi.mock("@/lib/audit", () => ({
-  logAdminAction: mockAuditCreate,
-}));
-
-vi.mock("@/lib/storage", () => ({
-  uploadFile: mockUploadFile,
-}));
-
-vi.mock("next/navigation", () => ({
-  redirect: mockRedirect,
-}));
-
+vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
+vi.mock("@/lib/storage", () => ({ uploadFile: mockUploadFile }));
+vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
 vi.mock("next/cache", () => ({
-  revalidatePath: mockRevalidatePath,
+  revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
 }));
 
-/* ─── Helpers ─── */
-
-function setMockAuth(userId: string, role: string) {
-  mockAuth.mockResolvedValue({
-    userId,
-    sessionClaims: { metadata: { role } },
-  });
-}
+const pg = db as unknown as TestDb;
 
 function fakeFile(name: string, type: string): File {
   return new File([Buffer.from("fake-image-data")], name, { type });
 }
 
-/* ─── Tests ─── */
-
-describe("uploadGalleryImages", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockItemCreate.mockReset();
-    mockItemAggregate.mockReset();
-    mockCatAggregate.mockReset();
-    mockAuditCreate.mockReset();
-    mockUploadFile.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+const items = (categoryId: string) =>
+  pg.query.galleryItem.findMany({
+    where: eq(galleryItem.categoryId, categoryId),
+    orderBy: (i, { asc }) => asc(i.sortOrder),
   });
 
-  test("1. bulk-uploading 3 images to a category creates 3 GalleryItem rows", async () => {
-    setMockAuth("staff_1", "CENTRE_STAFF");
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
+});
 
-    mockCatAggregate.mockResolvedValue({ _max: { sortOrder: 0 } });
-    mockItemAggregate.mockResolvedValue({ _max: { sortOrder: -1 } });
-
-    let callCount = 0;
-    mockItemCreate.mockImplementation(
-      ({ data }: { data: Record<string, unknown> }) => {
-        callCount++;
-        return Promise.resolve({
-          id: `gi_${callCount}`,
-          categoryId: data.categoryId,
-          mediaType: data.mediaType,
-          url: data.url,
-          captionEn: data.captionEn ?? null,
-          captionMl: data.captionMl ?? null,
-          sortOrder: data.sortOrder,
-          createdAt: new Date(),
-        });
-      },
-    );
-
-    mockUploadFile.mockResolvedValue("gallery/12345-img1.png");
-
-    const formData = new FormData();
-    formData.append("locale", "en");
-    formData.append("categoryId", "cat_1");
-    formData.append("files", fakeFile("img1.png", "image/png"));
-    formData.append("files", fakeFile("img2.png", "image/png"));
-    formData.append("files", fakeFile("img3.png", "image/png"));
+describe("uploadGalleryImages", () => {
+  test("1. bulk-uploading 3 images to a category creates 3 GalleryItem rows in order", async () => {
+    const category = await insertGalleryCategory(pg);
+    let n = 0;
+    mockUploadFile.mockImplementation(async () => `gallery/img-${++n}.png`);
 
     const { uploadGalleryImages } = await import("./actions");
-    await uploadGalleryImages(formData);
-
-    expect(mockItemCreate).toHaveBeenCalledTimes(3);
-    expect(callCount).toBe(3);
-
-    expect(mockItemCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        categoryId: "cat_1",
-        mediaType: "IMAGE",
+    await uploadGalleryImages(
+      form({
+        locale: "en",
+        categoryId: category.id,
+        captionEn: "<b>Annual day</b>",
+        files: [
+          fakeFile("img1.png", "image/png"),
+          fakeFile("img2.png", "image/png"),
+          fakeFile("img3.png", "image/png"),
+        ],
       }),
-    });
+    );
+
+    const rows = await items(category.id);
+    expect(rows.map((r) => [r.mediaType, r.url, r.sortOrder])).toEqual([
+      ["IMAGE", "gallery/img-1.png", 0],
+      ["IMAGE", "gallery/img-2.png", 1],
+      ["IMAGE", "gallery/img-3.png", 2],
+    ]);
+    // Captions are stripped of HTML.
+    expect(rows.every((r) => r.captionEn === "Annual day")).toBe(true);
+  });
+
+  test("appends after the category's existing items", async () => {
+    const category = await insertGalleryCategory(pg);
+    await pg
+      .insert(galleryItem)
+      .values({
+        categoryId: category.id,
+        mediaType: "IMAGE",
+        url: "old",
+        sortOrder: 4,
+      });
+    mockUploadFile.mockResolvedValue("gallery/new.png");
+
+    const { uploadGalleryImages } = await import("./actions");
+    await uploadGalleryImages(
+      form({
+        locale: "en",
+        categoryId: category.id,
+        files: [fakeFile("a.png", "image/png")],
+      }),
+    );
+
+    expect((await items(category.id)).map((r) => r.sortOrder)).toEqual([4, 5]);
   });
 
   test("2. bulk upload writes exactly one audit log entry summarizing the batch", async () => {
-    setMockAuth("staff_1", "CENTRE_STAFF");
-
-    mockCatAggregate.mockResolvedValue({ _max: { sortOrder: 0 } });
-    mockItemAggregate.mockResolvedValue({ _max: { sortOrder: -1 } });
-
-    mockUploadFile.mockResolvedValue("gallery/12345-img.png");
-
-    let callCount = 0;
-    mockItemCreate.mockImplementation(
-      ({ data }: { data: Record<string, unknown> }) => {
-        callCount++;
-        return Promise.resolve({
-          id: `gi_${callCount}`,
-          categoryId: data.categoryId,
-          mediaType: data.mediaType,
-          url: data.url,
-          captionEn: null,
-          captionMl: null,
-          sortOrder: data.sortOrder,
-          createdAt: new Date(),
-        });
-      },
-    );
-
-    const formData = new FormData();
-    formData.append("locale", "en");
-    formData.append("categoryId", "cat_1");
-    formData.append("files", fakeFile("a.png", "image/png"));
-    formData.append("files", fakeFile("b.png", "image/png"));
+    const category = await insertGalleryCategory(pg);
+    mockUploadFile.mockResolvedValue("gallery/img.png");
 
     const { uploadGalleryImages } = await import("./actions");
-    await uploadGalleryImages(formData);
+    await uploadGalleryImages(
+      form({
+        locale: "en",
+        categoryId: category.id,
+        files: [fakeFile("a.png", "image/png"), fakeFile("b.png", "image/png")],
+      }),
+    );
 
-    // Audit called once, not per file
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
+    const created = await items(category.id);
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
       actorUserId: "staff_1",
       actorRole: "CENTRE_STAFF",
       action: "gallery.bulkUpload",
       entityType: "GalleryItem",
-      entityId: "cat_1",
-      metadata: expect.objectContaining({
-        categoryId: "cat_1",
+      entityId: category.id,
+      metadata: {
+        categoryId: category.id,
         count: 2,
-        itemIds: ["gi_1", "gi_2"],
-      }),
+        itemIds: created.map((r) => r.id),
+      },
     });
+  });
+
+  test("rejects an upload with no files", async () => {
+    const category = await insertGalleryCategory(pg);
+    const { uploadGalleryImages } = await import("./actions");
+
+    await expect(
+      uploadGalleryImages(form({ locale: "en", categoryId: category.id })),
+    ).rejects.toThrow("No files provided");
   });
 });
 
 describe("addVideoItem", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockItemCreate.mockReset();
-    mockItemAggregate.mockReset();
-    mockAuditCreate.mockReset();
-    mockUploadFile.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
-
   test("3. adding a VIDEO-type item stores the external URL without attempting an R2 upload", async () => {
-    setMockAuth("staff_1", "CENTRE_STAFF");
-
-    mockItemAggregate.mockResolvedValue({ _max: { sortOrder: -1 } });
-
-    mockItemCreate.mockImplementation(
-      ({ data }: { data: Record<string, unknown> }) =>
-        Promise.resolve({
-          id: "gi_video_1",
-          categoryId: data.categoryId,
-          mediaType: data.mediaType,
-          url: data.url,
-          captionEn: data.captionEn ?? null,
-          captionMl: data.captionMl ?? null,
-          sortOrder: data.sortOrder,
-          createdAt: new Date(),
-        }),
-    );
-
-    const formData = new FormData();
-    formData.append("locale", "en");
-    formData.append("categoryId", "cat_1");
-    formData.append("url", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-    formData.append("captionEn", "A cool video");
+    const category = await insertGalleryCategory(pg);
 
     const { addVideoItem } = await import("./actions");
-    await addVideoItem(formData);
-
-    // Stored with the external URL
-    expect(mockItemCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        categoryId: "cat_1",
-        mediaType: "VIDEO",
+    await addVideoItem(
+      form({
+        locale: "en",
+        categoryId: category.id,
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         captionEn: "A cool video",
       }),
-    });
+    );
 
-    // R2 uploadFile should NOT have been called
+    const [video] = await items(category.id);
+    expect(video).toMatchObject({
+      mediaType: "VIDEO",
+      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      captionEn: "A cool video",
+      sortOrder: 0,
+    });
     expect(mockUploadFile).not.toHaveBeenCalled();
 
-    // Audit logged
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      actorUserId: "staff_1",
-      actorRole: "CENTRE_STAFF",
+    const [audit] = await pg.select().from(auditLogEntry);
+    expect(audit).toMatchObject({
       action: "gallery.addVideo",
       entityType: "GalleryItem",
-      entityId: "gi_video_1",
-      metadata: expect.objectContaining({
-        categoryId: "cat_1",
+      entityId: video.id,
+      metadata: {
+        categoryId: category.id,
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      }),
+      },
     });
   });
 });
 
-describe("GalleryPage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRedirect.mockReset();
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
+describe("gallery categories", () => {
+  test("createCategory gives a unique slug and appends to the sort order", async () => {
+    await insertGalleryCategory(pg, {
+      slug: "annual-day",
+      nameEn: "Annual Day",
+      sortOrder: 3,
+    });
+
+    const { createCategory } = await import("./actions");
+    await createCategory(form({ locale: "en", nameEn: "Annual Day" }));
+
+    const rows = await pg.query.galleryCategory.findMany({
+      orderBy: (c, { asc }) => asc(c.sortOrder),
+    });
+    expect(rows).toHaveLength(2);
+    expect(rows[1].sortOrder).toBe(4);
+    expect(rows[1].slug).toMatch(/^annual-day-\d+$/);
+  });
+
+  test("deleteCategory removes the category and (via ON DELETE CASCADE) its items", async () => {
+    const category = await insertGalleryCategory(pg);
+    await pg
+      .insert(galleryItem)
+      .values({ categoryId: category.id, mediaType: "IMAGE", url: "x" });
+
+    const { deleteCategory } = await import("./actions");
+    await deleteCategory(
+      form({ locale: "en", id: category.id, nameEn: category.nameEn }),
+    );
+
+    expect(await pg.select().from(galleryCategory)).toHaveLength(0);
+    expect(await pg.select().from(galleryItem)).toHaveLength(0);
+    const [audit] = await pg.select().from(auditLogEntry);
+    expect(audit).toMatchObject({
+      action: "galleryCategory.delete",
+      entityId: category.id,
     });
   });
 
-  test("4. /admin/gallery is denied to an employer-role user (403)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "employer_1",
-      sessionClaims: { metadata: { role: "EMPLOYER" } },
+  test("moveCategory swaps sort order with its neighbour", async () => {
+    const a = await insertGalleryCategory(pg, { sortOrder: 1 });
+    const b = await insertGalleryCategory(pg, { sortOrder: 2 });
+
+    const { moveCategory } = await import("./actions");
+    await moveCategory(form({ locale: "en", id: b.id, direction: "up" }));
+
+    const rows = await pg.query.galleryCategory.findMany({
+      orderBy: (c, { asc }) => asc(c.sortOrder),
     });
+    expect(rows.map((r) => r.id)).toEqual([b.id, a.id]);
+  });
+
+  test("deleting a gallery item that no longer exists fails without auditing", async () => {
+    const { deleteGalleryItem } = await import("./actions");
+
+    await expect(
+      deleteGalleryItem(form({ locale: "en", id: "gone" })),
+    ).rejects.toThrow("Gallery item not found");
+    expect(await pg.select().from(auditLogEntry)).toHaveLength(0);
+  });
+});
+
+describe("GalleryPage", () => {
+  test("4. /admin/gallery is denied to an employer-role user (403)", async () => {
+    mockAuth.mockResolvedValue(session("employer_1", "EMPLOYER"));
 
     const { default: GalleryPage } = await import("./page");
 

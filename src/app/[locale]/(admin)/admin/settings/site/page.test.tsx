@@ -1,10 +1,11 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { renderToString } from "react-dom/server";
 import SiteSettingsPage from "./page";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
 
 const mockRequireRole = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({
   requireRole: mockRequireRole,
@@ -17,14 +18,6 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
   useRouter: () => ({ refresh: vi.fn() }),
-}));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    siteSettings: {
-      findFirst: mockFindFirst,
-    },
-  },
 }));
 
 function createSettings() {
@@ -92,8 +85,7 @@ describe("SiteSettingsPage", () => {
     vi.clearAllMocks();
     mockRequireRole.mockReset();
     mockRedirect.mockReset();
-    mockFindFirst.mockReset();
-    mockFindFirst.mockResolvedValue(createSettings());
+    setMockRows(db, "siteSettings", [createSettings()]);
   });
 
   test("is denied to a centre_staff-role user and redirects to forbidden", async () => {

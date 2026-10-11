@@ -3,7 +3,10 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { newsEvent } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 import { stripHtml } from "@/lib/sanitize";
 
@@ -38,8 +41,9 @@ export async function createNewsEvent(formData: FormData) {
 
   const slug = slugify(titleEn);
 
-  const item = await prisma.newsEvent.create({
-    data: {
+  const [item] = await db
+    .insert(newsEvent)
+    .values({
       type: type as "NEWS" | "EVENT",
       titleEn,
       titleMl,
@@ -49,8 +53,8 @@ export async function createNewsEvent(formData: FormData) {
       eventDate,
       slug,
       publishedAt: publishNow ? new Date() : null,
-    },
-  });
+    })
+    .returning();
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -84,18 +88,22 @@ export async function updateNewsEvent(formData: FormData) {
   const eventDateValue = formData.get("eventDate") as string;
   const eventDate = eventDateValue ? new Date(eventDateValue) : null;
 
-  const item = await prisma.newsEvent.update({
-    where: { id },
-    data: {
-      type: type as "NEWS" | "EVENT",
-      titleEn,
-      titleMl,
-      bodyEn,
-      bodyMl,
-      coverImageUrl,
-      eventDate,
-    },
-  });
+  const item = expectRow(
+    await db
+      .update(newsEvent)
+      .set({
+        type: type as "NEWS" | "EVENT",
+        titleEn,
+        titleMl,
+        bodyEn,
+        bodyMl,
+        coverImageUrl,
+        eventDate,
+      })
+      .where(eq(newsEvent.id, id))
+      .returning(),
+    "News/event",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -119,7 +127,13 @@ export async function deleteNewsEvent(formData: FormData) {
 
   const id = formData.get("id") as string;
 
-  await prisma.newsEvent.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(newsEvent)
+      .where(eq(newsEvent.id, id))
+      .returning({ id: newsEvent.id }),
+    "News/event",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -143,10 +157,14 @@ export async function togglePublishNewsEvent(formData: FormData) {
   const id = formData.get("id") as string;
   const publish = formData.get("publish") === "true";
 
-  const item = await prisma.newsEvent.update({
-    where: { id },
-    data: { publishedAt: publish ? new Date() : null },
-  });
+  const item = expectRow(
+    await db
+      .update(newsEvent)
+      .set({ publishedAt: publish ? new Date() : null })
+      .where(eq(newsEvent.id, id))
+      .returning(),
+    "News/event",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,

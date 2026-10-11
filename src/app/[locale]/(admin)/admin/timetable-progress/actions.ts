@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { studentProgressEntry, timetableEntry } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { logAdminAction } from "@/lib/audit";
 
 function localeFromFormData(formData: FormData): string {
@@ -23,9 +26,10 @@ export async function addTimetableEntry(formData: FormData) {
     throw new Error("courseId and contentText are required");
   }
 
-  const entry = await prisma.timetableEntry.create({
-    data: { courseId, contentText },
-  });
+  const [entry] = await db
+    .insert(timetableEntry)
+    .values({ courseId, contentText })
+    .returning({ id: timetableEntry.id });
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -46,7 +50,13 @@ export async function deleteTimetableEntry(formData: FormData) {
   }
 
   const id = formData.get("id") as string;
-  await prisma.timetableEntry.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(timetableEntry)
+      .where(eq(timetableEntry.id, id))
+      .returning({ id: timetableEntry.id }),
+    "Timetable entry",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -73,9 +83,10 @@ export async function addProgressEntry(formData: FormData) {
     throw new Error("studentProfileId, courseId, and noteEn are required");
   }
 
-  const entry = await prisma.studentProgressEntry.create({
-    data: { studentProfileId, courseId, noteEn },
-  });
+  const [entry] = await db
+    .insert(studentProgressEntry)
+    .values({ studentProfileId, courseId, noteEn })
+    .returning({ id: studentProgressEntry.id });
 
   await logAdminAction({
     actorUserId: authResult.userId!,
@@ -96,7 +107,13 @@ export async function deleteProgressEntry(formData: FormData) {
   }
 
   const id = formData.get("id") as string;
-  await prisma.studentProgressEntry.delete({ where: { id } });
+  expectRow(
+    await db
+      .delete(studentProgressEntry)
+      .where(eq(studentProgressEntry.id, id))
+      .returning({ id: studentProgressEntry.id }),
+    "Progress entry",
+  );
 
   await logAdminAction({
     actorUserId: authResult.userId!,
