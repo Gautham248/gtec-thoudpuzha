@@ -57,32 +57,33 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Resolve course names for completed courses
+  // Resolve course names for completed courses, in the profile's order.
+  // Ids whose course no longer exists are left out.
   let courseCompletedNames: string[] = [];
   if (profile.courseCompletedIds.length > 0) {
     const courses = await db.query.course.findMany({
       where: (c, { inArray }) => inArray(c.id, profile.courseCompletedIds),
-      columns: { titleEn: true },
+      columns: { id: true, titleEn: true },
     });
-    const courseMap = new Map(
-      courses.map((c, i) => [profile.courseCompletedIds[i], c.titleEn]),
-    );
-    courseCompletedNames = profile.courseCompletedIds
-      .map((id) => courseMap.get(id) ?? id)
-      .filter(Boolean);
+    const courseMap = new Map(courses.map((c) => [c.id, c.titleEn]));
+    courseCompletedNames = profile.courseCompletedIds.flatMap((id) => {
+      const name = courseMap.get(id);
+      return name ? [name] : [];
+    });
   }
 
-  // Resolve skill labels
+  // Resolve skill labels, in the profile's order; unknown ids are left out.
   let skillLabels: string[] = [];
   if (profile.skillIds.length > 0) {
     const skills = await db.query.skill.findMany({
       where: (s, { inArray }) => inArray(s.id, profile.skillIds),
-      columns: { label: true },
+      columns: { id: true, label: true },
     });
-    const skillMap = new Map(skills.map((s) => [s.label, s.label]));
-    skillLabels = profile.skillIds
-      .map((id) => skillMap.get(id) ?? id)
-      .filter(Boolean);
+    const skillMap = new Map(skills.map((s) => [s.id, s.label]));
+    skillLabels = profile.skillIds.flatMap((id) => {
+      const label = skillMap.get(id);
+      return label ? [label] : [];
+    });
   }
 
   const pdfData: BiodataPdfData = {

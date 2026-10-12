@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
-import { insertStudentProfile, insertUser } from "@/__tests__/pg-fixtures";
+import {
+  insertCourse,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
+import * as t from "@/db/schema";
+import type { BiodataPdfData } from "@/components/shared/BiodataPdfDocument";
 import { GET } from "./route";
 
 const mockAuth = vi.hoisted(() => vi.fn());
@@ -103,5 +109,55 @@ describe("GET /api/biodata/[candidateId]/pdf — access control", () => {
     const response = await download("missing");
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe("GET /api/biodata/[candidateId]/pdf — content", () => {
+  const renderedData = () =>
+    (mockRenderToBuffer.mock.calls[0][0] as { props: { data: BiodataPdfData } })
+      .props.data;
+
+  test("prints skill labels and course names in the profile's order", async () => {
+    // Inserted in the opposite order to the profile's lists, so a lookup that
+    // pairs by result position would mismatch them.
+    const second = await insertCourse(pg, { titleEn: "Second Course" });
+    const first = await insertCourse(pg, { titleEn: "First Course" });
+    const [react, excel] = await pg
+      .insert(t.skill)
+      .values([{ label: "React" }, { label: "Excel" }])
+      .returning();
+    await insertUser(pg, { id: "user_self", role: "STUDENT" });
+    const mine = await insertStudentProfile(pg, {
+      userId: "user_self",
+      fullName: "Me",
+      courseCompletedIds: [first.id, second.id],
+      skillIds: [excel.id, react.id],
+    });
+    signIn("user_self", "STUDENT");
+
+    expect((await download(mine.id)).status).toBe(200);
+
+    expect(renderedData().courseCompletedNames).toEqual([
+      "First Course",
+      "Second Course",
+    ]);
+    expect(renderedData().skillLabels).toEqual(["Excel", "React"]);
+  });
+
+  test("leaves out courses and skills that no longer exist", async () => {
+    const course = await insertCourse(pg, { titleEn: "Kept Course" });
+    await insertUser(pg, { id: "user_self", role: "STUDENT" });
+    const mine = await insertStudentProfile(pg, {
+      userId: "user_self",
+      fullName: "Me",
+      courseCompletedIds: ["deleted_course", course.id],
+      skillIds: ["deleted_skill"],
+    });
+    signIn("user_self", "STUDENT");
+
+    expect((await download(mine.id)).status).toBe(200);
+
+    expect(renderedData().courseCompletedNames).toEqual(["Kept Course"]);
+    expect(renderedData().skillLabels).toEqual([]);
   });
 });
