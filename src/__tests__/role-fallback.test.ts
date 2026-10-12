@@ -7,28 +7,16 @@ const mockGetUser = vi.hoisted(() => vi.fn());
 const mockClerkMiddleware = vi.hoisted(
   () =>
     (
-      _handler: (
-        auth: unknown,
-        req: Request,
-      ) => Promise<Response | undefined>,
+      _handler: (auth: unknown, req: Request) => Promise<Response | undefined>,
     ) => {
       // no-op — tests test handleRouteProtection / requireRole directly
     },
 );
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockStaffPermissionFindUnique = vi.hoisted(() => vi.fn());
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
   clerkClient: () => Promise.resolve({ users: { getUser: mockGetUser } }),
   clerkMiddleware: mockClerkMiddleware,
-}));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    user: { findUnique: mockUserFindUnique },
-    staffPermission: { findUnique: mockStaffPermissionFindUnique },
-  },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -55,7 +43,6 @@ describe("requireRole — stale-JWT-claim fallback", () => {
     mockGetUser.mockResolvedValue({
       publicMetadata: { role: "CENTRE_STAFF" },
     });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
 
     const { requireRole, Role } = await import("@/lib/auth");
     const result = await requireRole([Role.CENTRE_STAFF, Role.SUPER_ADMIN]);
@@ -94,7 +81,6 @@ describe("requireRole — stale-JWT-claim fallback", () => {
       userId: "user_fresh",
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
 
     const { requireRole, Role } = await import("@/lib/auth");
     const result = await requireRole([Role.STUDENT]);
@@ -114,12 +100,8 @@ describe("fetchRoleFromApi — same function is shared", () => {
     // This is the regression guard: if someone later copies the fallback
     // logic into middleware.ts instead of importing the shared function,
     // this test fails — preventing the two implementations from drifting apart.
-    const { fetchRoleFromApi: middlewareReExport } = await import(
-      "@/proxy"
-    );
-    const { fetchRoleFromApi: sharedFn } = await import(
-      "@/lib/role-fallback"
-    );
+    const { fetchRoleFromApi: middlewareReExport } = await import("@/proxy");
+    const { fetchRoleFromApi: sharedFn } = await import("@/lib/role-fallback");
 
     expect(middlewareReExport).toBe(sharedFn);
   });

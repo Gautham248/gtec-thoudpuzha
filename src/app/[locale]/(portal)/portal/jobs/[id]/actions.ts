@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { application } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { isProfileComplete } from "@/lib/biodata";
 
-export async function applyToJob(formData: FormData): Promise<{ error?: string; applied?: boolean }> {
+export async function applyToJob(
+  formData: FormData,
+): Promise<{ error?: string; applied?: boolean }> {
   const session = await auth();
   if (!session.userId) {
     return { error: "Unauthenticated" };
@@ -20,33 +23,39 @@ export async function applyToJob(formData: FormData): Promise<{ error?: string; 
   const jobPostingId = formData.get("jobPostingId") as string;
   if (!jobPostingId) return { error: "jobPostingId is required" };
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
   });
   if (!profile) return { error: "Complete your profile to apply" };
-  if (!isProfileComplete({ ...profile, isVerifiedStudent: profile.isVerifiedStudent, studentRecordId: profile.studentRecordId })) {
+  if (
+    !isProfileComplete({
+      ...profile,
+      isVerifiedStudent: profile.isVerifiedStudent,
+      studentRecordId: profile.studentRecordId,
+    })
+  ) {
     return { error: "Complete your profile to apply" };
   }
 
-  const existing = await prisma.application.findUnique({
-    where: {
-      jobPostingId_candidateProfileId: {
-        jobPostingId,
-        candidateProfileId: profile.id,
-      },
-    },
+  const existing = await db.query.application.findFirst({
+    where: (a, { and, eq }) =>
+      and(
+        eq(a.jobPostingId, jobPostingId),
+        eq(a.candidateProfileId, profile.id),
+      ),
+    columns: { id: true },
   });
   if (existing) {
     return { error: "Already applied" };
   }
 
-  await prisma.application.create({
-    data: {
-      jobPostingId,
-      candidateProfileId: profile.id,
-    },
+  await db.insert(application).values({
+    jobPostingId,
+    candidateProfileId: profile.id,
   });
 
-  revalidatePath(`/${(formData.get("locale") as string) || "en"}/portal/jobs/${jobPostingId}`);
+  revalidatePath(
+    `/${(formData.get("locale") as string) || "en"}/portal/jobs/${jobPostingId}`,
+  );
   return { applied: true };
 }

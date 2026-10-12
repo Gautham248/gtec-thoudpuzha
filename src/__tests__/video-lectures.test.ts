@@ -1,9 +1,17 @@
 // @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { db } from "@/db";
-import { academicResource, auditLogEntry } from "@/db/schema";
+import {
+  academicResource,
+  auditLogEntry,
+  studentCourseEnrollment,
+} from "@/db/schema";
 import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
-import { insertCourse } from "@/__tests__/pg-fixtures";
+import {
+  insertCourse,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 
 // --- Test 4: embed URL derivation (pure utility, no mocks needed) ---
 
@@ -60,10 +68,6 @@ describe("validateVideoUrl (video URL utility)", () => {
 // --- Hoisted mocks shared by action + component tests ---
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockAcFindMany = vi.hoisted(() => vi.fn());
-const mockEnrollFindMany = vi.hoisted(() => vi.fn());
-const mockProfileFindUnique = vi.hoisted(() => vi.fn());
-const mockCourseFindMany = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -75,31 +79,11 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
-// Admin actions write through Drizzle (in-memory Postgres here); the
-// student-facing VideoLectureList still reads through Prisma until the portal
-// moves to Drizzle.
 vi.mock("@/db", async () => ({
   db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
 
 const pg = db as unknown as TestDb;
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    academicResource: {
-      findMany: mockAcFindMany,
-    },
-    studentCourseEnrollment: {
-      findMany: mockEnrollFindMany,
-    },
-    candidateProfile: {
-      findUnique: mockProfileFindUnique,
-    },
-    course: {
-      findMany: mockCourseFindMany,
-    },
-  },
-}));
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -213,56 +197,49 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
 });
 
 describe("VideoLectureList — course-scoped retrieval", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await truncateAll(pg);
   });
 
   test("3. a student sees only their enrolled course's lecture videos, correctly embedded", async () => {
+    await insertUser(pg, { id: "student_1", role: "STUDENT" });
+    const profile = await insertStudentProfile(pg, { userId: "student_1" });
     mockAuth.mockResolvedValue({
       userId: "student_1",
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
-
-    // Profile exists
-    mockProfileFindUnique.mockResolvedValue({ id: "profile_1" });
-
-    // Student is enrolled in Course A only
-    mockEnrollFindMany.mockResolvedValue([{ courseId: "course_a" }]);
-
-    // Only Course A has LECTURE resources
-    mockAcFindMany.mockResolvedValue([
+    const courseA = await insertCourse(pg, { titleEn: "Course A" });
+    const courseB = await insertCourse(pg, { titleEn: "Course B" });
+    await pg
+      .insert(studentCourseEnrollment)
+      .values({ studentProfileId: profile.id, courseId: courseA.id });
+    await pg.insert(academicResource).values([
       {
-        id: "lec_a1",
-        courseId: "course_a",
+        courseId: courseA.id,
         type: "LECTURE",
         title: "Course A Lecture 1",
-        fileUrl: null,
         embedUrl: "https://www.youtube.com/watch?v=abc123",
-        uploadedAt: new Date(),
-        createdAt: new Date(),
-        course: { titleEn: "Course A" },
       },
-    ]);
-
-    mockCourseFindMany.mockResolvedValue([
-      { id: "course_a", titleEn: "Course A" },
+      { courseId: courseA.id, type: "NOTE", title: "Course A Notes" },
+      {
+        courseId: courseB.id,
+        type: "LECTURE",
+        title: "Course B Lecture",
+        embedUrl: "https://vimeo.com/123",
+      },
     ]);
 
     const { VideoLectureList } =
       await import("@/app/[locale]/(portal)/portal/student/resources/video-lecture-list");
-
     const { renderToString } = await import("react-dom/server");
-    const element = await VideoLectureList({ locale: "en" });
-    const html = renderToString(element);
+    const html = renderToString(await VideoLectureList({ locale: "en" }));
 
-    // Course A's lectures appear
+    // Course A's lectures appear, embedded
     expect(html).toContain("Course A Lecture 1");
-    expect(html).toContain("Course A");
-
-    // The embed URL is derived to its embeddable form
     expect(html).toContain("www.youtube.com/embed/abc123");
-
-    // Course B is never mentioned since student isn't enrolled
+    // Notes aren't lectures; Course B isn't enrolled
+    expect(html).not.toContain("Course A Notes");
     expect(html).not.toContain("Course B");
   });
 });

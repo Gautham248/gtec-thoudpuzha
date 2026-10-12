@@ -3,19 +3,18 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import { db } from "@/db";
 import {
   auditLogEntry,
+  studentCourseEnrollment,
   studentProgressEntry,
   timetableEntry,
 } from "@/db/schema";
 import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
-import { insertCourse, insertStudentProfile } from "@/__tests__/pg-fixtures";
+import {
+  insertCourse,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockTTFindMany = vi.hoisted(() => vi.fn());
-const mockPEFindMany = vi.hoisted(() => vi.fn());
-const mockProfileFindUnique = vi.hoisted(() => vi.fn());
-const mockProfileFindMany = vi.hoisted(() => vi.fn());
-const mockEnrollFindMany = vi.hoisted(() => vi.fn());
-const mockCourseFindMany = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -27,35 +26,11 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
-// Admin actions write through Drizzle (in-memory Postgres here); the
-// student-facing portal pages below still read through Prisma until the
-// portal moves to Drizzle.
 vi.mock("@/db", async () => ({
   db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
 
 const pg = db as unknown as TestDb;
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    timetableEntry: {
-      findMany: mockTTFindMany,
-    },
-    studentProgressEntry: {
-      findMany: mockPEFindMany,
-    },
-    candidateProfile: {
-      findUnique: mockProfileFindUnique,
-      findMany: mockProfileFindMany,
-    },
-    studentCourseEnrollment: {
-      findMany: mockEnrollFindMany,
-    },
-    course: {
-      findMany: mockCourseFindMany,
-    },
-  },
-}));
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -184,101 +159,79 @@ describe("addProgressEntry (admin server action)", () => {
       "/en/admin/timetable-progress",
     );
 
-    // Verify the student can see the entry by testing the progress page query
-    // We use a fresh mock for the student-facing query
-    mockProfileFindUnique.mockResolvedValue({ id: "student_profile_1" });
-
-    mockPEFindMany.mockResolvedValue([
-      {
-        id: "pe_1",
-        studentProfileId: "student_profile_1",
-        courseId: "course_1",
-        noteEn: "Showing good progress in module 2",
-        recordedAt: new Date(),
-        createdAt: new Date(),
-        course: { titleEn: "Course 1" },
-      },
-    ]);
-
-    const { default: MyProgressPage } =
-      await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
-
-    const { renderToString } = await import("react-dom/server");
-    const element = await MyProgressPage({
-      params: Promise.resolve({ locale: "en" }),
+    // The student can see the entry right away on their progress page.
+    mockAuth.mockResolvedValue({
+      userId: student.userId,
+      sessionClaims: { metadata: { role: "STUDENT" } },
     });
-    const html = renderToString(element);
+    const html = await renderProgress();
 
     expect(html).toContain("Showing good progress in module 2");
-    expect(html).toContain("Course 1");
+    expect(html).toContain(course.titleEn);
   });
 });
 
+async function signedInStudent(userId: string) {
+  await insertUser(pg, { id: userId, role: "STUDENT" });
+  mockAuth.mockResolvedValue({
+    userId,
+    sessionClaims: { metadata: { role: "STUDENT" } },
+  });
+  return insertStudentProfile(pg, { userId });
+}
+
+async function renderProgress() {
+  const { default: MyProgressPage } =
+    await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
+  const { renderToString } = await import("react-dom/server");
+  return renderToString(
+    await MyProgressPage({ params: Promise.resolve({ locale: "en" }) }),
+  );
+}
+
+async function renderTimetable() {
+  const { default: TimetablePage } =
+    await import("@/app/[locale]/(portal)/portal/student/resources/timetable/page");
+  const { renderToString } = await import("react-dom/server");
+  return renderToString(
+    await TimetablePage({ params: Promise.resolve({ locale: "en" }) }),
+  );
+}
+
 describe("Progress isolation — student sees own entries only", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await truncateAll(pg);
   });
 
   test("1. a student sees only their own progress entries, never another student's, even within the same course", async () => {
-    // Student A is logged in
-    mockAuth.mockResolvedValue({
-      userId: "student_a",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
-
-    // Student A's profile
-    mockProfileFindUnique.mockResolvedValue({ id: "profile_a" });
-
-    // Student A sees only their own entries (studentProfileId === profile_a)
-    mockPEFindMany.mockResolvedValue([
+    const course = await insertCourse(pg, { titleEn: "Course 1" });
+    await insertUser(pg, { id: "student_b", role: "STUDENT" });
+    const studentB = await insertStudentProfile(pg, { userId: "student_b" });
+    const studentA = await signedInStudent("student_a");
+    await pg.insert(studentProgressEntry).values([
       {
-        id: "pe_a1",
-        studentProfileId: "profile_a",
-        courseId: "course_1",
+        studentProfileId: studentA.id,
+        courseId: course.id,
         noteEn: "Student A's progress note",
-        recordedAt: new Date(),
-        createdAt: new Date(),
-        course: { titleEn: "Course 1" },
+      },
+      {
+        studentProfileId: studentB.id,
+        courseId: course.id,
+        noteEn: "Student B's progress note",
       },
     ]);
 
-    const { default: MyProgressPage } =
-      await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
+    const html = await renderProgress();
 
-    const { renderToString } = await import("react-dom/server");
-    const element = await MyProgressPage({
-      params: Promise.resolve({ locale: "en" }),
-    });
-    const html = renderToString(element);
-
-    // Own entry appears
     expect(html).toContain("Student A&#x27;s progress note");
-
-    // Another student's entries never appear — the server queries
-    // WHERE studentProfileId = the current user's profile, so
-    // Student B's entries are never even fetched.
     expect(html).not.toContain("Student B");
   });
 
   test("a student with no progress entries sees an empty state", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_empty",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
+    await signedInStudent("student_empty");
 
-    mockProfileFindUnique.mockResolvedValue({ id: "profile_empty" });
-
-    // No progress entries
-    mockPEFindMany.mockResolvedValue([]);
-
-    const { default: MyProgressPage } =
-      await import("@/app/[locale]/(portal)/portal/student/resources/progress/page");
-
-    const { renderToString } = await import("react-dom/server");
-    const element = await MyProgressPage({
-      params: Promise.resolve({ locale: "en" }),
-    });
-    const html = renderToString(element);
+    const html = await renderProgress();
 
     expect(html).toContain("My Progress");
     expect(html).toContain("No progress entries recorded yet.");
@@ -286,77 +239,38 @@ describe("Progress isolation — student sees own entries only", () => {
 });
 
 describe("Timetable — course-scoped retrieval", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await truncateAll(pg);
   });
 
   test("2. a student sees their enrolled course's timetable, correctly scoped", async () => {
-    // Student is enrolled in Course A only
-    mockAuth.mockResolvedValue({
-      userId: "student_1",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
-
-    mockProfileFindUnique.mockResolvedValue({ id: "profile_1" });
-
-    // Enrolled in Course A and Course B
-    mockEnrollFindMany.mockResolvedValue([
-      { courseId: "course_a" },
-      { courseId: "course_b" },
+    const profile = await signedInStudent("student_1");
+    const courseA = await insertCourse(pg, { titleEn: "Course A" });
+    const courseB = await insertCourse(pg, { titleEn: "Course B" });
+    const courseC = await insertCourse(pg, { titleEn: "Course C" });
+    await pg.insert(studentCourseEnrollment).values([
+      { studentProfileId: profile.id, courseId: courseA.id },
+      { studentProfileId: profile.id, courseId: courseB.id },
+    ]);
+    await pg.insert(timetableEntry).values([
+      { courseId: courseA.id, contentText: "Course A weekly schedule" },
+      { courseId: courseC.id, contentText: "Course C weekly schedule" },
     ]);
 
-    // Only Course A has timetable entries
-    mockTTFindMany.mockResolvedValue([
-      {
-        id: "tt_a1",
-        courseId: "course_a",
-        contentText: "Course A weekly schedule",
-        createdAt: new Date(),
-        course: { titleEn: "Course A" },
-      },
-    ]);
+    const html = await renderTimetable();
 
-    mockCourseFindMany.mockResolvedValue([
-      { id: "course_a", titleEn: "Course A" },
-      { id: "course_b", titleEn: "Course B" },
-    ]);
-
-    const { default: TimetablePage } =
-      await import("@/app/[locale]/(portal)/portal/student/resources/timetable/page");
-
-    const { renderToString } = await import("react-dom/server");
-    const element = await TimetablePage({
-      params: Promise.resolve({ locale: "en" }),
-    });
-    const html = renderToString(element);
-
-    // Course A's timetable appears
     expect(html).toContain("Course A weekly schedule");
     expect(html).toContain("Course A");
-
-    // Course B has no timetable entries, so it should not appear
+    // Course B has no timetable entries, Course C isn't enrolled
     expect(html).not.toContain("Course B");
+    expect(html).not.toContain("Course C");
   });
 
   test("a student enrolled in no courses sees an empty state", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_noenroll",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
+    await signedInStudent("student_noenroll");
 
-    mockProfileFindUnique.mockResolvedValue({ id: "profile_noenroll" });
-
-    // No enrollments
-    mockEnrollFindMany.mockResolvedValue([]);
-
-    const { default: TimetablePage } =
-      await import("@/app/[locale]/(portal)/portal/student/resources/timetable/page");
-
-    const { renderToString } = await import("react-dom/server");
-    const element = await TimetablePage({
-      params: Promise.resolve({ locale: "en" }),
-    });
-    const html = renderToString(element);
+    const html = await renderTimetable();
 
     expect(html).toContain("Timetable");
     expect(html).toContain("aren&#x27;t enrolled");

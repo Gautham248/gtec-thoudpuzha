@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { eq } from "drizzle-orm";
+import { application } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import Link from "next/link";
 import { Briefcase, User, Search } from "lucide-react";
@@ -37,30 +39,32 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
     );
   }
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
-  });
+  const profile =
+    (await db.query.candidateProfile.findFirst({
+      where: (p, { eq }) => eq(p.userId, session.userId!),
+    })) ?? null;
 
   const hasBiodata = profile !== null;
 
   const applicationsCount = hasBiodata
-    ? await prisma.application.count({
-        where: { candidateProfileId: profile.id },
-      })
+    ? await db.$count(
+        application,
+        eq(application.candidateProfileId, profile.id),
+      )
     : 0;
 
   const recentApplications = hasBiodata
-    ? await prisma.application.findMany({
-        where: { candidateProfileId: profile.id },
-        orderBy: { appliedAt: "desc" },
-        take: 3,
-        include: {
+    ? await db.query.application.findMany({
+        where: (a, { eq }) => eq(a.candidateProfileId, profile.id),
+        orderBy: (a, { desc }) => desc(a.appliedAt),
+        limit: 3,
+        with: {
           jobPosting: {
-            select: {
+            columns: {
               id: true,
               title: true,
-              employer: { select: { companyName: true } },
             },
+            with: { employer: { columns: { companyName: true } } },
           },
         },
       })

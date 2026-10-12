@@ -1,16 +1,16 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
-import { lookupStudentRecord, finalizeStudentVerification } from "./actions";
+// @vitest-environment node
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { candidateProfile, studentRecord, user } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertStudentProfile, insertUser } from "@/__tests__/pg-fixtures";
+import { finalizeStudentVerification, lookupStudentRecord } from "./actions";
 
 // ─── Hoisted mocks ──────────────────────────────────────────────────────────
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockClerkClient = vi.hoisted(() => vi.fn());
 const mockUpdateUser = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
-const mockUpsert = vi.hoisted(() => vi.fn());
-const mockCandidateCreate = vi.hoisted(() => vi.fn());
-const mockRecordUpdate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -19,7 +19,13 @@ const mockRedirect = vi.hoisted(() =>
 const mockCheckRateLimit = vi.hoisted(() =>
   vi.fn(() => ({ allowed: true, remaining: 4, resetAt: Date.now() + 60000 })),
 );
-const mockGetClientIp = vi.hoisted(() => vi.fn(() => Promise.resolve("127.0.0.1")));
+const mockGetClientIp = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve("127.0.0.1")),
+);
+
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
 
 vi.mock("@/lib/rate-limiter", () => ({
   checkRateLimit: mockCheckRateLimit,
@@ -31,97 +37,79 @@ vi.mock("@clerk/nextjs/server", () => ({
   clerkClient: mockClerkClient,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    studentRecord: {
-      findFirst: mockFindFirst,
-      findUnique: mockFindUnique,
-      update: mockRecordUpdate,
-    },
-    user: {
-      upsert: mockUpsert,
-    },
-    candidateProfile: {
-      create: mockCandidateCreate,
-    },
-  },
-}));
-
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
 
-// ─── Tests: lookupStudentRecord ─────────────────────────────────────────────
+const pg = db as unknown as TestDb;
 
-describe("lookupStudentRecord", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockFindFirst.mockReset();
-  });
-
-  test("1. Correct Student ID + phone pair returns success with studentRecordId and email", async () => {
-    mockFindFirst.mockResolvedValue({
+async function insertRecord(
+  values: Partial<typeof studentRecord.$inferInsert> = {},
+) {
+  const [row] = await pg
+    .insert(studentRecord)
+    .values({
       id: "sr_1",
       studentId: "GTEC001",
       fullName: "Alice",
       phone: "9876543210",
       email: "alice@example.com",
-      linkedUserId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+      ...values,
+    })
+    .returning();
+  return row;
+}
 
-    const formData = new FormData();
-    formData.append("studentId", "GTEC001");
-    formData.append("phone", "9876543210");
+function lookupForm(studentId: string, phone: string) {
+  const fd = new FormData();
+  fd.append("studentId", studentId);
+  fd.append("phone", phone);
+  return fd;
+}
 
-    const result = await lookupStudentRecord(formData);
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+});
+
+// ─── Tests: lookupStudentRecord ─────────────────────────────────────────────
+
+describe("lookupStudentRecord", () => {
+  test("1. Correct Student ID + phone pair returns success with studentRecordId and email", async () => {
+    await insertRecord();
+
+    const result = await lookupStudentRecord(
+      lookupForm("GTEC001", "9876543210"),
+    );
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.studentRecordId).toBe("sr_1");
       expect(result.email).toBe("alice@example.com");
     }
-    expect(mockFindFirst).toHaveBeenCalledWith({
-      where: { studentId: "GTEC001", phone: "9876543210" },
-    });
   });
 
   test("2. Incorrect Student ID or phone shows generic non-revealing error", async () => {
-    mockFindFirst.mockResolvedValue(null);
+    await insertRecord();
 
-    const formData = new FormData();
-    formData.append("studentId", "GTEC001");
-    formData.append("phone", "0000000000");
-
-    const result = await lookupStudentRecord(formData);
-
-    expect(result.success).toBe(false);
-    expect(result.error).toBe(
-      "We couldn't verify these details — please contact the centre.",
-    );
-    expect(mockFindFirst).toHaveBeenCalledWith({
-      where: { studentId: "GTEC001", phone: "0000000000" },
-    });
+    for (const [id, phone] of [
+      ["GTEC001", "0000000000"],
+      ["GTEC999", "9876543210"],
+    ]) {
+      const result = await lookupStudentRecord(lookupForm(id, phone));
+      expect(result.success).toBe(false);
+      expect(result.error).toBe(
+        "We couldn't verify these details — please contact the centre.",
+      );
+    }
   });
 
   test("4. Already-linked StudentRecord is rejected with specific error", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "sr_1",
-      studentId: "GTEC001",
-      fullName: "Alice",
-      phone: "9876543210",
-      email: "alice@example.com",
-      linkedUserId: "user_existing",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await insertRecord({ linkedUserId: "user_existing" });
 
-    const formData = new FormData();
-    formData.append("studentId", "GTEC001");
-    formData.append("phone", "9876543210");
-
-    const result = await lookupStudentRecord(formData);
+    const result = await lookupStudentRecord(
+      lookupForm("GTEC001", "9876543210"),
+    );
 
     expect(result.success).toBe(false);
     expect("alreadyLinked" in result && result.alreadyLinked).toBe(true);
@@ -130,52 +118,14 @@ describe("lookupStudentRecord", () => {
     );
   });
 
-  test("5. Returns the email from the StudentRecord on file, not an arbitrary email", async () => {
-    mockFindFirst.mockResolvedValue({
-      id: "sr_1",
-      studentId: "GTEC001",
-      fullName: "Alice",
-      phone: "9876543210",
-      email: "alice@example.com",
-      linkedUserId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const formData = new FormData();
-    // Form uses matching phone to find the record; email comes from the record, not the form
-    formData.append("studentId", "GTEC001");
-    formData.append("phone", "9876543210");
-
-    const result = await lookupStudentRecord(formData);
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.email).toBe("alice@example.com");
-    }
-  });
-
   test("6. StudentRecord with no email on file is rejected with a clear message (pending admin backfill)", async () => {
-    // Regression test: records created before email became required for
-    // sign-up (see 04_AUTH_DEBUGGING_LOG.md) have email: null and must be
-    // blocked with a specific, actionable error rather than crashing when
-    // signUp.create({ emailAddress: undefined }) is attempted.
-    mockFindFirst.mockResolvedValue({
-      id: "sr_1",
-      studentId: "GTEC001",
-      fullName: "Alice",
-      phone: "9876543210",
-      email: null,
-      linkedUserId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // Records created before email became required for sign-up have no email
+    // and must get an actionable error rather than a crash later on.
+    await insertRecord({ email: null });
 
-    const formData = new FormData();
-    formData.append("studentId", "GTEC001");
-    formData.append("phone", "9876543210");
-
-    const result = await lookupStudentRecord(formData);
+    const result = await lookupStudentRecord(
+      lookupForm("GTEC001", "9876543210"),
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toBe(
@@ -184,19 +134,13 @@ describe("lookupStudentRecord", () => {
   });
 
   test("returns error if studentId or phone are missing", async () => {
-    const formData = new FormData();
-    formData.append("studentId", "");
-
     const result1 = await lookupStudentRecord(new FormData());
     expect(result1.success).toBe(false);
     expect(result1.error).toBe(
       "Please provide both Student ID and phone number.",
     );
 
-    const formData2 = new FormData();
-    formData2.append("studentId", "GTEC001");
-    formData2.append("phone", "");
-    const result2 = await lookupStudentRecord(formData2);
+    const result2 = await lookupStudentRecord(lookupForm("GTEC001", ""));
     expect(result2.success).toBe(false);
   });
 });
@@ -205,89 +149,84 @@ describe("lookupStudentRecord", () => {
 
 describe("finalizeStudentVerification", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockFindUnique.mockReset();
-    mockClerkClient.mockReset();
-    mockUpdateUser.mockReset();
-    mockUpsert.mockReset();
-    mockCandidateCreate.mockReset();
-    mockRecordUpdate.mockReset();
-    mockRedirect.mockReset();
     mockRedirect.mockImplementation((url: string) => {
       throw new Error(`redirect:${url}`);
     });
+    mockClerkClient.mockResolvedValue({
+      users: { updateUser: mockUpdateUser },
+    });
+    mockAuth.mockResolvedValue({ userId: "user_test_1" });
   });
 
   test("3. Successful OTP entry sets role=STUDENT, isVerifiedStudent=true, links StudentRecord", async () => {
-    mockAuth.mockResolvedValue({ userId: "user_test_1" });
-    mockFindUnique.mockResolvedValue({
-      id: "sr_1",
-      studentId: "GTEC001",
-      phone: "9876543210",
-      linkedUserId: null,
-    });
-    mockClerkClient.mockReturnValue(
-      Promise.resolve({ users: { updateUser: mockUpdateUser } }),
-    );
-    mockUpsert.mockResolvedValue({});
-    mockCandidateCreate.mockResolvedValue({ id: "cp_1" });
-    mockRecordUpdate.mockResolvedValue({});
+    await insertRecord();
 
-    await expect(
-      finalizeStudentVerification("sr_1"),
-    ).rejects.toThrow("redirect:/portal/student/biodata");
+    await expect(finalizeStudentVerification("sr_1")).rejects.toThrow(
+      "redirect:/portal/student/biodata",
+    );
 
     expect(mockUpdateUser).toHaveBeenCalledWith("user_test_1", {
       publicMetadata: { role: "STUDENT" },
     });
-
-    expect(mockUpsert).toHaveBeenCalledWith({
-      where: { id: "user_test_1" },
-      update: { role: "STUDENT" },
-      create: { id: "user_test_1", role: "STUDENT" },
-    });
-
-    expect(mockCandidateCreate).toHaveBeenCalledWith({
-      data: {
+    expect(
+      await pg.select({ id: user.id, role: user.role }).from(user),
+    ).toEqual([{ id: "user_test_1", role: "STUDENT" }]);
+    expect(await pg.select().from(candidateProfile)).toEqual([
+      expect.objectContaining({
         userId: "user_test_1",
         isVerifiedStudent: true,
         studentRecordId: "sr_1",
-      },
-    });
+      }),
+    ]);
+    const [record] = await pg.select().from(studentRecord);
+    expect(record.linkedUserId).toBe("user_test_1");
+  });
 
-    expect(mockRecordUpdate).toHaveBeenCalledWith({
-      where: { id: "sr_1" },
-      data: { linkedUserId: "user_test_1" },
-    });
+  test("an existing User row (e.g. created earlier) gets its role set to STUDENT", async () => {
+    await insertRecord();
+    await insertUser(pg, { id: "user_test_1", role: "JOB_SEEKER" });
+
+    await expect(finalizeStudentVerification("sr_1")).rejects.toThrow(
+      "redirect:",
+    );
+
+    const [row] = await pg.select().from(user);
+    expect(row.role).toBe("STUDENT");
+  });
+
+  test("is all-or-nothing: if the profile can't be created, nothing is linked", async () => {
+    await insertRecord();
+    // A profile already exists for this user → the profile insert fails.
+    await insertUser(pg, { id: "user_test_1", role: "JOB_SEEKER" });
+    await insertStudentProfile(pg, { userId: "user_test_1" });
+
+    await expect(finalizeStudentVerification("sr_1")).rejects.toThrow();
+
+    const [record] = await pg.select().from(studentRecord);
+    expect(record.linkedUserId).toBeNull();
+    const [row] = await pg.select().from(user);
+    expect(row.role).toBe("JOB_SEEKER"); // role change rolled back too
   });
 
   test("redirects to sign-in if unauthenticated", async () => {
     mockAuth.mockResolvedValue({ userId: null });
 
-    await expect(
-      finalizeStudentVerification("sr_1"),
-    ).rejects.toThrow("redirect:/sign-in");
+    await expect(finalizeStudentVerification("sr_1")).rejects.toThrow(
+      "redirect:/sign-in",
+    );
 
     expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
   test("redirects to sign-up page if record not found or already linked", async () => {
-    mockAuth.mockResolvedValue({ userId: "user_test_1" });
+    await expect(finalizeStudentVerification("sr_missing")).rejects.toThrow(
+      "redirect:/portal/sign-up/student",
+    );
 
-    // Record not found
-    mockFindUnique.mockResolvedValue(null);
-    await expect(
-      finalizeStudentVerification("sr_missing"),
-    ).rejects.toThrow("redirect:/portal/sign-up/student");
-
-    // Record already linked
-    mockFindUnique.mockResolvedValue({
-      id: "sr_1",
-      linkedUserId: "user_other",
-    });
-    await expect(
-      finalizeStudentVerification("sr_1"),
-    ).rejects.toThrow("redirect:/portal/sign-up/student");
+    await insertRecord({ linkedUserId: "user_other" });
+    await expect(finalizeStudentVerification("sr_1")).rejects.toThrow(
+      "redirect:/portal/sign-up/student",
+    );
+    expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 });

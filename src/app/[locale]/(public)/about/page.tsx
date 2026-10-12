@@ -15,7 +15,7 @@ import {
   Quote,
   Users,
 } from "lucide-react";
-import type { WhyCardIcon } from "@prisma/client";
+import type { WhyCardIcon } from "@/db/types";
 import {
   getAtAGlanceStats,
   getLocalizedAbout,

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { getApprovedSkills } from "@/lib/skills";
 import { PostVacancyForm } from "./post-vacancy-form";
@@ -16,11 +16,15 @@ export default async function PostVacancyPage() {
     redirect("/forbidden");
   }
 
-  const profile = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
-  if (!profile || profile.status === "PENDING" || profile.status === "REJECTED") {
+  if (
+    !profile ||
+    profile.status === "PENDING" ||
+    profile.status === "REJECTED"
+  ) {
     redirect("/portal/employer/register/status");
   }
 

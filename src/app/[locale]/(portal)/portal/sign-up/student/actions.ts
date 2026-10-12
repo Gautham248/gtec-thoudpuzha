@@ -2,7 +2,10 @@
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { and, eq, isNull } from "drizzle-orm";
+import { candidateProfile, studentRecord, user } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 export async function lookupStudentRecord(formData: FormData) {
@@ -13,8 +16,7 @@ export async function lookupStudentRecord(formData: FormData) {
   if (!rateCheck.allowed) {
     return {
       success: false as const,
-      error:
-        "Too many attempts. Please try again later.",
+      error: "Too many attempts. Please try again later.",
     };
   }
   const studentId = formData.get("studentId") as string;
@@ -27,15 +29,15 @@ export async function lookupStudentRecord(formData: FormData) {
     };
   }
 
-  const record = await prisma.studentRecord.findFirst({
-    where: { studentId, phone },
+  const record = await db.query.studentRecord.findFirst({
+    where: (r, { and, eq }) =>
+      and(eq(r.studentId, studentId), eq(r.phone, phone)),
   });
 
   if (!record) {
     return {
       success: false as const,
-      error:
-        "We couldn't verify these details — please contact the centre.",
+      error: "We couldn't verify these details — please contact the centre.",
     };
   }
 
@@ -69,8 +71,8 @@ export async function finalizeStudentVerification(studentRecordId: string) {
     redirect("/sign-in");
   }
 
-  const record = await prisma.studentRecord.findUnique({
-    where: { id: studentRecordId },
+  const record = await db.query.studentRecord.findFirst({
+    where: (r, { eq }) => eq(r.id, studentRecordId),
   });
 
   if (!record || record.linkedUserId) {
@@ -82,23 +84,36 @@ export async function finalizeStudentVerification(studentRecordId: string) {
     publicMetadata: { role: "STUDENT" },
   });
 
-  await prisma.user.upsert({
-    where: { id: session.userId },
-    update: { role: "STUDENT" },
-    create: { id: session.userId, role: "STUDENT" },
-  });
+  const userId = session.userId;
+  // All-or-nothing: a failure part-way must not leave a profile without its
+  // record link (which would also block every retry on the unique userId).
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(user)
+      .values({ id: userId, role: "STUDENT" })
+      .onConflictDoUpdate({ target: user.id, set: { role: "STUDENT" } });
 
-  await prisma.candidateProfile.create({
-    data: {
-      userId: session.userId,
+    await tx.insert(candidateProfile).values({
+      userId,
       isVerifiedStudent: true,
       studentRecordId,
-    },
-  });
+    });
 
-  await prisma.studentRecord.update({
-    where: { id: studentRecordId },
-    data: { linkedUserId: session.userId },
+    // Only claim a record that is still unlinked, so two concurrent sign-ups
+    // can't both link the same student record.
+    expectRow(
+      await tx
+        .update(studentRecord)
+        .set({ linkedUserId: userId })
+        .where(
+          and(
+            eq(studentRecord.id, studentRecordId),
+            isNull(studentRecord.linkedUserId),
+          ),
+        )
+        .returning({ id: studentRecord.id }),
+      "Unlinked student record",
+    );
   });
 
   redirect("/portal/student/biodata");

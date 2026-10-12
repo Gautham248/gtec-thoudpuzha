@@ -2,13 +2,13 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { eq } from "drizzle-orm";
+import { employerProfile } from "@/db/schema";
+import { expectRow } from "@/db/helpers";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
-import type {
-  IndustrySector,
-  EmployeeCountRange,
-} from "@prisma/client";
+import type { IndustrySector, EmployeeCountRange } from "@/db/types";
 
 interface RegistrationResult {
   success: false;
@@ -29,8 +29,7 @@ export async function submitEmployerRegistration(
   if (!rateCheck.allowed) {
     return {
       success: false,
-      error:
-        "Too many attempts. Please try again later.",
+      error: "Too many attempts. Please try again later.",
     };
   }
 
@@ -40,8 +39,8 @@ export async function submitEmployerRegistration(
   }
 
   // Check if employer already has a profile
-  const existing = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const existing = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
   if (existing) {
     if (existing.status === "PENDING" || existing.status === "REJECTED") {
@@ -89,8 +88,7 @@ export async function submitEmployerRegistration(
   if (hasWebsite && !websiteUrl) {
     return {
       success: false,
-      error:
-        "Please provide a website URL, or select 'No website'.",
+      error: "Please provide a website URL, or select 'No website'.",
     };
   }
 
@@ -121,23 +119,21 @@ export async function submitEmployerRegistration(
     return { success: false, error: "Invalid employee count range selected." };
   }
 
-  await prisma.employerProfile.create({
-    data: {
-      userId: session.userId,
-      companyName,
-      industrySector: industrySector as IndustrySector,
-      contactPersonName,
-      designation,
-      phone,
-      email,
-      companyAddress,
-      hasWebsite,
-      websiteUrl: hasWebsite ? websiteUrl : null,
-      employeeCountRange: employeeCountRange as EmployeeCountRange,
-      aboutCompany,
-      status: "PENDING",
-      autoPublishTrusted: false,
-    },
+  await db.insert(employerProfile).values({
+    userId: session.userId,
+    companyName,
+    industrySector: industrySector as IndustrySector,
+    contactPersonName,
+    designation,
+    phone,
+    email,
+    companyAddress,
+    hasWebsite,
+    websiteUrl: hasWebsite ? websiteUrl : null,
+    employeeCountRange: employeeCountRange as EmployeeCountRange,
+    aboutCompany,
+    status: "PENDING",
+    autoPublishTrusted: false,
   });
 
   redirect("/portal/employer/register/status");
@@ -156,8 +152,8 @@ export async function updateEmployerProfile(
     redirect("/forbidden");
   }
 
-  const existing = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const existing = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
   if (!existing) {
     redirect("/portal/employer/register");
@@ -229,20 +225,24 @@ export async function updateEmployerProfile(
     return { success: false, error: "Invalid employee count range selected." };
   }
 
-  await prisma.employerProfile.update({
-    where: { userId: session.userId },
-    data: {
-      companyName,
-      industrySector: industrySector as IndustrySector,
-      contactPersonName,
-      designation,
-      phone,
-      email,
-      companyAddress,
-      hasWebsite,
-      websiteUrl: hasWebsite ? websiteUrl : null,
-      employeeCountRange: employeeCountRange as EmployeeCountRange,
-      aboutCompany,
-    },
-  });
+  expectRow(
+    await db
+      .update(employerProfile)
+      .set({
+        companyName,
+        industrySector: industrySector as IndustrySector,
+        contactPersonName,
+        designation,
+        phone,
+        email,
+        companyAddress,
+        hasWebsite,
+        websiteUrl: hasWebsite ? websiteUrl : null,
+        employeeCountRange: employeeCountRange as EmployeeCountRange,
+        aboutCompany,
+      })
+      .where(eq(employerProfile.userId, session.userId))
+      .returning({ id: employerProfile.id }),
+    "Employer profile",
+  );
 }

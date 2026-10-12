@@ -1,7 +1,7 @@
 import React from "react";
 import { siteConfig } from "@/lib/site";
 import { getCachedSiteSettings } from "@/lib/data-cache";
-import type { SiteSettings } from "@prisma/client";
+import type { SiteSettings } from "@/db/types";
 import { FooterContact } from "@/components/shared/FooterContact";
 import {
   FooterLinksColumn,

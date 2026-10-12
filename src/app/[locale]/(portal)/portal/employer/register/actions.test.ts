@@ -1,12 +1,15 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
-import { submitEmployerRegistration } from "./actions";
+// @vitest-environment node
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { employerProfile } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertEmployer, insertUser } from "@/__tests__/pg-fixtures";
+import { submitEmployerRegistration, updateEmployerProfile } from "./actions";
 
 // ─── Hoisted mocks ──────────────────────────────────────────────────────────
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockClerkClient = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
-const mockCreate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -15,7 +18,13 @@ const mockRedirect = vi.hoisted(() =>
 const mockCheckRateLimit = vi.hoisted(() =>
   vi.fn(() => ({ allowed: true, remaining: 4, resetAt: Date.now() + 60000 })),
 );
-const mockGetClientIp = vi.hoisted(() => vi.fn(() => Promise.resolve("127.0.0.1")));
+const mockGetClientIp = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve("127.0.0.1")),
+);
+
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
 
 vi.mock("@/lib/rate-limiter", () => ({
   checkRateLimit: mockCheckRateLimit,
@@ -27,18 +36,11 @@ vi.mock("@clerk/nextjs/server", () => ({
   clerkClient: mockClerkClient,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    employerProfile: {
-      findUnique: mockFindUnique,
-      create: mockCreate,
-    },
-  },
-}));
-
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
+
+const pg = db as unknown as TestDb;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -60,83 +62,99 @@ function validFormData(overrides: Record<string, string> = {}): FormData {
   return fd;
 }
 
+const profiles = () => pg.select().from(employerProfile);
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-describe("submitEmployerRegistration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockFindUnique.mockReset();
-    mockCreate.mockReset();
-    mockRedirect.mockReset();
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
-    });
-    mockAuth.mockResolvedValue({
-      userId: "user_employer_1",
-      sessionClaims: { metadata: { role: "EMPLOYER" } },
-    });
-    mockFindUnique.mockResolvedValue(null);
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  await insertUser(pg, { id: "user_employer_1", role: "EMPLOYER" });
+  mockAuth.mockResolvedValue({
+    userId: "user_employer_1",
+    sessionClaims: { metadata: { role: "EMPLOYER" } },
   });
+});
 
+describe("submitEmployerRegistration", () => {
   test("1. Submitting with 'No website' selected succeeds without a URL", async () => {
-    mockCreate.mockResolvedValue({ id: "ep_1" });
+    await expect(
+      submitEmployerRegistration(validFormData({ hasWebsite: "no" })),
+    ).rejects.toThrow("redirect:/portal/employer/register/status");
 
-    const fd = validFormData({ hasWebsite: "no" });
-
-    await expect(submitEmployerRegistration(fd)).rejects.toThrow(
-      "redirect:/portal/employer/register/status",
-    );
-
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    const callArgs = mockCreate.mock.calls[0][0] as { data: Record<string, unknown> };
-    expect(callArgs.data.userId).toBe("user_employer_1");
-    expect(callArgs.data.companyName).toBe("Acme Corp");
-    expect(callArgs.data.hasWebsite).toBe(false);
-    expect(callArgs.data.websiteUrl).toBeNull();
+    expect(await profiles()).toEqual([
+      expect.objectContaining({
+        userId: "user_employer_1",
+        companyName: "Acme Corp",
+        hasWebsite: false,
+        websiteUrl: null,
+      }),
+    ]);
   });
 
   test("2. Submitting with 'Add link' but no URL provided is rejected server-side", async () => {
-    const fd = validFormData({
-      hasWebsite: "yes",
-      websiteUrl: "",
-    });
-
-    const result = await submitEmployerRegistration(fd);
+    const result = await submitEmployerRegistration(
+      validFormData({ hasWebsite: "yes", websiteUrl: "" }),
+    );
 
     expect(result?.success).toBe(false);
     expect(result?.error).toContain("website URL");
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(await profiles()).toHaveLength(0);
   });
 
   test("3. A newly registered employer has status=PENDING and autoPublishTrusted=false by default", async () => {
-    mockCreate.mockResolvedValue({ id: "ep_1" });
-
-    const fd = validFormData();
-
-    await expect(submitEmployerRegistration(fd)).rejects.toThrow(
+    await expect(submitEmployerRegistration(validFormData())).rejects.toThrow(
       "redirect:/portal/employer/register/status",
     );
 
-    // Verify the create call includes defaults from Prisma
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    const callArgs = mockCreate.mock.calls[0][0] as { data: Record<string, unknown> };
-    expect(callArgs.data.status).toBe("PENDING");
-    expect(callArgs.data.autoPublishTrusted).toBe(false);
+    expect(await profiles()).toEqual([
+      expect.objectContaining({ status: "PENDING", autoPublishTrusted: false }),
+    ]);
   });
 
   test("5. An employer who already has an EmployerProfile cannot submit the registration form again", async () => {
-    mockFindUnique.mockResolvedValue({
-      id: "ep_1",
+    await insertEmployer(pg, {
       userId: "user_employer_1",
       status: "PENDING",
+      companyName: "First",
     });
 
-    const fd = validFormData();
-
-    await expect(submitEmployerRegistration(fd)).rejects.toThrow(
+    await expect(submitEmployerRegistration(validFormData())).rejects.toThrow(
       "redirect:/portal/employer/register/status",
     );
 
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect((await profiles()).map((p) => p.companyName)).toEqual(["First"]);
+  });
+});
+
+describe("updateEmployerProfile", () => {
+  test("updates the signed-in employer's own profile", async () => {
+    await insertEmployer(pg, {
+      userId: "user_employer_1",
+      companyName: "Old Name",
+    });
+
+    const result = await updateEmployerProfile(
+      validFormData({
+        companyName: "New Name",
+        hasWebsite: "yes",
+        websiteUrl: "https://new.example",
+      }),
+    );
+
+    expect(result?.success).not.toBe(false);
+    expect(await profiles()).toEqual([
+      expect.objectContaining({
+        companyName: "New Name",
+        hasWebsite: true,
+        websiteUrl: "https://new.example",
+      }),
+    ]);
+  });
+
+  test("an employer without a profile is sent to registration", async () => {
+    await expect(updateEmployerProfile(validFormData())).rejects.toThrow(
+      "redirect:/portal/employer/register",
+    );
   });
 });

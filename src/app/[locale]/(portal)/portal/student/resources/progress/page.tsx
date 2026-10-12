@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import Link from "next/link";
 
 interface Props {
@@ -15,9 +15,9 @@ export default async function MyProgressPage({ params }: Props) {
   const rt = await getTranslations({ locale, namespace: "resources" });
   const t = await getTranslations({ locale, namespace: "progress" });
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
-    select: { id: true },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
+    columns: { id: true },
   });
 
   if (!profile) {
@@ -31,10 +31,10 @@ export default async function MyProgressPage({ params }: Props) {
     );
   }
 
-  const entries = await prisma.studentProgressEntry.findMany({
-    where: { studentProfileId: profile.id },
-    orderBy: { recordedAt: "desc" },
-    include: { course: { select: { titleEn: true } } },
+  const entries = await db.query.studentProgressEntry.findMany({
+    where: (e, { eq }) => eq(e.studentProfileId, profile.id),
+    orderBy: (e, { desc }) => desc(e.recordedAt),
+    with: { course: { columns: { titleEn: true } } },
   });
 
   if (entries.length === 0) {
@@ -57,10 +57,7 @@ export default async function MyProgressPage({ params }: Props) {
       <h1 className="mb-6 text-2xl font-semibold">{t("heading")}</h1>
       <div className="space-y-4">
         {entries.map((e) => (
-          <div
-            key={e.id}
-            className="rounded border border-border p-4"
-          >
+          <div key={e.id} className="rounded border border-border p-4">
             <div className="mb-1 text-sm text-muted-foreground">
               {e.course.titleEn} &middot;{" "}
               {e.recordedAt.toISOString().slice(0, 10)}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { BiodataPdfDocument } from "@/components/shared/BiodataPdfDocument";
@@ -39,8 +39,8 @@ export async function GET(
   }
 
   // Fetch the candidate profile by its id (candidateId is the profile id)
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { id: candidateId },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.id, candidateId),
   });
 
   if (!profile) {
@@ -58,9 +58,9 @@ export async function GET(
   // Resolve course names for completed courses
   let courseCompletedNames: string[] = [];
   if (profile.courseCompletedIds.length > 0) {
-    const courses = await prisma.course.findMany({
-      where: { id: { in: profile.courseCompletedIds } },
-      select: { titleEn: true },
+    const courses = await db.query.course.findMany({
+      where: (c, { inArray }) => inArray(c.id, profile.courseCompletedIds),
+      columns: { titleEn: true },
     });
     const courseMap = new Map(
       courses.map((c, i) => [profile.courseCompletedIds[i], c.titleEn]),
@@ -73,9 +73,9 @@ export async function GET(
   // Resolve skill labels
   let skillLabels: string[] = [];
   if (profile.skillIds.length > 0) {
-    const skills = await prisma.skill.findMany({
-      where: { id: { in: profile.skillIds } },
-      select: { label: true },
+    const skills = await db.query.skill.findMany({
+      where: (s, { inArray }) => inArray(s.id, profile.skillIds),
+      columns: { label: true },
     });
     const skillMap = new Map(skills.map((s) => [s.label, s.label]));
     skillLabels = profile.skillIds
@@ -93,8 +93,8 @@ export async function GET(
     courseCompletedNames,
     certificationCodes: profile.certificationIds,
     educationalQualification: profile.educationalQualification
-      ? QUALIFICATION_LABELS[profile.educationalQualification] ??
-        profile.educationalQualification
+      ? (QUALIFICATION_LABELS[profile.educationalQualification] ??
+        profile.educationalQualification)
       : null,
     yearOfPassing: profile.yearOfPassing,
     address: profile.address,
@@ -102,15 +102,12 @@ export async function GET(
     skillLabels,
     preferredJobLocation: profile.preferredJobLocation,
     preferredJobType: profile.preferredJobType
-      ? JOB_TYPE_LABELS[profile.preferredJobType] ??
-        profile.preferredJobType
+      ? (JOB_TYPE_LABELS[profile.preferredJobType] ?? profile.preferredJobType)
       : null,
     careerObjective: profile.careerObjective,
   };
 
-  const pdfBuffer = await renderToBuffer(
-    <BiodataPdfDocument data={pdfData} />,
-  );
+  const pdfBuffer = await renderToBuffer(<BiodataPdfDocument data={pdfData} />);
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {

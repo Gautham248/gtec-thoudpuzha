@@ -1,7 +1,4 @@
-import type {
-  EducationalQualification,
-  PreferredJobType,
-} from "@prisma/client";
+import type { EducationalQualification, PreferredJobType } from "@/db/types";
 
 export type CandidateProfileWithCompletion = {
   id: string;
@@ -30,12 +27,12 @@ export function isProfileComplete(
 ): boolean {
   const hasRequired = Boolean(
     profile.fullName &&
-      profile.dateOfBirth &&
-      profile.phone &&
-      profile.email &&
-      profile.educationalQualification &&
-      profile.address &&
-      profile.preferredJobType,
+    profile.dateOfBirth &&
+    profile.phone &&
+    profile.email &&
+    profile.educationalQualification &&
+    profile.address &&
+    profile.preferredJobType,
   );
 
   if (!hasRequired) return false;

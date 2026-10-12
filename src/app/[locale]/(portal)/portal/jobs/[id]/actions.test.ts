@@ -1,158 +1,96 @@
 // @vitest-environment node
-import { describe, expect, test, vi, beforeEach } from "vitest";
-
-const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
-const mockCreate = vi.hoisted(() => vi.fn());
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
-
-vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    candidateProfile: { findUnique: mockFindUnique },
-    application: { findUnique: mockFindUnique, create: mockCreate },
-  },
-}));
-
-vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
-
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { application } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  insertJobPosting,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 import { applyToJob } from "./actions";
 
-beforeEach(() => {
+const mockAuth = vi.hoisted(() => vi.fn());
+const mockRevalidatePath = vi.hoisted(() => vi.fn());
+
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
+vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
+vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
+
+const pg = db as unknown as TestDb;
+
+const completeProfile = {
+  fullName: "John Doe",
+  dateOfBirth: new Date("2000-01-01"),
+  phone: "9999999999",
+  email: "john@example.com",
+  educationalQualification: "GRADUATE" as const,
+  yearOfPassing: 2022,
+  address: "Test",
+  languagesKnown: ["English"],
+  preferredJobLocation: "Kochi",
+  preferredJobType: "FULL_TIME" as const,
+};
+
+let postingId: string;
+
+beforeEach(async () => {
   vi.clearAllMocks();
+  await truncateAll(pg);
+  await insertUser(pg, { id: "user_1", role: "JOB_SEEKER" });
+  postingId = (await insertJobPosting(pg)).id;
+  mockAuth.mockResolvedValue({
+    userId: "user_1",
+    sessionClaims: { metadata: { role: "JOB_SEEKER" } },
+  });
 });
+
+function apply() {
+  const fd = new FormData();
+  fd.append("jobPostingId", postingId);
+  fd.append("locale", "en");
+  return applyToJob(fd);
+}
 
 describe("applyToJob", () => {
   test("returns error when candidate profile is incomplete", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "user_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
-    // Incomplete profile: missing fullName, dateOfBirth, etc.
-    mockFindUnique.mockResolvedValue({
-      id: "cp_1",
-      userId: "user_1",
-      fullName: null,
-      dateOfBirth: null,
-      phone: null,
-      email: null,
-      courseCompletedIds: [],
-      certificationIds: [],
-      educationalQualification: null,
-      yearOfPassing: null,
-      address: null,
-      languagesKnown: [],
-      skillIds: [],
-      preferredJobLocation: null,
-      preferredJobType: null,
-      careerObjective: null,
-      photoUrl: null,
-      profileVisible: true,
-      isVerifiedStudent: false,
-      studentRecordId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await insertStudentProfile(pg, { userId: "user_1", fullName: null });
 
-    const formData = new FormData();
-    formData.append("jobPostingId", "jp_1");
-    formData.append("locale", "en");
+    expect(await apply()).toEqual({ error: "Complete your profile to apply" });
+    expect(await pg.$count(application)).toBe(0);
+  });
 
-    const result = await applyToJob(formData);
-    expect(result).toEqual({ error: "Complete your profile to apply" });
-    expect(mockCreate).not.toHaveBeenCalled();
+  test("returns error when there is no profile at all", async () => {
+    expect(await apply()).toEqual({ error: "Complete your profile to apply" });
   });
 
   test("creates an Application record when profile is complete", async () => {
-    mockAuth.mockResolvedValue({
+    const profile = await insertStudentProfile(pg, {
       userId: "user_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
+      ...completeProfile,
     });
-    // Complete profile
-    mockFindUnique.mockResolvedValueOnce({
-      id: "cp_1",
-      userId: "user_1",
-      fullName: "John Doe",
-      dateOfBirth: new Date("2000-01-01"),
-      phone: "9999999999",
-      email: "john@example.com",
-      courseCompletedIds: [],
-      certificationIds: [],
-      educationalQualification: "GRADUATE",
-      yearOfPassing: 2022,
-      address: "Test address",
-      languagesKnown: ["English"],
-      skillIds: [],
-      preferredJobLocation: "Kochi",
-      preferredJobType: "FULL_TIME",
-      careerObjective: null,
-      photoUrl: null,
-      profileVisible: true,
-      isVerifiedStudent: false,
-      studentRecordId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    // No existing application (findUnique returns null)
-    mockFindUnique.mockResolvedValueOnce(null);
-    mockCreate.mockResolvedValue({ id: "app_1" });
 
-    const formData = new FormData();
-    formData.append("jobPostingId", "jp_1");
-    formData.append("locale", "en");
+    expect(await apply()).toEqual({ applied: true });
 
-    const result = await applyToJob(formData);
-    expect(result).toEqual({ applied: true });
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: { jobPostingId: "jp_1", candidateProfileId: "cp_1" },
-    });
-    expect(mockRevalidatePath).toHaveBeenCalled();
+    expect(await pg.select().from(application)).toEqual([
+      expect.objectContaining({
+        jobPostingId: postingId,
+        candidateProfileId: profile.id,
+        status: "APPLIED",
+      }),
+    ]);
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      `/en/portal/jobs/${postingId}`,
+    );
   });
 
   test("blocks duplicate application to the same job", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "user_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
-    mockFindUnique.mockResolvedValueOnce({
-      id: "cp_1",
-      userId: "user_1",
-      fullName: "John Doe",
-      dateOfBirth: new Date("2000-01-01"),
-      phone: "9999999999",
-      email: "john@example.com",
-      courseCompletedIds: [],
-      certificationIds: [],
-      educationalQualification: "GRADUATE",
-      yearOfPassing: 2022,
-      address: "Test address",
-      languagesKnown: ["English"],
-      skillIds: [],
-      preferredJobLocation: "Kochi",
-      preferredJobType: "FULL_TIME",
-      careerObjective: null,
-      photoUrl: null,
-      profileVisible: true,
-      isVerifiedStudent: false,
-      studentRecordId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    // Existing application found
-    mockFindUnique.mockResolvedValueOnce({
-      id: "app_1",
-      jobPostingId: "jp_1",
-      candidateProfileId: "cp_1",
-      status: "APPLIED",
-    });
+    await insertStudentProfile(pg, { userId: "user_1", ...completeProfile });
 
-    const formData = new FormData();
-    formData.append("jobPostingId", "jp_1");
-    formData.append("locale", "en");
-
-    const result = await applyToJob(formData);
-    expect(result).toEqual({ error: "Already applied" });
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(await apply()).toEqual({ applied: true });
+    expect(await apply()).toEqual({ error: "Already applied" });
+    expect(await pg.$count(application)).toBe(1);
   });
 });

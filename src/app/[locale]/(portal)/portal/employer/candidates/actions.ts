@@ -2,13 +2,11 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { getSearchableCandidates } from "@/lib/biodata-search";
 import { isProfileComplete as _isProfileComplete } from "@/lib/biodata";
 import { Role, getEffectiveRole } from "@/lib/auth";
-import type {
-  CandidateProfileWithCompletion,
-} from "@/lib/biodata";
+import type { CandidateProfileWithCompletion } from "@/lib/biodata";
 
 export interface CandidateSearchFilters {
   courseCompletedIds?: string[];
@@ -52,8 +50,8 @@ export async function searchCandidates(
     redirect("/forbidden");
   }
 
-  const profile = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
   if (!profile || profile.status !== "APPROVED") {
@@ -66,7 +64,9 @@ export async function searchCandidates(
 
   if (filters.courseCompletedIds && filters.courseCompletedIds.length > 0) {
     results = results.filter((c) =>
-      filters.courseCompletedIds!.some((id) => c.courseCompletedIds.includes(id)),
+      filters.courseCompletedIds!.some((id) =>
+        c.courseCompletedIds.includes(id),
+      ),
     );
   }
 
@@ -84,8 +84,8 @@ export async function searchCandidates(
 
   if (filters.preferredJobLocation) {
     const loc = filters.preferredJobLocation.toLowerCase();
-    results = results.filter(
-      (c) => c.preferredJobLocation?.toLowerCase().includes(loc),
+    results = results.filter((c) =>
+      c.preferredJobLocation?.toLowerCase().includes(loc),
     );
   }
 
@@ -104,9 +104,7 @@ export async function searchCandidates(
   if (filters.languagesKnown && filters.languagesKnown.length > 0) {
     results = results.filter((c) =>
       filters.languagesKnown!.some((lang) =>
-        c.languagesKnown.some(
-          (cl) => cl.toLowerCase() === lang.toLowerCase(),
-        ),
+        c.languagesKnown.some((cl) => cl.toLowerCase() === lang.toLowerCase()),
       ),
     );
   }
@@ -114,7 +112,9 @@ export async function searchCandidates(
   return results.map(mapResult);
 }
 
-function mapResult(profile: CandidateProfileWithCompletion): CandidateSearchResult {
+function mapResult(
+  profile: CandidateProfileWithCompletion,
+): CandidateSearchResult {
   return {
     id: profile.id,
     fullName: profile.fullName,
@@ -161,8 +161,8 @@ export async function inviteToApply(
     redirect("/forbidden");
   }
 
-  const profile = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
   if (!profile || profile.status !== "APPROVED") {
@@ -170,13 +170,14 @@ export async function inviteToApply(
   }
 
   // Verify the job posting belongs to this employer and is APPROVED
-  const posting = await prisma.jobPosting.findFirst({
-    where: {
-      id: jobPostingId,
-      employerId: profile.id,
-      status: "APPROVED",
-      deletedAt: null,
-    },
+  const posting = await db.query.jobPosting.findFirst({
+    where: (p, { and, eq, isNull }) =>
+      and(
+        eq(p.id, jobPostingId),
+        eq(p.employerId, profile.id),
+        eq(p.status, "APPROVED"),
+        isNull(p.deletedAt),
+      ),
   });
 
   if (!posting) {
@@ -187,8 +188,8 @@ export async function inviteToApply(
   }
 
   // Verify candidate exists and is searchable
-  const candidate = await prisma.candidateProfile.findUnique({
-    where: { id: candidateProfileId },
+  const candidate = await db.query.candidateProfile.findFirst({
+    where: (c, { eq }) => eq(c.id, candidateProfileId),
   });
 
   if (!candidate || !candidate.profileVisible) {

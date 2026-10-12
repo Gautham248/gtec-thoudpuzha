@@ -2,9 +2,10 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { jobPosting } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
-import type { JobType, SalaryVisibility } from "@prisma/client";
+import type { JobType, SalaryVisibility } from "@/db/types";
 
 interface ActionResult {
   success: false;
@@ -24,8 +25,8 @@ export async function submitVacancy(
     redirect("/forbidden");
   }
 
-  const profile = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
   if (!profile || profile.status !== "APPROVED") {
@@ -89,21 +90,19 @@ export async function submitVacancy(
 
   const autoPublish = profile.autoPublishTrusted;
 
-  await prisma.jobPosting.create({
-    data: {
-      employerId: profile.id,
-      title,
-      department: department || null,
-      salaryMin,
-      salaryMax,
-      salaryVisibility: vis,
-      jobType: jobType as JobType,
-      skillIds,
-      applicationDeadline: deadline,
-      description,
-      status: autoPublish ? "APPROVED" : "PENDING",
-      autoPublished: autoPublish,
-    },
+  await db.insert(jobPosting).values({
+    employerId: profile.id,
+    title,
+    department: department || null,
+    salaryMin,
+    salaryMax,
+    salaryVisibility: vis,
+    jobType: jobType as JobType,
+    skillIds,
+    applicationDeadline: deadline,
+    description,
+    status: autoPublish ? "APPROVED" : "PENDING",
+    autoPublished: autoPublish,
   });
 
   redirect("/portal/employer");

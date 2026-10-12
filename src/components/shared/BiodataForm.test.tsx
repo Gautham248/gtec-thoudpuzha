@@ -9,14 +9,6 @@ import {
 import type { PublicCourse } from "@/lib/courses";
 import type { SkillDto } from "@/lib/skills";
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    candidateProfile: {
-      findMany: vi.fn(),
-    },
-  },
-}));
-
 const mockCourses: PublicCourse[] = [
   {
     id: "c1",

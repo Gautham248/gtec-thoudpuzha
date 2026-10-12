@@ -1,86 +1,54 @@
-import { describe, expect, test, afterAll } from "vitest";
-import { prisma } from "@/lib/db";
+// @vitest-environment node
+// The (jobPostingId, candidateProfileId) unique constraint on Application,
+// checked against an in-memory Postgres (never the real database).
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { application } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  insertJobPosting,
+  insertStudentProfile,
+} from "@/__tests__/pg-fixtures";
 
-const hasDb = !!process.env.DATABASE_URL && process.env.SKIP_DB_TESTS !== "true";
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
 
-afterAll(async () => {
-  if (hasDb) {
-    await prisma.$disconnect();
-  }
-});
+const pg = db as unknown as TestDb;
 
-describe.skipIf(!hasDb)("Application DB-level unique constraint", () => {
+beforeEach(() => truncateAll(pg));
+
+describe("Application DB-level unique constraint", () => {
   test("1. prevents duplicate Application on the same (candidateProfileId, jobPostingId)", async () => {
-    // Create a user as EMPLOYER (needed for JobPosting FK)
-    const empUserId = `test-unique-emp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const _employerUser = await prisma.user.create({
-      data: { id: empUserId, role: "EMPLOYER" },
-    });
-    const employer = await prisma.employerProfile.create({
-      data: {
-        userId: empUserId,
-        companyName: "Unique Test Co",
-        industrySector: "IT_SOFTWARE",
-        contactPersonName: "Test",
-        designation: "HR",
-        phone: "9999999999",
-        email: "unique@test.com",
-        companyAddress: "Test",
-        employeeCountRange: "RANGE_1_10",
-        aboutCompany: "Test",
-      },
-    });
+    const posting = await insertJobPosting(pg);
+    const candidate = await insertStudentProfile(pg);
 
-    // Create a job posting
-    const jobPosting = await prisma.jobPosting.create({
-      data: {
-        employerId: employer.id,
-        title: "Unique Constraint Test Job",
-        jobType: "FULL_TIME",
-        applicationDeadline: new Date("2026-12-31"),
-        description: "Test",
-        status: "APPROVED",
-      },
-    });
-
-    // Create a candidate user + profile
-    const candUserId = `test-unique-cand-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    await prisma.user.create({
-      data: { id: candUserId, role: "STUDENT" },
-    });
-    const candidate = await prisma.candidateProfile.create({
-      data: { userId: candUserId },
-    });
-
-    // First application — should succeed
-    const first = await prisma.application.create({
-      data: {
-        jobPostingId: jobPosting.id,
-        candidateProfileId: candidate.id,
-      },
-    });
+    const [first] = await pg
+      .insert(application)
+      .values({ jobPostingId: posting.id, candidateProfileId: candidate.id })
+      .returning();
     expect(first.id).toBeTruthy();
     expect(first.status).toBe("APPLIED");
-    expect(first.appliedAt).toBeTruthy();
+    expect(first.appliedAt).toBeInstanceOf(Date);
 
-    // Second application with same pair — must throw unique constraint violation
     await expect(
-      prisma.application.create({
-        data: {
-          jobPostingId: jobPosting.id,
-          candidateProfileId: candidate.id,
-        },
-      }),
+      pg
+        .insert(application)
+        .values({ jobPostingId: posting.id, candidateProfileId: candidate.id }),
     ).rejects.toThrow();
+    expect(await pg.$count(application)).toBe(1);
+  });
 
-    // Cleanup (reverse order to respect FKs)
-    await prisma.application.deleteMany({
-      where: { candidateProfileId: candidate.id },
-    });
-    await prisma.candidateProfile.delete({ where: { id: candidate.id } });
-    await prisma.user.delete({ where: { id: candUserId } });
-    await prisma.jobPosting.delete({ where: { id: jobPosting.id } });
-    await prisma.employerProfile.delete({ where: { id: employer.id } });
-    await prisma.user.delete({ where: { id: empUserId } });
+  test("the same candidate may apply to different postings", async () => {
+    const candidate = await insertStudentProfile(pg);
+    const a = await insertJobPosting(pg);
+    const b = await insertJobPosting(pg);
+
+    await pg.insert(application).values([
+      { jobPostingId: a.id, candidateProfileId: candidate.id },
+      { jobPostingId: b.id, candidateProfileId: candidate.id },
+    ]);
+
+    expect(await pg.$count(application)).toBe(2);
   });
 });

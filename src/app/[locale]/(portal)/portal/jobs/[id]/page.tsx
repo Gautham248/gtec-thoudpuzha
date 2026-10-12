@@ -1,12 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { getJobDetail } from "@/lib/jobs";
 import { isProfileComplete } from "@/lib/biodata";
 import { getSkillsByIds } from "@/lib/skills";
-import type { JobType as _JobType } from "@prisma/client";
+import type { JobType as _JobType } from "@/db/types";
 import { ApplyButton } from "./apply-button";
 
 interface PageProps {
@@ -27,14 +27,19 @@ export default async function JobDetailPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: "jobDetail" });
   const jt = await getTranslations({ locale, namespace: "jobType" });
   const eit = await getTranslations({ locale, namespace: "industry" });
-  const ect = await getTranslations({ locale, namespace: "employeeCountLabel" });
+  const ect = await getTranslations({
+    locale,
+    namespace: "employeeCountLabel",
+  });
 
   const job = await getJobDetail(id);
   if (!job) notFound();
 
   const [skills, profile] = await Promise.all([
     getSkillsByIds(job.skillIds),
-    prisma.candidateProfile.findUnique({ where: { userId: session.userId } }),
+    db.query.candidateProfile.findFirst({
+      where: (p, { eq }) => eq(p.userId, session.userId!),
+    }),
   ]);
 
   let alreadyApplied = false;
@@ -49,13 +54,10 @@ export default async function JobDetailPage({ params }: PageProps) {
     profileComplete = completionInfo;
 
     if (profileComplete) {
-      const existing = await prisma.application.findUnique({
-        where: {
-          jobPostingId_candidateProfileId: {
-            jobPostingId: id,
-            candidateProfileId: profile.id,
-          },
-        },
+      const existing = await db.query.application.findFirst({
+        where: (a, { and, eq }) =>
+          and(eq(a.jobPostingId, id), eq(a.candidateProfileId, profile.id)),
+        columns: { id: true },
       });
       alreadyApplied = !!existing;
     }
@@ -64,9 +66,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   const salaryDisplay =
     job.salaryVisibility === "DISCLOSE" && job.salaryMin
       ? `₹${job.salaryMin.toLocaleString("en-IN")}${
-          job.salaryMax
-            ? ` - ₹${job.salaryMax.toLocaleString("en-IN")}`
-            : "+"
+          job.salaryMax ? ` - ₹${job.salaryMax.toLocaleString("en-IN")}` : "+"
         }`
       : t("salaryDisclosed");
 
@@ -119,12 +119,16 @@ export default async function JobDetailPage({ params }: PageProps) {
 
       <div className="mb-8">
         <h2 className="mb-2 text-xl font-semibold">{t("aboutRole")}</h2>
-        <div className="whitespace-pre-wrap text-foreground">{job.description}</div>
+        <div className="whitespace-pre-wrap text-foreground">
+          {job.description}
+        </div>
       </div>
 
       {job.employer.aboutCompany && (
         <div className="mb-8">
-          <h2 className="mb-2 text-xl font-semibold">{t("aboutCompany", { name: job.employer.companyName })}</h2>
+          <h2 className="mb-2 text-xl font-semibold">
+            {t("aboutCompany", { name: job.employer.companyName })}
+          </h2>
           <p className="text-foreground">{job.employer.aboutCompany}</p>
         </div>
       )}

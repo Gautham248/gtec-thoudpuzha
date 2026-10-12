@@ -3,12 +3,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { candidateProfile } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
-import type {
-  EducationalQualification,
-  PreferredJobType,
-} from "@prisma/client";
+import type { EducationalQualification, PreferredJobType } from "@/db/types";
 import type { CandidateProfileWithCompletion } from "@/lib/biodata";
 
 export type BiodataFormData = {
@@ -42,46 +40,30 @@ export async function saveBiodata(data: BiodataFormData) {
     throw new Error("Forbidden");
   }
 
-  const profile = await prisma.candidateProfile.upsert({
-    where: { userId: session.userId },
-    update: {
-      fullName: data.fullName ?? null,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-      phone: data.phone ?? null,
-      email: data.email ?? null,
-      courseCompletedIds: data.courseCompletedIds,
-      certificationIds: data.certificationIds,
-      educationalQualification: data.educationalQualification ?? null,
-      yearOfPassing: data.yearOfPassing ?? null,
-      address: data.address ?? null,
-      languagesKnown: data.languagesKnown,
-      skillIds: data.skillIds,
-      preferredJobLocation: data.preferredJobLocation ?? null,
-      preferredJobType: data.preferredJobType ?? null,
-      careerObjective: data.careerObjective ?? null,
-      photoUrl: data.photoUrl ?? null,
-      profileVisible: data.profileVisible ?? true,
-    },
-    create: {
-      userId: session.userId,
-      fullName: data.fullName ?? null,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-      phone: data.phone ?? null,
-      email: data.email ?? null,
-      courseCompletedIds: data.courseCompletedIds,
-      certificationIds: data.certificationIds,
-      educationalQualification: data.educationalQualification ?? null,
-      yearOfPassing: data.yearOfPassing ?? null,
-      address: data.address ?? null,
-      languagesKnown: data.languagesKnown,
-      skillIds: data.skillIds,
-      preferredJobLocation: data.preferredJobLocation ?? null,
-      preferredJobType: data.preferredJobType ?? null,
-      careerObjective: data.careerObjective ?? null,
-      photoUrl: data.photoUrl ?? null,
-      profileVisible: data.profileVisible ?? true,
-    },
-  });
+  const fields = {
+    fullName: data.fullName ?? null,
+    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+    phone: data.phone ?? null,
+    email: data.email ?? null,
+    courseCompletedIds: data.courseCompletedIds,
+    certificationIds: data.certificationIds,
+    educationalQualification: data.educationalQualification ?? null,
+    yearOfPassing: data.yearOfPassing ?? null,
+    address: data.address ?? null,
+    languagesKnown: data.languagesKnown,
+    skillIds: data.skillIds,
+    preferredJobLocation: data.preferredJobLocation ?? null,
+    preferredJobType: data.preferredJobType ?? null,
+    careerObjective: data.careerObjective ?? null,
+    photoUrl: data.photoUrl ?? null,
+    profileVisible: data.profileVisible ?? true,
+  };
+
+  const [profile] = await db
+    .insert(candidateProfile)
+    .values({ userId: session.userId, ...fields })
+    .onConflictDoUpdate({ target: candidateProfile.userId, set: fields })
+    .returning();
 
   return profile;
 }
@@ -120,8 +102,8 @@ export async function getCurrentProfile(): Promise<CandidateProfileWithCompletio
   const session = await auth();
   if (!session.userId) return null;
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
   });
 
   if (!profile) return null;

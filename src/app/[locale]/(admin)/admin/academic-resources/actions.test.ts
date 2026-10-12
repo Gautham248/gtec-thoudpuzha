@@ -1,14 +1,19 @@
 // @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { db } from "@/db";
-import { academicResource, auditLogEntry } from "@/db/schema";
+import {
+  academicResource,
+  auditLogEntry,
+  studentCourseEnrollment,
+} from "@/db/schema";
 import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
-import { insertCourse } from "@/__tests__/pg-fixtures";
+import {
+  insertCourse,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
-const mockFindManyCourses = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -20,31 +25,11 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
-// Admin actions write through Drizzle (in-memory Postgres here); the
-// student-facing ResourceList below still reads through Prisma until the
-// portal moves to Drizzle.
 vi.mock("@/db", async () => ({
   db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
 
 const pg = db as unknown as TestDb;
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    academicResource: {
-      findMany: mockFindMany,
-    },
-    studentCourseEnrollment: {
-      findMany: mockFindMany,
-    },
-    candidateProfile: {
-      findUnique: mockFindUnique,
-    },
-    course: {
-      findMany: mockFindManyCourses,
-    },
-  },
-}));
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -161,97 +146,61 @@ vi.mock("next/link", () => ({
 }));
 
 describe("ResourceList — student-facing course-scoped retrieval", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockFindMany.mockReset();
-    mockFindUnique.mockReset();
-    mockFindManyCourses.mockReset();
+    await truncateAll(pg);
   });
 
-  test("2. a student enrolled in Course A sees Course A's notes but NOT Course B's notes", async () => {
+  async function student(userId: string) {
+    await insertUser(pg, { id: userId, role: "STUDENT" });
     mockAuth.mockResolvedValue({
-      userId: "student_1",
+      userId,
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
+    return insertStudentProfile(pg, { userId });
+  }
 
-    mockFindUnique.mockResolvedValue({ id: "profile_1" });
-
-    // Student is enrolled in Course A and Course B
-    mockFindMany
-      .mockResolvedValueOnce([
-        { courseId: "course_a" },
-        { courseId: "course_b" },
-      ]) // enrollments
-      .mockResolvedValueOnce([
-        {
-          id: "res_a1",
-          courseId: "course_a",
-          type: "NOTE",
-          title: "Course A Notes 1",
-          fileUrl: null,
-          uploadedAt: new Date(),
-          createdAt: new Date(),
-          course: { titleEn: "Course A" },
-        },
-        {
-          id: "res_a2",
-          courseId: "course_a",
-          type: "NOTE",
-          title: "Course A Notes 2",
-          fileUrl: null,
-          uploadedAt: new Date(),
-          createdAt: new Date(),
-          course: { titleEn: "Course A" },
-        },
-      ]); // resources — only Course A's notes
-
-    mockFindManyCourses.mockResolvedValue([
-      { id: "course_a", titleEn: "Course A" },
-      { id: "course_b", titleEn: "Course B" },
-    ]);
-
+  const renderList = async () => {
     const { ResourceList } =
       await import("@/app/[locale]/(portal)/portal/student/resources/resource-list");
-
     const { renderToString } = await import("react-dom/server");
-    const element = await ResourceList({
-      type: "NOTE",
-      title: "Study Notes",
-      locale: "en",
-    });
-    const html = renderToString(element);
+    return renderToString(
+      await ResourceList({ type: "NOTE", title: "Study Notes", locale: "en" }),
+    );
+  };
 
-    // Course A's notes appear
+  test("2. a student enrolled in Course A sees Course A's notes but NOT Course B's notes", async () => {
+    const profile = await student("student_1");
+    const courseA = await insertCourse(pg, { titleEn: "Course A" });
+    const courseB = await insertCourse(pg, { titleEn: "Course B" });
+    await pg
+      .insert(studentCourseEnrollment)
+      .values({ studentProfileId: profile.id, courseId: courseA.id });
+    await pg.insert(academicResource).values([
+      { courseId: courseA.id, type: "NOTE", title: "Course A Notes 1" },
+      { courseId: courseA.id, type: "NOTE", title: "Course A Notes 2" },
+      {
+        courseId: courseA.id,
+        type: "LECTURE",
+        title: "Course A Lecture",
+        embedUrl: "https://youtu.be/x",
+      },
+      { courseId: courseB.id, type: "NOTE", title: "Course B Notes" },
+    ]);
+
+    const html = await renderList();
+
     expect(html).toContain("Course A Notes 1");
     expect(html).toContain("Course A Notes 2");
     expect(html).toContain("Course A");
-
-    // Course B's resources are never shown — the component skips courses
-    // with zero matching resources.
-    expect(html).not.toContain("Course B Notes");
+    expect(html).not.toContain("Course A Lecture"); // other resource type
+    expect(html).not.toContain("Course B Notes"); // not enrolled
   });
 
   test("3. a student with zero course enrollments sees an empty state, not an error", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_2",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
+    await student("student_2");
 
-    mockFindUnique.mockResolvedValue({ id: "profile_2" });
-
-    // No enrollments
-    mockFindMany.mockResolvedValue([]);
-
-    const { ResourceList } =
-      await import("@/app/[locale]/(portal)/portal/student/resources/resource-list");
-
-    const { renderToString } = await import("react-dom/server");
-    const element = await ResourceList({
-      type: "NOTE",
-      title: "Study Notes",
-      locale: "en",
-    });
-    const html = renderToString(element);
+    const html = await renderList();
 
     expect(html).toContain("Study Notes");
     expect(html).toContain("aren&#x27;t enrolled");

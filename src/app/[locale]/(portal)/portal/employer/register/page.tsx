@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { RegistrationForm } from "./registration-form";
 
@@ -15,8 +15,8 @@ export default async function EmployerRegisterPage() {
     redirect("/forbidden");
   }
 
-  const existing = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const existing = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
   if (existing) {
