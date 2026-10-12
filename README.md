@@ -79,10 +79,20 @@ src/
 │   └── (admin)/       # Admin routes (Super Admin & Centre Staff)
 ├── components/
 │   └── ui/            # shadcn/ui components
+├── db/                # Drizzle schema, relations, client and seed
+├── server/
+│   ├── trpc.ts        # tRPC procedure builders (role / permission checks)
+│   ├── form.ts        # zod helpers that parse <form> FormData
+│   ├── action.ts      # api() caller + run() used by Server Actions
+│   └── routers/       # admin.*, portal.*, public.* procedures (all mutation logic)
 ├── lib/
 │   └── utils.ts       # shadcn/ui utility
 └── __tests__/         # Vitest smoke tests
 ```
+
+Each `actions.ts` Server Action is a thin wrapper: pages post plain `<form>`s
+to it, and it calls the matching tRPC procedure through `api()`. Put new
+mutation logic in a router under `src/server/routers/`, not in the action.
 
 ## Deployment
 

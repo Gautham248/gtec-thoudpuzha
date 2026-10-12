@@ -1,159 +1,24 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { requirePermission, StaffPermissionKeys } from "@/lib/auth";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { jobPosting } from "@/db/schema";
-import { expectRow } from "@/db/helpers";
-import { logAdminAction } from "@/lib/audit";
-import { sendJobPostingModerationNotification } from "@/lib/email";
-
-/** Update a posting (failing if it doesn't exist) and return it with its employer. */
-async function updatePosting(
-  postingId: string,
-  data: Partial<typeof jobPosting.$inferInsert>,
-) {
-  expectRow(
-    await db
-      .update(jobPosting)
-      .set(data)
-      .where(eq(jobPosting.id, postingId))
-      .returning({ id: jobPosting.id }),
-    "Job posting",
-  );
-  const posting = await db.query.jobPosting.findFirst({
-    where: (p, { eq }) => eq(p.id, postingId),
-    with: { employer: true },
-  });
-  return posting!;
-}
-
-function localeFromFormData(formData: FormData): string {
-  return (formData.get("locale") as string) || "en";
-}
+import { api, run, toForbidden as forbidden } from "@/server/action";
 
 export async function approveJobPosting(formData: FormData) {
-  const authResult = await requirePermission(
-    StaffPermissionKeys.canApproveJobPostings,
+  await run(
+    () => api().admin.jobPostings.approve(formData),
+    forbidden(formData),
   );
-  if (!authResult.authorized) {
-    redirect(`/${localeFromFormData(formData)}/forbidden`);
-  }
-
-  const postingId = formData.get("postingId") as string;
-  if (!postingId) throw new Error("postingId is required");
-
-  const posting = await updatePosting(postingId, { status: "APPROVED" });
-
-  await logAdminAction({
-    actorUserId: authResult.userId,
-    actorRole: authResult.role,
-    action: "jobPosting.approve",
-    entityType: "JobPosting",
-    entityId: posting.id,
-    metadata: {
-      title: posting.title,
-      companyName: posting.employer.companyName,
-    },
-  });
-
-  await sendJobPostingModerationNotification({
-    jobTitle: posting.title,
-    companyName: posting.employer.companyName,
-    employerEmail: posting.employer.email,
-    status: "APPROVED",
-  });
-
-  revalidatePath(`/${localeFromFormData(formData)}/admin/job-postings`);
 }
 
 export async function rejectJobPosting(formData: FormData) {
-  const authResult = await requirePermission(
-    StaffPermissionKeys.canApproveJobPostings,
+  await run(
+    () => api().admin.jobPostings.reject(formData),
+    forbidden(formData),
   );
-  if (!authResult.authorized) {
-    redirect(`/${localeFromFormData(formData)}/forbidden`);
-  }
-
-  const postingId = formData.get("postingId") as string;
-  const rejectionReason = formData.get("rejectionReason") as string;
-
-  if (!postingId) throw new Error("postingId is required");
-  if (!rejectionReason?.trim()) {
-    throw new Error("rejectionReason is required");
-  }
-
-  const posting = await updatePosting(postingId, {
-    status: "REJECTED",
-    rejectionReason: rejectionReason.trim(),
-  });
-
-  await logAdminAction({
-    actorUserId: authResult.userId,
-    actorRole: authResult.role,
-    action: "jobPosting.reject",
-    entityType: "JobPosting",
-    entityId: posting.id,
-    metadata: { title: posting.title, rejectionReason: rejectionReason.trim() },
-  });
-
-  await sendJobPostingModerationNotification({
-    jobTitle: posting.title,
-    companyName: posting.employer.companyName,
-    employerEmail: posting.employer.email,
-    status: "REJECTED",
-    rejectionReason: rejectionReason.trim(),
-  });
-
-  revalidatePath(`/${localeFromFormData(formData)}/admin/job-postings`);
 }
 
 export async function editAndApproveJobPosting(formData: FormData) {
-  const authResult = await requirePermission(
-    StaffPermissionKeys.canApproveJobPostings,
+  await run(
+    () => api().admin.jobPostings.editAndApprove(formData),
+    forbidden(formData),
   );
-  if (!authResult.authorized) {
-    redirect(`/${localeFromFormData(formData)}/forbidden`);
-  }
-
-  const postingId = formData.get("postingId") as string;
-  if (!postingId) throw new Error("postingId is required");
-
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const department = formData.get("department") as string;
-  const salaryMin = formData.get("salaryMin") as string;
-  const salaryMax = formData.get("salaryMax") as string;
-
-  const data: Partial<typeof jobPosting.$inferInsert> = { status: "APPROVED" };
-  if (title?.trim()) data.title = title.trim();
-  if (description?.trim()) data.description = description.trim();
-  if (department?.trim()) data.department = department.trim();
-  if (salaryMin) data.salaryMin = parseInt(salaryMin, 10);
-  if (salaryMax) data.salaryMax = parseInt(salaryMax, 10);
-
-  const posting = await updatePosting(postingId, data);
-
-  await logAdminAction({
-    actorUserId: authResult.userId,
-    actorRole: authResult.role,
-    action: "jobPosting.editAndApprove",
-    entityType: "JobPosting",
-    entityId: posting.id,
-    metadata: {
-      title: posting.title,
-      editedFields: Object.keys(data).filter((k) => k !== "status"),
-    },
-  });
-
-  await sendJobPostingModerationNotification({
-    jobTitle: posting.title,
-    companyName: posting.employer.companyName,
-    employerEmail: posting.employer.email,
-    status: "APPROVED",
-  });
-
-  revalidatePath(`/${localeFromFormData(formData)}/admin/job-postings`);
 }
