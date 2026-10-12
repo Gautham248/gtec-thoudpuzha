@@ -12,7 +12,7 @@ import * as privacyPage from "../privacy/page";
 import * as termsPage from "../terms/page";
 
 describe("Public route rendering strategy audit", () => {
-  test("/ (homepage) is dynamic (no revalidate — Prisma/Neon incompatible with ISR)", () => {
+  test("/ (homepage) is dynamic (no revalidate — reads the database per request)", () => {
     expect((homePage as { revalidate?: number }).revalidate).toBeUndefined();
   });
 

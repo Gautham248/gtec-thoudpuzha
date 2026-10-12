@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { application } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { isProfileComplete } from "@/lib/biodata";
+import { withProfileLists } from "@/db/helpers";
 
 export async function applyToJob(
   formData: FormData,
@@ -29,7 +30,7 @@ export async function applyToJob(
   if (!profile) return { error: "Complete your profile to apply" };
   if (
     !isProfileComplete({
-      ...profile,
+      ...withProfileLists(profile),
       isVerifiedStudent: profile.isVerifiedStudent,
       studentRecordId: profile.studentRecordId,
     })

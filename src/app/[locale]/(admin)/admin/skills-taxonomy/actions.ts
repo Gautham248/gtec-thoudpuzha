@@ -83,7 +83,7 @@ export async function mergeSkill(formData: FormData) {
       for (const profile of candidateProfiles) {
         await tx
           .update(candidateProfile)
-          .set({ skillIds: repoint(profile.skillIds) })
+          .set({ skillIds: repoint(profile.skillIds ?? []) })
           .where(eq(candidateProfile.id, profile.id));
       }
 
@@ -94,7 +94,7 @@ export async function mergeSkill(formData: FormData) {
       for (const posting of jobPostings) {
         await tx
           .update(jobPosting)
-          .set({ skillIds: repoint(posting.skillIds) })
+          .set({ skillIds: repoint(posting.skillIds ?? []) })
           .where(eq(jobPosting.id, posting.id));
       }
 

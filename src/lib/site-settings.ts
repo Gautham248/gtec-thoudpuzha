@@ -11,7 +11,7 @@ export type SiteSettingsWithCards = SiteSettings & {
 
 export { pickLocalizedText, type Locale };
 
-// Mirrors prisma/seed.ts SiteSettings values so a degraded render (missing row or
+// Mirrors the SiteSettings values in src/db/seed/run.ts so a degraded render (missing row or
 // transient DB error) shows the same numbers as a freshly-seeded production DB.
 const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   id: "default",

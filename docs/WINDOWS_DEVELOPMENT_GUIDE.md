@@ -38,7 +38,7 @@ docker compose up
 
 ### What Happens Automatically:
 1. **PostgreSQL Container (`gtec_postgres_dev`)** starts on `localhost:5432`.
-2. **Database Schema Sync**: Prisma pushes all tables and relations.
+2. **Database Schema**: on an empty database, `drizzle-kit migrate` creates all tables and relations from `drizzle/`. An existing database is left untouched.
 3. **Database Seeding**: Sample courses, news, students, job postings, and site settings are populated automatically.
 4. **Next.js Dev Server** starts on **`http://localhost:3000`** with live hot-reloading enabled.
 

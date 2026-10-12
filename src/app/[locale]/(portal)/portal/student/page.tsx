@@ -49,7 +49,7 @@ export default async function StudentDashboardPage({ params }: PageProps) {
     columns: { courseCompletedIds: true },
   });
 
-  const hasLinkedCourse = profile && profile.courseCompletedIds.length > 0;
+  const hasLinkedCourse = (profile?.courseCompletedIds?.length ?? 0) > 0;
 
   if (!hasLinkedCourse) {
     return <EmptyState t={t} />;

@@ -190,7 +190,7 @@ export default async function StudentDetailPage({
                   Languages Known
                 </span>
                 <span className="text-foreground break-words">
-                  {candidate.languagesKnown.join(", ") || "—"}
+                  {(candidate.languagesKnown ?? []).join(", ") || "—"}
                 </span>
               </div>
             </div>

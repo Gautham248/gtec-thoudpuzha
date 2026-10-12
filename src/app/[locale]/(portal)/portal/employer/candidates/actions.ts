@@ -7,6 +7,7 @@ import { getSearchableCandidates } from "@/lib/biodata-search";
 import { isProfileComplete as _isProfileComplete } from "@/lib/biodata";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import type { CandidateProfileWithCompletion } from "@/lib/biodata";
+import { withProfileLists } from "@/db/helpers";
 
 export interface CandidateSearchFilters {
   courseCompletedIds?: string[];
@@ -198,7 +199,7 @@ export async function inviteToApply(
 
   const { isProfileComplete } = await import("@/lib/biodata");
   const wrapped: CandidateProfileWithCompletion = {
-    ...candidate,
+    ...withProfileLists(candidate),
     isVerifiedStudent: candidate.isVerifiedStudent,
     studentRecordId: candidate.studentRecordId,
   };

@@ -5,6 +5,7 @@ import { BiodataForm } from "@/components/shared/BiodataForm";
 import { getPublishedCourses } from "@/lib/courses";
 import { getApprovedSkills, createPENDINGSkill } from "@/lib/skills";
 import { submitBiodataForm } from "./actions";
+import { withProfileLists } from "@/db/helpers";
 
 export default async function BiodataPage() {
   const session = await auth();
@@ -26,7 +27,7 @@ export default async function BiodataPage() {
 
   const profileWithCompletion = profile
     ? {
-        ...profile,
+        ...withProfileLists(profile),
         isVerifiedStudent,
         studentRecordId: profile.studentRecordId,
       }

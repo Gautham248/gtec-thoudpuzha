@@ -1,5 +1,6 @@
 import type { CandidateProfileWithCompletion } from "./biodata";
 import { isProfileComplete } from "./biodata";
+import { withProfileLists } from "@/db/helpers";
 
 /**
  * Returns searchable CandidateProfiles — those with profileVisible=true AND
@@ -15,6 +16,7 @@ export async function getSearchableCandidates(): Promise<
   });
 
   return profiles
+    .map(withProfileLists)
     .filter((p) => {
       const wrapped: CandidateProfileWithCompletion = {
         ...p,

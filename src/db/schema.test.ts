@@ -2,149 +2,153 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { getTableConfig, isPgEnum, PgTable } from "drizzle-orm/pg-core";
+import { PGlite } from "@electric-sql/pglite";
+import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import {
   createTableRelationsHelpers,
   extractTablesRelationalConfig,
   is,
+  One,
 } from "drizzle-orm";
 import * as schema from "./schema";
 import * as relations from "./relations";
 
-// Guards the Prisma → Drizzle switch: while both schemas exist, the Drizzle one
-// must describe exactly the tables Prisma does, including Prisma's client-side
-// defaults (cuid ids, @updatedAt) that the database itself doesn't know about.
+// Guards src/db/schema.ts against drifting from the committed migrations in
+// drizzle/ (run `npm run db:generate` after changing the schema), and keeps the
+// client-side defaults the database itself doesn't know about. Everything runs
+// on in-memory Postgres; no real database is touched.
 
-interface PrismaField {
-  name: string;
-  type: string;
-  optional: boolean;
-  list: boolean;
-  cuid: boolean;
-  updatedAt: boolean;
-}
+const tables = (Object.values(schema) as unknown[])
+  .filter((v): v is PgTable => is(v, PgTable))
+  .map((t) => getTableConfig(t));
 
-const prismaSource = readFileSync(
-  join(process.cwd(), "prisma", "schema.prisma"),
-  "utf8",
-);
+const CATALOG: Record<string, string> = {
+  columns: `select table_name, column_name, data_type, udt_name, is_nullable,
+                   coalesce(column_default, '') as column_default
+            from information_schema.columns where table_schema = 'public' order by 1, 2`,
+  enums: `select t.typname, string_agg(e.enumlabel, ',' order by e.enumsortorder) as labels
+          from pg_type t join pg_enum e on e.enumtypid = t.oid group by 1 order by 1`,
+  indexes: `select tablename, indexname, regexp_replace(indexdef, '\\s+', ' ', 'g') as def
+            from pg_indexes where schemaname = 'public' order by 1, 2`,
+  constraints: `select conrelid::regclass::text as tbl, conname, pg_get_constraintdef(oid) as def
+                from pg_constraint where connamespace = 'public'::regnamespace order by 1, 2`,
+};
 
-function parseBlocks(kind: "model" | "enum"): Map<string, string[]> {
-  const blocks = new Map<string, string[]>();
-  const re = new RegExp(`^${kind} (\\w+) \\{([\\s\\S]*?)^\\}`, "gm");
-  for (const m of prismaSource.matchAll(re)) {
-    const lines = m[2]
-      .split(/\r?\n/)
-      .map((l) => l.replace(/\/\/.*$/, "").trim())
-      .filter((l) => l && !l.startsWith("@@"));
-    blocks.set(m[1], lines);
+async function catalog(db: PGlite) {
+  const result: Record<string, unknown[]> = {};
+  for (const [name, query] of Object.entries(CATALOG)) {
+    result[name] = (await db.query(query)).rows;
   }
-  return blocks;
+  return result;
 }
 
-const prismaEnums = parseBlocks("enum");
-const prismaModels = new Map(
-  [...parseBlocks("model")].map(([name, lines]) => [
-    name,
-    lines.map((line): PrismaField => {
-      const [fieldName, rawType] = line.split(/\s+/);
-      return {
-        name: fieldName,
-        type: rawType.replace(/[[\]?]/g, ""),
-        optional: rawType.endsWith("?"),
-        list: rawType.endsWith("[]"),
-        cuid: line.includes("cuid()"),
-        updatedAt: line.includes("@updatedAt"),
-      };
-    }),
-  ]),
-);
-
-const SCALARS = new Set(["String", "Int", "Boolean", "DateTime", "Json"]);
-const isColumn = (f: PrismaField) => SCALARS.has(f.type) || prismaEnums.has(f.type);
-
-const drizzleTables = new Map(
-  Object.values(schema)
-    .flatMap((v) => (is(v, PgTable) ? [getTableConfig(v)] : []))
-    .map((config) => [config.name, config]),
-);
-
-const drizzleEnums = new Map(
-  Object.values(schema)
-    .flatMap((v) => (isPgEnum(v) ? [[v.enumName, [...v.enumValues]] as const] : [])),
-);
-
-describe("Drizzle schema matches prisma/schema.prisma", () => {
-  test("has the same tables", () => {
-    expect([...drizzleTables.keys()].sort()).toEqual([...prismaModels.keys()].sort());
-  });
-
-  test("has the same enums and values", () => {
-    expect([...drizzleEnums.keys()].sort()).toEqual([...prismaEnums.keys()].sort());
-    for (const [name, lines] of prismaEnums) {
-      expect(drizzleEnums.get(name), name).toEqual(lines.map((l) => l.split(/\s+/)[0]));
+async function fromMigrations() {
+  const dir = join(process.cwd(), "drizzle");
+  const journal = JSON.parse(
+    readFileSync(join(dir, "meta", "_journal.json"), "utf8"),
+  ) as {
+    entries: { tag: string }[];
+  };
+  const db = new PGlite();
+  for (const { tag } of journal.entries) {
+    const migration = readFileSync(join(dir, `${tag}.sql`), "utf8");
+    for (const statement of migration.split("--> statement-breakpoint")) {
+      if (statement.trim()) await db.exec(statement);
     }
-  });
+  }
+  return db;
+}
 
-  describe.each([...prismaModels.keys()])("%s", (model) => {
-    const fields = prismaModels.get(model)!.filter(isColumn);
-    const table = drizzleTables.get(model)!;
-    const columns = new Map(table.columns.map((c) => [c.name, c]));
+async function fromSchema() {
+  const { generateDrizzleJson, generateMigration } =
+    await import("drizzle-kit/api");
+  const ddl = await generateMigration(
+    generateDrizzleJson({}),
+    generateDrizzleJson(schema),
+  );
+  const db = new PGlite();
+  for (const statement of ddl) await db.exec(statement);
+  return db;
+}
 
-    test("has the same columns", () => {
-      expect([...columns.keys()].sort()).toEqual(fields.map((f) => f.name).sort());
-    });
+describe("drizzle/ migrations", () => {
+  test("build exactly the database schema.ts describes", async () => {
+    const [migrated, declared] = await Promise.all([
+      fromMigrations(),
+      fromSchema(),
+    ]);
+    try {
+      expect(await catalog(migrated)).toEqual(await catalog(declared));
+    } finally {
+      await Promise.all([migrated.close(), declared.close()]);
+    }
+  }, 120_000);
+});
 
-    test("matches nullability, arrays and enum types", () => {
-      for (const f of fields) {
-        const col = columns.get(f.name)!;
-        // Prisma lists are nullable-free in the client but nullable in SQL.
-        if (!f.list) expect(col.notNull, `${model}.${f.name} notNull`).toBe(!f.optional);
-        expect(col.columnType === "PgArray", `${model}.${f.name} array`).toBe(f.list);
-        if (prismaEnums.has(f.type)) {
-          expect(
-            (col as unknown as { enum: { enumName: string } }).enum.enumName,
-            `${model}.${f.name} enum`,
-          ).toBe(f.type);
-        }
-        if (f.type === "DateTime") {
-          expect(col.dataType, `${model}.${f.name} returns Date`).toBe("date");
-        }
-      }
-    });
+describe("schema.ts client-side defaults", () => {
+  describe.each(tables.map((t) => [t.name, t] as const))(
+    "%s",
+    (_name, table) => {
+      test("generates a cuid for a text primary key `id`", () => {
+        const id = table.columns.find((c) => c.name === "id");
+        // User ids are Clerk user ids, supplied by the caller.
+        if (
+          !id ||
+          !id.primary ||
+          id.columnType !== "PgText" ||
+          table.name === "User"
+        )
+          return;
+        expect(id.defaultFn).toBeTypeOf("function");
+        expect(id.defaultFn!()).toMatch(/^[a-z0-9]{24,}$/);
+      });
 
-    test("keeps Prisma's client-side cuid, list and @updatedAt defaults", () => {
-      for (const f of fields) {
-        const col = columns.get(f.name)!;
-        if (f.cuid) {
-          expect(col.defaultFn, `${model}.${f.name} cuid`).toBeTypeOf("function");
-          expect(col.defaultFn!()).toMatch(/^[a-z0-9]{24,}$/);
-        }
-        if (f.list) {
-          // Prisma always writes an array, so every list column needs a default.
-          expect(col.hasDefault, `${model}.${f.name} list default`).toBe(true);
-        }
-        if (f.updatedAt) {
-          expect(col.onUpdateFn, `${model}.${f.name} onUpdate`).toBeTypeOf("function");
-          expect(col.defaultFn, `${model}.${f.name} default`).toBeTypeOf("function");
-        }
-      }
-    });
-  });
+      test("sets `updatedAt` on insert and update", () => {
+        const updatedAt = table.columns.find((c) => c.name === "updatedAt");
+        if (!updatedAt) return;
+        expect(updatedAt.defaultFn).toBeTypeOf("function");
+        expect(updatedAt.onUpdateFn).toBeTypeOf("function");
+      });
 
-  test("declares a Drizzle relation for every Prisma relation field", () => {
-    const { tables } = extractTablesRelationalConfig(
+      test("defaults every list column to an empty list", () => {
+        for (const col of table.columns.filter(
+          (c) => c.columnType === "PgArray",
+        )) {
+          expect(col.hasDefault, col.name).toBe(true);
+        }
+      });
+
+      test("returns timestamps as Date objects", () => {
+        for (const col of table.columns.filter(
+          (c) => c.columnType === "PgTimestamp",
+        )) {
+          expect(col.dataType, col.name).toBe("date");
+        }
+      });
+    },
+  );
+
+  test("declares a relation for every foreign key", () => {
+    const { tables: config } = extractTablesRelationalConfig(
       { ...schema, ...relations },
       createTableRelationsHelpers,
     );
-    const declared = new Map(
-      Object.values(tables).map((t) => [t.dbName, new Set(Object.keys(t.relations))]),
-    );
+    const byName = new Map(Object.values(config).map((t) => [t.dbName, t]));
 
-    for (const [model, fields] of prismaModels) {
-      for (const f of fields) {
-        if (isColumn(f)) continue;
-        expect(declared.get(model)?.has(f.name), `${model}.${f.name}`).toBe(true);
+    for (const table of tables) {
+      const declared = Object.values(byName.get(table.name)?.relations ?? {});
+      for (const fk of table.foreignKeys) {
+        const ref = fk.reference();
+        const target = getTableConfig(ref.foreignTable).name;
+        const covered = declared.some(
+          (r) =>
+            is(r, One) &&
+            getTableConfig(r.referencedTable).name === target &&
+            (r.config?.fields ?? []).some((f) =>
+              ref.columns.some((c) => c.name === f.name),
+            ),
+        );
+        expect(covered, `${table.name} → ${target}`).toBe(true);
       }
     }
   });

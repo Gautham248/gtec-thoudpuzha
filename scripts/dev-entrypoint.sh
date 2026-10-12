@@ -20,14 +20,20 @@ done
 
 echo "✅ PostgreSQL is ready!"
 
-echo "⚙️ Generating Prisma Client..."
-npx prisma generate
+# psql rejects Prisma-style query params such as ?schema=public.
+PSQL_URL="${DATABASE_URL%%\?*}"
+HAS_SCHEMA=$(psql "$PSQL_URL" -tAc "select to_regclass('public.\"User\"') is not null")
 
-echo "🚀 Syncing database schema with Prisma..."
-npx prisma db push
+if [ "$HAS_SCHEMA" = "t" ]; then
+  # An existing database (possibly created by Prisma) is left exactly as it is.
+  echo "ℹ️ Database already has the schema; skipping migrations and seed."
+else
+  echo "🚀 Creating the database schema (drizzle-kit migrate)..."
+  npm run db:migrate
 
-echo "🌱 Seeding initial database records..."
-npm run db:seed || echo "⚠️ Seeding finished with warnings."
+  echo "🌱 Seeding initial database records..."
+  npm run db:seed || echo "⚠️ Seeding finished with warnings."
+fi
 
 echo "🎉 Environment ready! Starting Next.js dev server on http://localhost:3000..."
 exec npm run dev

@@ -82,7 +82,16 @@ export default async function ApplicantsPage({ params }: PageProps) {
           <p>{t("noApplicants")}</p>
         </div>
       ) : (
-        <ApplicantsList applicants={applicants} postingId={postingId} />
+        <ApplicantsList
+          applicants={applicants.map((a) => ({
+            ...a,
+            candidateProfile: {
+              ...a.candidateProfile,
+              skillIds: a.candidateProfile.skillIds ?? [],
+            },
+          }))}
+          postingId={postingId}
+        />
       )}
     </div>
   );

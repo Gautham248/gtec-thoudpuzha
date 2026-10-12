@@ -85,7 +85,7 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
           description={description}
           categoryName={categoryName}
           durationText={course.durationText}
-          certificationName={course.certifications[0] ?? null}
+          certificationName={(course.certifications ?? [])[0] ?? null}
           coverImageUrl={course.coverImageUrl}
           courseId={course.id}
         />
@@ -99,7 +99,7 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
           courseLists={contentBlocks?.courseLists ?? []}
           benefits={contentBlocks?.benefits}
           durationText={course.durationText}
-          certificationSummary={course.certifications.join(", ") || null}
+          certificationSummary={(course.certifications ?? []).join(", ") || null}
           careerOutcomes={
             locale === "ml" && course.careerOutcomesMl
               ? course.careerOutcomesMl
@@ -113,7 +113,7 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
 
       <CertificationPartnerStrip heading="Our Partners" />
 
-      <CourseCertifications certifications={course.certifications} />
+      <CourseCertifications certifications={(course.certifications ?? [])} />
 
       <CourseCtaBanner courseId={course.id} />
 
@@ -150,13 +150,13 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
                     {course.durationText}
                   </li>
                 )}
-                {course.certifications[0] && (
+                {(course.certifications ?? [])[0] && (
                   <li className="flex items-center gap-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10">
                       <Award className="size-4" aria-hidden="true" />
                     </span>
                     <span className="line-clamp-2">
-                      {course.certifications[0]}
+                      {(course.certifications ?? [])[0]}
                     </span>
                   </li>
                 )}

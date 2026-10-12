@@ -8,6 +8,7 @@ import { isProfileComplete } from "@/lib/biodata";
 import { getSkillsByIds } from "@/lib/skills";
 import type { JobType as _JobType } from "@/db/types";
 import { ApplyButton } from "./apply-button";
+import { withProfileLists } from "@/db/helpers";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -36,7 +37,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   if (!job) notFound();
 
   const [skills, profile] = await Promise.all([
-    getSkillsByIds(job.skillIds),
+    getSkillsByIds(job.skillIds ?? []),
     db.query.candidateProfile.findFirst({
       where: (p, { eq }) => eq(p.userId, session.userId!),
     }),
@@ -47,7 +48,7 @@ export default async function JobDetailPage({ params }: PageProps) {
 
   if (profile) {
     const completionInfo = isProfileComplete({
-      ...profile,
+      ...withProfileLists(profile),
       isVerifiedStudent: profile.isVerifiedStudent,
       studentRecordId: profile.studentRecordId,
     });

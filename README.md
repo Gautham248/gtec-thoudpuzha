@@ -20,8 +20,8 @@ docker compose up
 
 This will automatically:
 1. Start a local PostgreSQL container (`localhost:5432`).
-2. Push the Prisma database schema.
-3. Seed the database with sample courses, news, students, job postings, and site settings.
+2. Create the database schema from the Drizzle migrations in `drizzle/` (only when the database is empty).
+3. Seed the new database with sample courses, news, students, job postings, and site settings.
 4. Launch the Next.js development server at [http://localhost:3000](http://localhost:3000) with hot-reloading enabled.
 
 ---
@@ -39,7 +39,7 @@ If you prefer running Node.js directly on your machine:
 ```bash
 cp .env.example .env.local
 npm install
-npx prisma db push
+npm run db:migrate   # only for a new, empty database
 npm run db:seed
 npm run dev
 ```
@@ -54,6 +54,10 @@ npm run dev
 | `npm run lint` | Run ESLint |
 | `npm test` | Run Vitest tests |
 | `npm run format` | Format code with Prettier |
+| `npm run db:generate` | Write a new SQL migration in `drizzle/` after changing `src/db/schema.ts` |
+| `npm run db:migrate` | Apply pending migrations in `drizzle/` to `DATABASE_URL` |
+| `npm run db:seed` | Seed `DATABASE_URL` with sample data (idempotent) |
+| `npm run db:studio` | Browse the database with Drizzle Studio |
 
 ## Environment Variables
 

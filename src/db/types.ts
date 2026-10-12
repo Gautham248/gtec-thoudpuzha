@@ -1,5 +1,5 @@
-// Row and enum types inferred from the Drizzle schema. Same names and shapes as
-// the `@prisma/client` types they replace.
+// Row and enum types inferred from the Drizzle schema, under the model names
+// the rest of the app uses (CandidateProfile, JobStatus, ...).
 import type * as t from "./schema";
 
 type EnumOf<E extends { enumValues: readonly string[] }> =

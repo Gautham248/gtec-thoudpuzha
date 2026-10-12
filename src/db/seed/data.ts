@@ -1,5 +1,5 @@
 /**
- * Shared seed data used by both prisma/seed.ts and verification tests.
+ * Shared seed data used by both src/db/seed/index.ts and verification tests.
  * This is the single source of truth for what production content should look like.
  */
 

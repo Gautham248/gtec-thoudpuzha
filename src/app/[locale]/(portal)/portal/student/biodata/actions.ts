@@ -8,6 +8,7 @@ import { candidateProfile } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import type { EducationalQualification, PreferredJobType } from "@/db/types";
 import type { CandidateProfileWithCompletion } from "@/lib/biodata";
+import { withProfileLists } from "@/db/helpers";
 
 export type BiodataFormData = {
   fullName?: string;
@@ -109,7 +110,7 @@ export async function getCurrentProfile(): Promise<CandidateProfileWithCompletio
   if (!profile) return null;
 
   return {
-    ...profile,
+    ...withProfileLists(profile),
     isVerifiedStudent: profile.isVerifiedStudent,
     studentRecordId: profile.studentRecordId,
   };

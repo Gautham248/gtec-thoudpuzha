@@ -5,6 +5,7 @@ import { Role, getEffectiveRole } from "@/lib/auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { BiodataPdfDocument } from "@/components/shared/BiodataPdfDocument";
 import type { BiodataPdfData } from "@/components/shared/BiodataPdfDocument";
+import { withProfileLists } from "@/db/helpers";
 
 const QUALIFICATION_LABELS: Record<string, string> = {
   SSLC: "SSLC",
@@ -39,9 +40,10 @@ export async function GET(
   }
 
   // Fetch the candidate profile by its id (candidateId is the profile id)
-  const profile = await db.query.candidateProfile.findFirst({
+  const found = await db.query.candidateProfile.findFirst({
     where: (p, { eq }) => eq(p.id, candidateId),
   });
+  const profile = found ? withProfileLists(found) : undefined;
 
   if (!profile) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });

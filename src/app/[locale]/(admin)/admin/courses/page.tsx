@@ -635,7 +635,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                                 </label>
                                 <input
                                   name="certifications"
-                                  defaultValue={course.certifications.join(
+                                  defaultValue={(course.certifications ?? []).join(
                                     ", ",
                                   )}
                                   className="w-full rounded border border-border px-2 py-1 text-sm"
@@ -900,7 +900,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
                           </label>
                           <input
                             name="certifications"
-                            defaultValue={course.certifications.join(", ")}
+                            defaultValue={(course.certifications ?? []).join(", ")}
                             className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
                           />
                         </div>
