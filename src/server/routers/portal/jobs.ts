@@ -53,10 +53,18 @@ export const jobsRouter = router({
           return { error: "Already applied" };
         }
 
-        await db.insert(application).values({
-          jobPostingId,
-          candidateProfileId: profile.id,
-        });
+        // The unique (jobPostingId, candidateProfileId) index settles a
+        // concurrent double-submit that got past the check above.
+        const inserted = await db
+          .insert(application)
+          .values({ jobPostingId, candidateProfileId: profile.id })
+          .onConflictDoNothing({
+            target: [application.jobPostingId, application.candidateProfileId],
+          })
+          .returning({ id: application.id });
+        if (inserted.length === 0) {
+          return { error: "Already applied" };
+        }
 
         revalidatePath(`/${input.locale}/portal/jobs/${jobPostingId}`);
         return { applied: true };

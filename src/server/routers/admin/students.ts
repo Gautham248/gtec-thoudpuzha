@@ -111,10 +111,15 @@ export const studentsRouter = router({
         throw new Error(`Student ID "${studentId}" already exists`);
       }
 
+      // The unique studentId index settles a concurrent duplicate submit.
       const [record] = await db
         .insert(studentRecord)
         .values({ studentId, fullName, phone, email })
+        .onConflictDoNothing({ target: studentRecord.studentId })
         .returning();
+      if (!record) {
+        throw new Error(`Student ID "${studentId}" already exists`);
+      }
 
       await logAdminAction({
         actorUserId: ctx.userId,
@@ -201,9 +206,20 @@ export const studentsRouter = router({
             continue;
           }
 
-          await db
+          const inserted = await db
             .insert(studentRecord)
-            .values({ studentId, fullName, phone, email });
+            .values({ studentId, fullName, phone, email })
+            .onConflictDoNothing({ target: studentRecord.studentId })
+            .returning({ id: studentRecord.id });
+          if (inserted.length === 0) {
+            results.push({
+              row: rowNumber,
+              studentId,
+              success: false,
+              error: `Duplicate studentId "${studentId}"`,
+            });
+            continue;
+          }
 
           results.push({ row: rowNumber, studentId, success: true });
           createdCount++;

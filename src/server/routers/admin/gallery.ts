@@ -44,29 +44,31 @@ export const galleryRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { nameEn, nameMl } = input;
 
-      // Generate a unique slug
-      let slug = slugFromName(nameEn);
-      const existing = await db.query.galleryCategory.findFirst({
-        where: (c, { eq }) => eq(c.slug, slug),
-        columns: { id: true },
-      });
-      if (existing) {
-        slug = `${slug}-${Date.now()}`;
-      }
-
       const [maxOrder] = await db
         .select({ sortOrder: max(galleryCategory.sortOrder) })
         .from(galleryCategory);
+      const sortOrder = (maxOrder?.sortOrder ?? 0) + 1;
 
-      const [category] = await db
-        .insert(galleryCategory)
-        .values({
-          slug,
-          nameEn,
-          nameMl,
-          sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
-        })
-        .returning();
+      // The unique slug index decides: a slug already taken (even by a
+      // concurrent request) gets a timestamp suffix, then a random one.
+      const base = slugFromName(nameEn);
+      const candidates = [
+        base,
+        `${base}-${Date.now()}`,
+        `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ];
+      let category: typeof galleryCategory.$inferSelect | undefined;
+      for (const slug of candidates) {
+        [category] = await db
+          .insert(galleryCategory)
+          .values({ slug, nameEn, nameMl, sortOrder })
+          .onConflictDoNothing({ target: galleryCategory.slug })
+          .returning();
+        if (category) break;
+      }
+      if (!category) {
+        throw new Error(`Could not find a free slug for "${nameEn}"`);
+      }
 
       await logAdminAction({
         actorUserId: ctx.userId,

@@ -23,7 +23,8 @@ export const courseEnrollmentRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { studentProfileId, courseIds, locale } = input;
+      const { studentProfileId, locale } = input;
+      const courseIds = [...new Set(input.courseIds)];
 
       if (!studentProfileId || courseIds.length === 0) {
         throw new Error(
@@ -31,28 +32,32 @@ export const courseEnrollmentRouter = router({
         );
       }
 
-      const existing = await db.query.studentCourseEnrollment.findMany({
-        where: (e, { and, eq, inArray }) =>
-          and(
-            eq(e.studentProfileId, studentProfileId),
-            inArray(e.courseId, courseIds),
-          ),
-        columns: { courseId: true },
-        with: { course: { columns: { titleEn: true } } },
-      });
+      // The unique (studentProfileId, courseId) index decides what is new, so
+      // an enrollment that already exists — or that a concurrent request just
+      // created — is skipped rather than failing the whole batch.
+      const created = await db
+        .insert(studentCourseEnrollment)
+        .values(courseIds.map((courseId) => ({ studentProfileId, courseId })))
+        .onConflictDoNothing({
+          target: [
+            studentCourseEnrollment.studentProfileId,
+            studentCourseEnrollment.courseId,
+          ],
+        })
+        .returning({ courseId: studentCourseEnrollment.courseId });
 
-      const existingSet = new Set(existing.map((e) => e.courseId));
-      const toCreate = courseIds.filter((id) => !existingSet.has(id));
-      const skipped = existing.map((e) => ({
-        courseId: e.courseId,
-        titleEn: e.course.titleEn,
-      }));
-
-      if (toCreate.length > 0) {
-        await db
-          .insert(studentCourseEnrollment)
-          .values(toCreate.map((courseId) => ({ studentProfileId, courseId })));
-      }
+      const createdSet = new Set(created.map((e) => e.courseId));
+      const toCreate = courseIds.filter((id) => createdSet.has(id));
+      const skippedIds = courseIds.filter((id) => !createdSet.has(id));
+      const skipped =
+        skippedIds.length === 0
+          ? []
+          : (
+              await db.query.course.findMany({
+                where: (c, { inArray }) => inArray(c.id, skippedIds),
+                columns: { id: true, titleEn: true },
+              })
+            ).map((c) => ({ courseId: c.id, titleEn: c.titleEn }));
 
       await logAdminAction({
         actorUserId: ctx.userId,

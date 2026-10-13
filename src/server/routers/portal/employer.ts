@@ -155,12 +155,17 @@ export const employerRouter = router({
       const result = profileValues(input);
       if ("error" in result) return result.error;
 
-      await db.insert(employerProfile).values({
-        ...result.values,
-        userId: session.userId,
-        status: "PENDING",
-        autoPublishTrusted: false,
-      });
+      // A concurrent double-submit that got past the check above is settled by
+      // the unique userId index; both requests then land on the status page.
+      await db
+        .insert(employerProfile)
+        .values({
+          ...result.values,
+          userId: session.userId,
+          status: "PENDING",
+          autoPublishTrusted: false,
+        })
+        .onConflictDoNothing({ target: employerProfile.userId });
 
       redirect("/portal/employer/register/status");
     }),
