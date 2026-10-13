@@ -39,7 +39,7 @@ If you prefer running Node.js directly on your machine:
 ```bash
 cp .env.example .env.local
 npm install
-npm run db:migrate   # only for a new, empty database
+npm run db:migrate   # new, empty database (existing one: see below)
 npm run db:seed
 npm run dev
 ```
@@ -56,8 +56,34 @@ npm run dev
 | `npm run format` | Format code with Prettier |
 | `npm run db:generate` | Write a new SQL migration in `drizzle/` after changing `src/db/schema.ts` |
 | `npm run db:migrate` | Apply pending migrations in `drizzle/` to `DATABASE_URL` |
+| `npm run db:baseline` | One-time adoption of `drizzle/` by a database created before the Prisma → Drizzle switch (dry run; add `-- --apply`) |
 | `npm run db:seed` | Seed `DATABASE_URL` with sample data (idempotent) |
 | `npm run db:studio` | Browse the database with Drizzle Studio |
+
+## Existing databases (created by Prisma)
+
+Databases created before the switch to Drizzle (production, older local
+volumes) already have every table, but no record of `drizzle/0000_baseline.sql`.
+Run this **once per database** before its first `npm run db:migrate`:
+
+```bash
+# 1. Back up the database first.
+# 2. Dry run: checks the live schema matches 0000_baseline exactly. Writes nothing.
+DATABASE_URL=<that database> npm run db:baseline
+# 3. Record 0000_baseline as already applied.
+DATABASE_URL=<that database> npm run db:baseline -- --apply
+# 4. From now on, schema changes go through migrations as usual.
+DATABASE_URL=<that database> npm run db:migrate
+```
+
+`--apply` only creates `drizzle.__drizzle_migrations` (Drizzle's bookkeeping
+table, in its own `drizzle` schema) and inserts one row. It never touches app
+tables. If the live schema differs from the baseline in any way, it lists the
+differences and writes nothing. Running it again on a baselined database does
+nothing. Run it from a dev checkout (`npm install` with dev dependencies).
+
+**Rollback:** `DROP SCHEMA drizzle CASCADE;` removes only that bookkeeping
+table; app tables and Prisma's old `_prisma_migrations` history are untouched.
 
 ## Environment Variables
 

@@ -27,6 +27,7 @@ HAS_SCHEMA=$(psql "$PSQL_URL" -tAc "select to_regclass('public.\"User\"') is not
 if [ "$HAS_SCHEMA" = "t" ]; then
   # An existing database (possibly created by Prisma) is left exactly as it is.
   echo "ℹ️ Database already has the schema; skipping migrations and seed."
+  echo "   If it predates Drizzle, adopt it once with: npm run db:baseline (see README)."
 else
   echo "🚀 Creating the database schema (drizzle-kit migrate)..."
   npm run db:migrate

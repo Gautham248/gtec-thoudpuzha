@@ -18,6 +18,7 @@
     "test:e2e:admin": "playwright test tests/e2e/flows/admin.spec.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:baseline": "npx tsx src/db/baseline-cli.ts",
     "db:seed": "npx tsx src/db/seed/index.ts",
     "db:seed:e2e": "npx tsx tests/e2e/flows/seed-e2e.ts",
     "db:studio": "drizzle-kit studio"

@@ -1,6 +1,4 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
@@ -12,6 +10,11 @@ import {
 } from "drizzle-orm";
 import * as schema from "./schema";
 import * as relations from "./relations";
+import {
+  databaseFromMigrations,
+  describe as describeCatalog,
+  pgliteQuery,
+} from "./catalog";
 
 // Guards src/db/schema.ts against drifting from the committed migrations in
 // drizzle/ (run `npm run db:generate` after changing the schema), and keeps the
@@ -21,43 +24,6 @@ import * as relations from "./relations";
 const tables = (Object.values(schema) as unknown[])
   .filter((v): v is PgTable => is(v, PgTable))
   .map((t) => getTableConfig(t));
-
-const CATALOG: Record<string, string> = {
-  columns: `select table_name, column_name, data_type, udt_name, is_nullable,
-                   coalesce(column_default, '') as column_default
-            from information_schema.columns where table_schema = 'public' order by 1, 2`,
-  enums: `select t.typname, string_agg(e.enumlabel, ',' order by e.enumsortorder) as labels
-          from pg_type t join pg_enum e on e.enumtypid = t.oid group by 1 order by 1`,
-  indexes: `select tablename, indexname, regexp_replace(indexdef, '\\s+', ' ', 'g') as def
-            from pg_indexes where schemaname = 'public' order by 1, 2`,
-  constraints: `select conrelid::regclass::text as tbl, conname, pg_get_constraintdef(oid) as def
-                from pg_constraint where connamespace = 'public'::regnamespace order by 1, 2`,
-};
-
-async function catalog(db: PGlite) {
-  const result: Record<string, unknown[]> = {};
-  for (const [name, query] of Object.entries(CATALOG)) {
-    result[name] = (await db.query(query)).rows;
-  }
-  return result;
-}
-
-async function fromMigrations() {
-  const dir = join(process.cwd(), "drizzle");
-  const journal = JSON.parse(
-    readFileSync(join(dir, "meta", "_journal.json"), "utf8"),
-  ) as {
-    entries: { tag: string }[];
-  };
-  const db = new PGlite();
-  for (const { tag } of journal.entries) {
-    const migration = readFileSync(join(dir, `${tag}.sql`), "utf8");
-    for (const statement of migration.split("--> statement-breakpoint")) {
-      if (statement.trim()) await db.exec(statement);
-    }
-  }
-  return db;
-}
 
 async function fromSchema() {
   const { generateDrizzleJson, generateMigration } =
@@ -74,11 +40,13 @@ async function fromSchema() {
 describe("drizzle/ migrations", () => {
   test("build exactly the database schema.ts describes", async () => {
     const [migrated, declared] = await Promise.all([
-      fromMigrations(),
+      databaseFromMigrations(),
       fromSchema(),
     ]);
     try {
-      expect(await catalog(migrated)).toEqual(await catalog(declared));
+      expect(await describeCatalog(pgliteQuery(migrated))).toEqual(
+        await describeCatalog(pgliteQuery(declared)),
+      );
     } finally {
       await Promise.all([migrated.close(), declared.close()]);
     }
