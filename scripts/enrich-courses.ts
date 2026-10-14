@@ -6,13 +6,9 @@
  */
 
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
-
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL! });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+import { eq } from "drizzle-orm";
+import { db } from "../src/db";
+import { course as courseTable } from "../src/db/schema";
 
 const CONTENT_BLOCKS = {
   // ── DCA ──
@@ -951,9 +947,9 @@ const CONTENT_BLOCKS = {
 async function main() {
   console.log("📝 Enriching published courses with content blocks...\n");
 
-  const courses = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
-    select: { id: true, slug: true, titleEn: true },
+  const courses = await db.query.course.findMany({
+    where: (c, { eq }) => eq(c.status, "PUBLISHED"),
+    columns: { id: true, slug: true, titleEn: true },
   });
 
   console.log(`Found ${courses.length} published courses\n`);
@@ -965,10 +961,10 @@ async function main() {
       continue;
     }
 
-    await prisma.course.update({
-      where: { id: course.id },
-      data: { contentBlocks: blocks },
-    });
+    await db
+      .update(courseTable)
+      .set({ contentBlocks: blocks })
+      .where(eq(courseTable.id, course.id));
 
     console.log(`  ✅ ${course.titleEn}`);
   }
@@ -977,8 +973,8 @@ async function main() {
 }
 
 main()
+  .then(() => process.exit(0))
   .catch((e) => {
     console.error("Enrichment failed:", e);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });

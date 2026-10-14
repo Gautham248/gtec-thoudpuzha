@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import {
   createStudentRecord,
   bulkImportStudentsAction,
   updateStudentEmail,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface StudentsPageProps {
   params: Promise<{ locale: string }>;
@@ -21,8 +22,8 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
     redirect(`/${locale}/forbidden`);
   }
 
-  const records = await prisma.studentRecord.findMany({
-    orderBy: { createdAt: "desc" },
+  const records = await db.query.studentRecord.findMany({
+    orderBy: (r, { desc }) => desc(r.createdAt),
   });
   const missingEmailCount = records.filter((r) => !r.email).length;
 
@@ -36,10 +37,11 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
           role="alert"
         >
           {missingEmailCount} student record
-          {missingEmailCount === 1 ? "" : "s"} {missingEmailCount === 1 ? "has" : "have"} no
-          email on file and can&apos;t complete sign-up (sign-up verification now
-          uses email, not phone — see the &quot;Verification&quot; column
-          below). Add an email to each flagged row to unblock them.
+          {missingEmailCount === 1 ? "" : "s"}{" "}
+          {missingEmailCount === 1 ? "has" : "have"} no email on file and
+          can&apos;t complete sign-up (sign-up verification now uses email, not
+          phone — see the &quot;Verification&quot; column below). Add an email
+          to each flagged row to unblock them.
         </div>
       )}
 
@@ -55,7 +57,12 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
       {/* Single-entry create form */}
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Add single student</h2>
-        <form action={createStudentRecord} className="mt-4 space-y-4">
+        <ActionForm
+          action={createStudentRecord}
+          success="Student record created"
+          resetOnSuccess
+          className="mt-4 space-y-4"
+        >
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-1">
@@ -105,17 +112,22 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
             </div>
           </div>
           <Button type="submit">Create</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* CSV bulk import */}
       <section className="mt-8 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Bulk import (CSV)</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          CSV must have columns: studentId,fullName,phone,email. Header row
-          is optional.
+          CSV must have columns: studentId,fullName,phone,email. Header row is
+          optional.
         </p>
-        <form action={bulkImportStudentsAction} className="mt-4 space-y-4">
+        <ActionForm
+          action={bulkImportStudentsAction}
+          success="Students imported"
+          resetOnSuccess
+          className="mt-4 space-y-4"
+        >
           <input type="hidden" name="locale" value={locale} />
           <div className="space-y-1">
             <label htmlFor="csv" className="text-sm font-medium">
@@ -131,14 +143,12 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
             />
           </div>
           <Button type="submit">Import CSV</Button>
-        </form>
+        </ActionForm>
       </section>
 
       {/* Records table */}
       <section className="mt-8">
-        <h2 className="text-lg font-medium">
-          All records ({records.length})
-        </h2>
+        <h2 className="text-lg font-medium">All records ({records.length})</h2>
 
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto mt-4">
@@ -184,12 +194,17 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                     {record.email ? (
                       record.email
                     ) : (
-                      <form
+                      <ActionForm
                         action={updateStudentEmail}
+                        success="Email saved"
                         className="flex items-center gap-2"
                       >
                         <input type="hidden" name="locale" value={locale} />
-                        <input type="hidden" name="recordId" value={record.id} />
+                        <input
+                          type="hidden"
+                          name="recordId"
+                          value={record.id}
+                        />
                         <input
                           type="email"
                           name="email"
@@ -200,14 +215,16 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                         <Button type="submit" size="sm" variant="outline">
                           Add
                         </Button>
-                      </form>
+                      </ActionForm>
                     )}
                   </td>
                   <td className="border border-border px-3 py-2">
                     {record.linkedUserId ? (
                       <span className="text-primary font-medium">Verified</span>
                     ) : !record.email ? (
-                      <span className="text-accent font-medium">Blocked — no email</span>
+                      <span className="text-accent font-medium">
+                        Blocked — no email
+                      </span>
                     ) : (
                       <span className="text-accent font-medium">Pending</span>
                     )}
@@ -232,9 +249,14 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
         {/* Mobile Card Stack */}
         <div className="space-y-3 mt-4 md:hidden">
           {records.map((record) => (
-            <div key={record.id} className="rounded-lg border border-border bg-card p-4 space-y-2 shadow-xs">
+            <div
+              key={record.id}
+              className="rounded-lg border border-border bg-card p-4 space-y-2 shadow-xs"
+            >
               <div className="flex items-center justify-between border-b pb-2">
-                <span className="font-semibold text-foreground">{record.fullName}</span>
+                <span className="font-semibold text-foreground">
+                  {record.fullName}
+                </span>
                 <span className="rounded bg-muted px-2 py-0.5 font-mono text-sm font-medium text-foreground">
                   {record.studentId}
                 </span>
@@ -242,25 +264,41 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
               <div className="text-sm space-y-1.5 text-muted-foreground">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Phone:</span>
-                  <a href={`tel:${record.phone}`} className="text-primary font-mono hover:underline">{record.phone}</a>
+                  <a
+                    href={`tel:${record.phone}`}
+                    className="text-primary font-mono hover:underline"
+                  >
+                    {record.phone}
+                  </a>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-foreground">Status:</span>
                   {record.linkedUserId ? (
-                    <span className="text-primary font-medium text-sm">Verified</span>
+                    <span className="text-primary font-medium text-sm">
+                      Verified
+                    </span>
                   ) : !record.email ? (
-                    <span className="text-accent font-medium text-sm">Blocked — no email</span>
+                    <span className="text-accent font-medium text-sm">
+                      Blocked — no email
+                    </span>
                   ) : (
-                    <span className="text-accent font-medium text-sm">Pending</span>
+                    <span className="text-accent font-medium text-sm">
+                      Pending
+                    </span>
                   )}
                 </div>
                 <div className="pt-1">
-                  <span className="font-medium text-foreground block mb-1">Email:</span>
+                  <span className="font-medium text-foreground block mb-1">
+                    Email:
+                  </span>
                   {record.email ? (
-                    <span className="text-foreground text-sm font-mono break-all">{record.email}</span>
+                    <span className="text-foreground text-sm font-mono break-all">
+                      {record.email}
+                    </span>
                   ) : (
-                    <form
+                    <ActionForm
                       action={updateStudentEmail}
+                      success="Email saved"
                       className="flex items-center gap-2 mt-1"
                     >
                       <input type="hidden" name="locale" value={locale} />
@@ -275,7 +313,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
                       <Button type="submit" size="sm" variant="outline">
                         Add
                       </Button>
-                    </form>
+                    </ActionForm>
                   )}
                 </div>
                 <div className="pt-2 border-t flex items-center justify-between">
@@ -295,9 +333,7 @@ export default async function StudentsPage({ params }: StudentsPageProps) {
         </div>
 
         {records.length === 0 && (
-          <p className="mt-4 text-muted-foreground">
-            No student records yet.
-          </p>
+          <p className="mt-4 text-muted-foreground">No student records yet.</p>
         )}
       </section>
     </main>

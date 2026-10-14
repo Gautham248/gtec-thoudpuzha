@@ -1,13 +1,14 @@
 // @vitest-environment node
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { siteSettings, whyChooseUsCard } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertSiteSettings } from "@/__tests__/pg-fixtures";
 import { updateSiteSettings } from "./actions";
 
 const mockRequireRole = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
-const mockSiteSettingsUpdate = vi.hoisted(() => vi.fn());
-const mockWhyCardUpdate = vi.hoisted(() => vi.fn());
 const mockLogAdminAction = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
 
@@ -29,17 +30,11 @@ vi.mock("next/cache", () => ({
   unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    siteSettings: {
-      findFirst: mockFindFirst,
-      update: mockSiteSettingsUpdate,
-    },
-    whyChooseUsCard: {
-      update: mockWhyCardUpdate,
-    },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
+
+const pg = db as unknown as TestDb;
 
 vi.mock("@/lib/audit", () => ({
   logAdminAction: mockLogAdminAction,
@@ -65,41 +60,33 @@ function createSettings() {
     youtubeUrl: null,
     linkedinUrl: null,
     googleReviewsUrl: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
     whyChooseUsCards: [
       {
         id: "card_1",
         sortOrder: 0,
-        icon: "AWARD",
+        icon: "AWARD" as const,
         titleEn: "ISO-Authorized Curriculum",
         titleMl: null,
         descriptionEn: "Original description 1",
         descriptionMl: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
       {
         id: "card_2",
         sortOrder: 1,
-        icon: "USERS",
+        icon: "USERS" as const,
         titleEn: "Expert Trainers",
         titleMl: null,
         descriptionEn: "Original description 2",
         descriptionMl: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
       {
         id: "card_3",
         sortOrder: 2,
-        icon: "BRIEFCASE",
+        icon: "BRIEFCASE" as const,
         titleEn: "Placement Support",
         titleMl: null,
         descriptionEn: "Original description 3",
         descriptionMl: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ],
   };
@@ -138,17 +125,19 @@ function buildFormData(): FormData {
 }
 
 describe("updateSiteSettings", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockRequireRole.mockReset();
     mockRedirect.mockReset();
-    mockFindFirst.mockReset();
-    mockSiteSettingsUpdate.mockReset();
-    mockWhyCardUpdate.mockReset();
     mockLogAdminAction.mockReset();
     mockRevalidatePath.mockReset();
-    mockFindFirst.mockResolvedValue(createSettings());
+    await truncateAll(pg);
+    const { whyChooseUsCards, ...settings } = createSettings();
+    await insertSiteSettings(pg, settings, whyChooseUsCards);
   });
+
+  const card = async (id: string) =>
+    (await pg.select().from(whyChooseUsCard)).find((c) => c.id === id)!;
 
   test("is denied to a centre_staff-role user and redirects to forbidden", async () => {
     mockRequireRole.mockResolvedValue({
@@ -165,7 +154,9 @@ describe("updateSiteSettings", () => {
     );
 
     expect(mockRedirect).toHaveBeenCalledWith("/en/forbidden");
-    expect(mockSiteSettingsUpdate).not.toHaveBeenCalled();
+    const [row] = await pg.select().from(siteSettings);
+    expect(row.aboutBodyEn).toBe("About body"); // unchanged
+    expect((await card("card_1")).titleEn).toBe("ISO-Authorized Curriculum");
     expect(mockLogAdminAction).not.toHaveBeenCalled();
   });
 
@@ -176,17 +167,15 @@ describe("updateSiteSettings", () => {
       userId: "user_super_admin",
     });
 
-    mockSiteSettingsUpdate.mockResolvedValue(createSettings());
-    mockWhyCardUpdate.mockResolvedValue({ id: "card_1" });
-
     await updateSiteSettings(buildFormData());
 
-    expect(mockWhyCardUpdate).toHaveBeenCalledWith({
-      where: { id: "card_1" },
-      data: expect.objectContaining({
-        titleEn: "Updated Card Title",
-      }),
+    expect(await card("card_1")).toMatchObject({
+      titleEn: "Updated Card Title",
+      descriptionEn: "Updated description 1",
     });
+    expect((await card("card_2")).titleEn).toBe("Expert Trainers");
+    const [row] = await pg.select().from(siteSettings);
+    expect(row.aboutBodyEn).toBe("Updated about body");
   });
 
   test("writes an audit log entry when saving the settings form", async () => {
@@ -195,9 +184,6 @@ describe("updateSiteSettings", () => {
       role: "SUPER_ADMIN",
       userId: "user_super_admin",
     });
-
-    mockSiteSettingsUpdate.mockResolvedValue(createSettings());
-    mockWhyCardUpdate.mockResolvedValue({ id: "card_1" });
 
     await updateSiteSettings(buildFormData());
 

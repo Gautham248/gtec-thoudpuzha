@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { deriveEmbedUrl } from "@/lib/video";
 import Link from "next/link";
 
@@ -10,9 +10,9 @@ export async function VideoLectureList({ locale }: { locale: string }) {
 
   const t = await getTranslations({ locale, namespace: "resources" });
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
-    select: { id: true },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
+    columns: { id: true },
   });
 
   if (!profile) {
@@ -26,9 +26,9 @@ export async function VideoLectureList({ locale }: { locale: string }) {
     );
   }
 
-  const enrollments = await prisma.studentCourseEnrollment.findMany({
-    where: { studentProfileId: profile.id },
-    select: { courseId: true },
+  const enrollments = await db.query.studentCourseEnrollment.findMany({
+    where: (e, { eq }) => eq(e.studentProfileId, profile.id),
+    columns: { courseId: true },
   });
 
   if (enrollments.length === 0) {
@@ -51,14 +51,15 @@ export async function VideoLectureList({ locale }: { locale: string }) {
   const courseIds = enrollments.map((e) => e.courseId);
 
   const [resources, courses] = await Promise.all([
-    prisma.academicResource.findMany({
-      where: { courseId: { in: courseIds }, type: "LECTURE" },
-      orderBy: { uploadedAt: "desc" },
-      include: { course: { select: { titleEn: true } } },
+    db.query.academicResource.findMany({
+      where: (r, { and, eq, inArray }) =>
+        and(inArray(r.courseId, courseIds), eq(r.type, "LECTURE")),
+      orderBy: (r, { desc }) => desc(r.uploadedAt),
+      with: { course: { columns: { titleEn: true } } },
     }),
-    prisma.course.findMany({
-      where: { id: { in: courseIds } },
-      select: { id: true, titleEn: true },
+    db.query.course.findMany({
+      where: (c, { inArray }) => inArray(c.id, courseIds),
+      columns: { id: true, titleEn: true },
     }),
   ]);
 

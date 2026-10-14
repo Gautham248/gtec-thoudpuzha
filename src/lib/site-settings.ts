@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/db";
-import type { SiteSettings, WhyChooseUsCard } from "@prisma/client";
+
+import { db } from "@/db";
+import type { SiteSettings, WhyChooseUsCard } from "@/db/types";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 import { getMediaUrl } from "@/lib/media";
 import { logger } from "@/lib/logger";
@@ -10,7 +11,7 @@ export type SiteSettingsWithCards = SiteSettings & {
 
 export { pickLocalizedText, type Locale };
 
-// Mirrors prisma/seed.ts SiteSettings values so a degraded render (missing row or
+// Mirrors the SiteSettings values in src/db/seed/run.ts so a degraded render (missing row or
 // transient DB error) shows the same numbers as a freshly-seeded production DB.
 const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   id: "default",
@@ -43,10 +44,10 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
 
 export async function getSiteSettings(): Promise<SiteSettingsWithCards> {
   try {
-    const settings = await prisma.siteSettings.findFirst({
-      include: {
+    const settings = await db.query.siteSettings.findFirst({
+      with: {
         whyChooseUsCards: {
-          orderBy: { sortOrder: "asc" },
+          orderBy: (c, { asc }) => asc(c.sortOrder),
         },
       },
     });

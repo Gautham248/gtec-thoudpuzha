@@ -1,130 +1,107 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
-import { createFlashNews } from "./actions";
+// @vitest-environment node
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { auditLogEntry, flashNewsItem } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { form, session } from "@/__tests__/pg-fixtures";
+import {
+  createFlashNews,
+  deleteFlashNews,
+  moveFlashNews,
+  toggleFlashNewsActive,
+} from "./actions";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockCreate = vi.hoisted(() => vi.fn());
-const mockAggregate = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
+const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: mockAuth,
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    flashNewsItem: {
-      create: mockCreate,
-      aggregate: mockAggregate,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
-  },
-}));
-
-vi.mock("next/navigation", () => ({
-  redirect: mockRedirect,
-}));
-
+vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
+vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
 vi.mock("next/cache", () => ({
   revalidatePath: mockRevalidatePath,
   revalidateTag: vi.fn(),
-  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
 }));
 
-describe("createFlashNews", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockCreate.mockReset();
-    mockAggregate.mockReset();
-    mockAuditCreate.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+const pg = db as unknown as TestDb;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
+});
+
+const ordered = () =>
+  pg.query.flashNewsItem.findMany({
+    orderBy: (f, { asc }) => asc(f.sortOrder),
   });
 
-  test("writes an audit log entry when creating a flash news item", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
+describe("createFlashNews", () => {
+  test("creates an active item at the end of the list and writes an audit log entry", async () => {
+    await pg.insert(flashNewsItem).values({ textEn: "Existing", sortOrder: 3 });
 
-    mockCreate.mockResolvedValue({
-      id: "fn_1",
+    await createFlashNews(form({ textEn: "New flash news", locale: "en" }));
+
+    const items = await ordered();
+    expect(items[1]).toMatchObject({
       textEn: "New flash news",
       textMl: null,
       link: null,
-      active: true,
       expiresAt: null,
-      sortOrder: 1,
+      active: true,
+      sortOrder: 4,
     });
 
-    mockAggregate.mockResolvedValue({ _max: { sortOrder: 0 } });
-
-    mockAuditCreate.mockResolvedValue({
-      id: "audit_1",
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
       actorUserId: "staff_1",
       actorRole: "CENTRE_STAFF",
       action: "flashNews.create",
       entityType: "FlashNewsItem",
-      entityId: "fn_1",
+      entityId: items[1].id,
     });
-
-    const formData = new FormData();
-    formData.append("textEn", "New flash news");
-    formData.append("locale", "en");
-
-    await createFlashNews(formData);
-
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: {
-        textEn: "New flash news",
-        textMl: null,
-        link: null,
-        expiresAt: null,
-        sortOrder: 1,
-      },
-    });
-
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "flashNews.create",
-        entityType: "FlashNewsItem",
-        entityId: "fn_1",
-      }),
-    });
-
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/flash-news");
+  });
+
+  test("the first item gets sortOrder 1", async () => {
+    await createFlashNews(form({ textEn: "First", locale: "en" }));
+    expect((await ordered())[0].sortOrder).toBe(1);
+  });
+});
+
+describe("other flash news actions", () => {
+  test("toggle, move and delete change the rows", async () => {
+    const [a, b] = await pg
+      .insert(flashNewsItem)
+      .values([
+        { textEn: "A", sortOrder: 1 },
+        { textEn: "B", sortOrder: 2 },
+      ])
+      .returning();
+
+    await toggleFlashNewsActive(
+      form({ id: a.id, active: "false", locale: "en" }),
+    );
+    expect((await ordered())[0].active).toBe(false);
+
+    await moveFlashNews(form({ id: b.id, direction: "up", locale: "en" }));
+    expect((await ordered()).map((i) => i.textEn)).toEqual(["B", "A"]);
+
+    await deleteFlashNews(form({ id: a.id, locale: "en" }));
+    expect((await ordered()).map((i) => i.textEn)).toEqual(["B"]);
   });
 });
 
 describe("FlashNewsPage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRedirect.mockReset();
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
-    });
-  });
-
   test("is denied to a job_seeker-role user", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "job_seeker_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
+    mockAuth.mockResolvedValue(session("job_seeker_1", "JOB_SEEKER"));
 
     const { default: FlashNewsPage } = await import("./page");
 

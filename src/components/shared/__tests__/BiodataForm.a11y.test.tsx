@@ -6,14 +6,6 @@ import type { SkillDto } from "@/lib/skills";
 import type { CandidateProfileWithCompletion } from "@/lib/biodata";
 import axe from "axe-core";
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    candidateProfile: {
-      findMany: vi.fn(),
-    },
-  },
-}));
-
 const mockCourses: PublicCourse[] = [
   {
     id: "c1",
@@ -38,7 +30,9 @@ const mockSkills: SkillDto[] = [
   { id: "s2", label: "Python", status: "APPROVED", createdAt: new Date() },
 ];
 
-function emptyProfile(isVerifiedStudent: boolean): CandidateProfileWithCompletion {
+function emptyProfile(
+  isVerifiedStudent: boolean,
+): CandidateProfileWithCompletion {
   return {
     id: "",
     fullName: null,

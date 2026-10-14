@@ -1,10 +1,13 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
+import JobDetailPage from "./page";
+
+// "@/db" is the in-memory fake installed by src/__tests__/setup.ts.
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
 const mockFindFirst = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
 const mockNotFound = vi.hoisted(() => {
   const err = new Error("NEXT_NOT_FOUND");
   err.name = "NotFoundError";
@@ -20,14 +23,6 @@ const mockRedirect = vi.hoisted(() =>
 const mockGetSkillsByIds = vi.hoisted(() => vi.fn());
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    candidateProfile: { findUnique: mockFindUnique },
-    application: { findUnique: mockFindUnique },
-    skill: { findMany: mockFindMany },
-  },
-}));
 
 vi.mock("@/lib/jobs", () => ({
   getJobDetail: mockFindFirst,
@@ -79,34 +74,35 @@ describe("Job detail page", () => {
     mockFindFirst.mockResolvedValue(makeJobDetail());
     mockGetSkillsByIds.mockResolvedValue([]);
     // Incomplete profile
-    mockFindUnique.mockResolvedValue({
-      id: "cp_1",
-      userId: "user_1",
-      fullName: null,
-      dateOfBirth: null,
-      phone: null,
-      email: null,
-      courseCompletedIds: [],
-      certificationIds: [],
-      educationalQualification: null,
-      yearOfPassing: null,
-      address: null,
-      languagesKnown: [],
-      skillIds: [],
-      preferredJobLocation: null,
-      preferredJobType: null,
-      careerObjective: null,
-      photoUrl: null,
-      profileVisible: true,
-      isVerifiedStudent: false,
-      studentRecordId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    setMockRows(db, "candidateProfile", [
+      {
+        id: "cp_1",
+        userId: "user_1",
+        fullName: null,
+        dateOfBirth: null,
+        phone: null,
+        email: null,
+        courseCompletedIds: [],
+        certificationIds: [],
+        educationalQualification: null,
+        yearOfPassing: null,
+        address: null,
+        languagesKnown: [],
+        skillIds: [],
+        preferredJobLocation: null,
+        preferredJobType: null,
+        careerObjective: null,
+        photoUrl: null,
+        profileVisible: true,
+        isVerifiedStudent: false,
+        studentRecordId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
 
-    const mod = await import("./page");
     const { container: _container } = render(
-      await mod.default({
+      await JobDetailPage({
         params: Promise.resolve({ locale: "en", id: "jp_1" }),
       }),
     );
@@ -123,46 +119,94 @@ describe("Job detail page", () => {
     mockFindFirst.mockResolvedValue(makeJobDetail());
     mockGetSkillsByIds.mockResolvedValue([]);
     // Complete profile
-    mockFindUnique.mockResolvedValueOnce({
-      id: "cp_1",
-      userId: "user_1",
-      fullName: "John Doe",
-      dateOfBirth: new Date("2000-01-01"),
-      phone: "9999999999",
-      email: "john@example.com",
-      courseCompletedIds: [],
-      certificationIds: [],
-      educationalQualification: "GRADUATE",
-      yearOfPassing: 2022,
-      address: "Test",
-      languagesKnown: ["English"],
-      skillIds: [],
-      preferredJobLocation: "Kochi",
-      preferredJobType: "FULL_TIME",
-      careerObjective: null,
-      photoUrl: null,
-      profileVisible: true,
-      isVerifiedStudent: false,
-      studentRecordId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    setMockRows(db, "candidateProfile", [
+      {
+        id: "cp_1",
+        userId: "user_1",
+        fullName: "John Doe",
+        dateOfBirth: new Date("2000-01-01"),
+        phone: "9999999999",
+        email: "john@example.com",
+        courseCompletedIds: [],
+        certificationIds: [],
+        educationalQualification: "GRADUATE",
+        yearOfPassing: 2022,
+        address: "Test",
+        languagesKnown: ["English"],
+        skillIds: [],
+        preferredJobLocation: "Kochi",
+        preferredJobType: "FULL_TIME",
+        careerObjective: null,
+        photoUrl: null,
+        profileVisible: true,
+        isVerifiedStudent: false,
+        studentRecordId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
     // Existing application found (persisted)
-    mockFindUnique.mockResolvedValueOnce({
-      id: "app_1",
-      jobPostingId: "jp_1",
-      candidateProfileId: "cp_1",
-      status: "APPLIED",
-    });
+    setMockRows(db, "application", [
+      {
+        id: "app_1",
+        jobPostingId: "jp_1",
+        candidateProfileId: "cp_1",
+        status: "APPLIED",
+      },
+    ]);
 
-    const mod = await import("./page");
     render(
-      await mod.default({
+      await JobDetailPage({
         params: Promise.resolve({ locale: "en", id: "jp_1" }),
       }),
     );
 
     expect(screen.getByText("Applied ✓")).toBeDefined();
+  });
+
+  test("an application for a different job does not count as applied", async () => {
+    mockAuth.mockResolvedValue({
+      userId: "user_1",
+      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
+    });
+    mockFindFirst.mockResolvedValue(makeJobDetail());
+    mockGetSkillsByIds.mockResolvedValue([]);
+    setMockRows(db, "candidateProfile", [
+      {
+        id: "cp_1",
+        userId: "user_1",
+        fullName: "John Doe",
+        dateOfBirth: new Date("2000-01-01"),
+        phone: "9999999999",
+        email: "john@example.com",
+        courseCompletedIds: [],
+        certificationIds: [],
+        educationalQualification: "GRADUATE",
+        yearOfPassing: 2022,
+        address: "Test",
+        languagesKnown: ["English"],
+        skillIds: [],
+        preferredJobLocation: "Kochi",
+        preferredJobType: "FULL_TIME",
+        profileVisible: true,
+      },
+    ]);
+    setMockRows(db, "application", [
+      {
+        id: "app_9",
+        jobPostingId: "jp_other",
+        candidateProfileId: "cp_1",
+        status: "APPLIED",
+      },
+    ]);
+
+    render(
+      await JobDetailPage({
+        params: Promise.resolve({ locale: "en", id: "jp_1" }),
+      }),
+    );
+
+    expect(screen.queryByText("Applied ✓")).toBeNull();
   });
 
   test("returns 404 for non-existent job id", async () => {
@@ -173,9 +217,8 @@ describe("Job detail page", () => {
     mockFindFirst.mockResolvedValue(null);
     mockGetSkillsByIds.mockResolvedValue([]);
 
-    const mod = await import("./page");
     await expect(
-      mod.default({
+      JobDetailPage({
         params: Promise.resolve({ locale: "en", id: "nonexistent" }),
       }),
     ).rejects.toThrow("NEXT_NOT_FOUND");
@@ -190,9 +233,8 @@ describe("Job detail page", () => {
     mockFindFirst.mockResolvedValue(null);
     mockGetSkillsByIds.mockResolvedValue([]);
 
-    const mod = await import("./page");
     await expect(
-      mod.default({
+      JobDetailPage({
         params: Promise.resolve({ locale: "en", id: "expired_job" }),
       }),
     ).rejects.toThrow("NEXT_NOT_FOUND");

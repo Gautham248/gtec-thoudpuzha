@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { BiodataPdfDocument } from "@/components/shared/BiodataPdfDocument";
 import type { BiodataPdfData } from "@/components/shared/BiodataPdfDocument";
+import { withProfileLists } from "@/db/helpers";
 
 const QUALIFICATION_LABELS: Record<string, string> = {
   SSLC: "SSLC",
@@ -39,9 +40,10 @@ export async function GET(
   }
 
   // Fetch the candidate profile by its id (candidateId is the profile id)
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { id: candidateId },
+  const found = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.id, candidateId),
   });
+  const profile = found ? withProfileLists(found) : undefined;
 
   if (!profile) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -55,32 +57,33 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Resolve course names for completed courses
+  // Resolve course names for completed courses, in the profile's order.
+  // Ids whose course no longer exists are left out.
   let courseCompletedNames: string[] = [];
   if (profile.courseCompletedIds.length > 0) {
-    const courses = await prisma.course.findMany({
-      where: { id: { in: profile.courseCompletedIds } },
-      select: { titleEn: true },
+    const courses = await db.query.course.findMany({
+      where: (c, { inArray }) => inArray(c.id, profile.courseCompletedIds),
+      columns: { id: true, titleEn: true },
     });
-    const courseMap = new Map(
-      courses.map((c, i) => [profile.courseCompletedIds[i], c.titleEn]),
-    );
-    courseCompletedNames = profile.courseCompletedIds
-      .map((id) => courseMap.get(id) ?? id)
-      .filter(Boolean);
+    const courseMap = new Map(courses.map((c) => [c.id, c.titleEn]));
+    courseCompletedNames = profile.courseCompletedIds.flatMap((id) => {
+      const name = courseMap.get(id);
+      return name ? [name] : [];
+    });
   }
 
-  // Resolve skill labels
+  // Resolve skill labels, in the profile's order; unknown ids are left out.
   let skillLabels: string[] = [];
   if (profile.skillIds.length > 0) {
-    const skills = await prisma.skill.findMany({
-      where: { id: { in: profile.skillIds } },
-      select: { label: true },
+    const skills = await db.query.skill.findMany({
+      where: (s, { inArray }) => inArray(s.id, profile.skillIds),
+      columns: { id: true, label: true },
     });
-    const skillMap = new Map(skills.map((s) => [s.label, s.label]));
-    skillLabels = profile.skillIds
-      .map((id) => skillMap.get(id) ?? id)
-      .filter(Boolean);
+    const skillMap = new Map(skills.map((s) => [s.id, s.label]));
+    skillLabels = profile.skillIds.flatMap((id) => {
+      const label = skillMap.get(id);
+      return label ? [label] : [];
+    });
   }
 
   const pdfData: BiodataPdfData = {
@@ -93,8 +96,8 @@ export async function GET(
     courseCompletedNames,
     certificationCodes: profile.certificationIds,
     educationalQualification: profile.educationalQualification
-      ? QUALIFICATION_LABELS[profile.educationalQualification] ??
-        profile.educationalQualification
+      ? (QUALIFICATION_LABELS[profile.educationalQualification] ??
+        profile.educationalQualification)
       : null,
     yearOfPassing: profile.yearOfPassing,
     address: profile.address,
@@ -102,15 +105,12 @@ export async function GET(
     skillLabels,
     preferredJobLocation: profile.preferredJobLocation,
     preferredJobType: profile.preferredJobType
-      ? JOB_TYPE_LABELS[profile.preferredJobType] ??
-        profile.preferredJobType
+      ? (JOB_TYPE_LABELS[profile.preferredJobType] ?? profile.preferredJobType)
       : null,
     careerObjective: profile.careerObjective,
   };
 
-  const pdfBuffer = await renderToBuffer(
-    <BiodataPdfDocument data={pdfData} />,
-  );
+  const pdfBuffer = await renderToBuffer(<BiodataPdfDocument data={pdfData} />);
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {

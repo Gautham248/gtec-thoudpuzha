@@ -5,7 +5,6 @@ RUN apk add --no-cache postgresql-client bash dos2unix
 WORKDIR /app
 
 COPY package*.json ./
-COPY prisma ./prisma/
 
 RUN npm install
 

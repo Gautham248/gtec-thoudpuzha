@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { getActiveJobPostings } from "@/lib/jobs";
 import { getApprovedSkills } from "@/lib/skills";
-import type { JobType } from "@prisma/client";
+import type { JobType } from "@/db/types";
 import { JobsFilter } from "./jobs-filter";
 
 interface JobsPageProps {
@@ -99,7 +99,11 @@ export default async function JobsPage({
                       {salaryDisplay}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {t("deadline", { date: new Date(posting.applicationDeadline).toLocaleDateString() })}
+                      {t("deadline", {
+                        date: new Date(
+                          posting.applicationDeadline,
+                        ).toLocaleDateString(),
+                      })}
                     </p>
                   </div>
                 </div>

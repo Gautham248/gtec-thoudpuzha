@@ -1,12 +1,19 @@
+// @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { application, employerProfile } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  insertEmployer,
+  insertJobPosting,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 import type { CandidateProfileWithCompletion } from "@/lib/biodata";
 
 // ─── Hoisted mocks ──────────────────────────────────────────────────────────
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindUniqueProfile = vi.hoisted(() => vi.fn());
-const mockFindFirstJobPosting = vi.hoisted(() => vi.fn());
-const mockFindUniqueCandidate = vi.hoisted(() => vi.fn());
 const mockResendSend = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
@@ -18,12 +25,8 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    employerProfile: { findUnique: mockFindUniqueProfile },
-    jobPosting: { findFirst: mockFindFirstJobPosting },
-    candidateProfile: { findUnique: mockFindUniqueCandidate },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -72,13 +75,25 @@ function makeProfile(
   };
 }
 
+const pg = db as unknown as TestDb;
+
+/** The signed-in employer (user_emp_1), approved unless told otherwise. */
+async function seedEmployer(status: "APPROVED" | "PENDING" = "APPROVED") {
+  await insertUser(pg, { id: "user_emp_1", role: "EMPLOYER" });
+  return insertEmployer(pg, {
+    userId: "user_emp_1",
+    companyName: "Acme Corp",
+    contactPersonName: "Alice",
+    status,
+  });
+}
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("searchCandidates", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockAuth.mockReset();
-    mockFindUniqueProfile.mockReset();
     mockGetSearchableCandidates.mockReset();
     mockRedirect.mockReset();
     mockRedirect.mockImplementation((url: string) => {
@@ -89,11 +104,8 @@ describe("searchCandidates", () => {
       userId: "user_emp_1",
       sessionClaims: { metadata: { role: "EMPLOYER" } },
     });
-    mockFindUniqueProfile.mockResolvedValue({
-      id: "ep_1",
-      userId: "user_emp_1",
-      status: "APPROVED",
-    });
+    await truncateAll(pg);
+    await seedEmployer();
   });
 
   test("1. Only includes candidates with profileVisible=true AND isComplete=true", async () => {
@@ -190,11 +202,7 @@ describe("searchCandidates", () => {
   });
 
   test("3. Non-approved employer is blocked", async () => {
-    mockFindUniqueProfile.mockResolvedValue({
-      id: "ep_1",
-      userId: "user_emp_1",
-      status: "PENDING",
-    });
+    await pg.update(employerProfile).set({ status: "PENDING" });
 
     const { searchCandidates } = await import("./actions");
 
@@ -207,99 +215,91 @@ describe("searchCandidates", () => {
 });
 
 describe("inviteToApply", () => {
-  beforeEach(() => {
+  let postingId: string;
+  let candidateId: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockFindUniqueProfile.mockReset();
-    mockFindFirstJobPosting.mockReset();
-    mockFindUniqueCandidate.mockReset();
     mockResendSend.mockReset();
     mockRedirect.mockReset();
     mockRedirect.mockImplementation((url: string) => {
       throw new Error(`redirect:${url}`);
     });
-    // Default: employer is logged in and approved
     mockAuth.mockResolvedValue({
       userId: "user_emp_1",
       sessionClaims: { metadata: { role: "EMPLOYER" } },
     });
-    mockFindUniqueProfile.mockResolvedValue({
-      id: "ep_1",
-      userId: "user_emp_1",
-      companyName: "Acme Corp",
-      contactPersonName: "Alice",
-      status: "APPROVED",
-    });
-    // Default: employer's own APPROVED posting
-    mockFindFirstJobPosting.mockResolvedValue({
-      id: "jp_1",
-      title: "Software Engineer",
-      employerId: "ep_1",
-      status: "APPROVED",
-    });
-    // Default: valid searchable candidate
-    mockFindUniqueCandidate.mockResolvedValue({
-      id: "cand_1",
-      userId: "user_cand",
-      fullName: "John Doe",
-      email: "john@example.com",
-      profileVisible: true,
-      preferredJobType: "FULL_TIME",
-      preferredJobLocation: "Kochi",
-      educationalQualification: "GRADUATE",
-      phone: "9876543210",
-      dateOfBirth: new Date("2000-01-01"),
-      address: "123 Main St",
-      languagesKnown: ["English"],
-      skillIds: [],
-      courseCompletedIds: ["course_1"],
-      certificationIds: [],
-      careerObjective: "Looking",
-      photoUrl: null,
-      isVerifiedStudent: false,
-      studentRecordId: null,
-      yearOfPassing: 2022,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await truncateAll(pg);
+    const employer = await seedEmployer();
+    postingId = (
+      await insertJobPosting(pg, {
+        employerId: employer.id,
+        title: "Software Engineer",
+      })
+    ).id;
+    const complete = makeProfile();
+    candidateId = (
+      await insertStudentProfile(pg, {
+        fullName: complete.fullName,
+        dateOfBirth: complete.dateOfBirth,
+        phone: complete.phone,
+        email: complete.email,
+        courseCompletedIds: complete.courseCompletedIds,
+        educationalQualification: "GRADUATE",
+        yearOfPassing: complete.yearOfPassing,
+        address: complete.address,
+        languagesKnown: complete.languagesKnown,
+        skillIds: complete.skillIds,
+        preferredJobLocation: complete.preferredJobLocation,
+        preferredJobType: "FULL_TIME",
+        careerObjective: complete.careerObjective,
+      })
+    ).id;
   });
 
   test("4. Invite sends notification email but does NOT create an Application", async () => {
     mockResendSend.mockResolvedValue({ id: "email_1" });
 
     const { inviteToApply } = await import("./actions");
-    const result = await inviteToApply("cand_1", "jp_1");
+    const result = await inviteToApply(candidateId, postingId);
 
     expect(result.success).toBe(true);
-
-    // Verify email was sent
     expect(mockResendSend).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "john@example.com",
         subject: expect.stringContaining("Software Engineer"),
       }),
     );
-
-    // Verify that no Application was created — the only prisma call
-    // was employerProfile.findUnique, jobPosting.findFirst, and candidateProfile.findUnique
-    expect(mockFindFirstJobPosting).toHaveBeenCalled();
-    expect(mockFindUniqueCandidate).toHaveBeenCalled();
-    // No create call on application
-    const prismaModule = await import("@/lib/db");
-    expect((prismaModule.prisma as unknown as Record<string, unknown>).application).toBeUndefined();
+    expect(await pg.$count(application)).toBe(0);
   });
 
   test("5. Employer can only select from their OWN approved postings", async () => {
-    // Make findFirst return null — this posting doesn't belong to this employer
-    mockFindFirstJobPosting.mockResolvedValue(null);
+    const otherEmployer = await insertEmployer(pg, {
+      companyName: "Rival Ltd",
+    });
+    const othersPosting = await insertJobPosting(pg, {
+      employerId: otherEmployer.id,
+    });
 
     const { inviteToApply } = await import("./actions");
-    const result = await inviteToApply("cand_1", "jp_other");
+    const result = await inviteToApply(candidateId, othersPosting.id);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("not found");
+    expect(mockResendSend).not.toHaveBeenCalled();
+  });
 
-    // No email should be sent
+  test("a hidden candidate cannot be invited", async () => {
+    const { candidateProfile } = await import("@/db/schema");
+    await pg.update(candidateProfile).set({ profileVisible: false });
+
+    const { inviteToApply } = await import("./actions");
+    const result = await inviteToApply(candidateId, postingId);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Candidate not found or not searchable.",
+    });
     expect(mockResendSend).not.toHaveBeenCalled();
   });
 });

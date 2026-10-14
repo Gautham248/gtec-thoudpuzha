@@ -1,393 +1,223 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
+// @vitest-environment node
+// Enroll / unenroll actions and the page's role gate, against an in-memory
+// Postgres. The EnrollmentDashboard UI is covered in actions.test.tsx.
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { auditLogEntry, studentCourseEnrollment } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
 import {
-  enrollStudentInCourses,
-  unenrollStudentFromCourse,
-} from "./actions";
+  form,
+  insertCourse,
+  insertStudentProfile,
+  session,
+} from "@/__tests__/pg-fixtures";
+import { enrollStudentInCourses, unenrollStudentFromCourse } from "./actions";
+import CourseEnrollmentPage from "./page";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockEnrollmentFindMany = vi.hoisted(() => vi.fn());
-const mockEnrollmentCreateMany = vi.hoisted(() => vi.fn());
-const mockEnrollmentDelete = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockCandidateFindMany = vi.hoisted(() => vi.fn());
-const mockCourseFindMany = vi.hoisted(() => vi.fn());
-const mockStudentRecordFindMany = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
+const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: mockAuth,
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    studentCourseEnrollment: {
-      findMany: mockEnrollmentFindMany,
-      createMany: mockEnrollmentCreateMany,
-      delete: mockEnrollmentDelete,
-    },
-    candidateProfile: {
-      findMany: mockCandidateFindMany,
-    },
-    course: {
-      findMany: mockCourseFindMany,
-    },
-    studentRecord: {
-      findMany: mockStudentRecordFindMany,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
-  },
-}));
-
+vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
+vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
 
-vi.mock("next/cache", () => ({
-  revalidatePath: mockRevalidatePath,
-}));
+const pg = db as unknown as TestDb;
 
-function makeFormData(entries: Record<string, string | string[]>) {
-  const fd = new FormData();
-  for (const [key, value] of Object.entries(entries)) {
-    if (Array.isArray(value)) {
-      for (const v of value) {
-        fd.append(key, v);
-      }
-    } else {
-      fd.append(key, value);
-    }
-  }
-  return fd;
-}
+let studentId: string;
+let c1: string, c2: string, c3: string;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
+  studentId = (await insertStudentProfile(pg, { isVerifiedStudent: true })).id;
+  c1 = (await insertCourse(pg, { titleEn: "Python Programming" })).id;
+  c2 = (await insertCourse(pg, { titleEn: "Data Science" })).id;
+  c3 = (await insertCourse(pg, { titleEn: "Web Development" })).id;
+});
+
+const enrolledCourseIds = async (profileId = studentId) =>
+  (await pg.select().from(studentCourseEnrollment))
+    .filter((e) => e.studentProfileId === profileId)
+    .map((e) => e.courseId)
+    .sort();
+const audits = () => pg.select().from(auditLogEntry);
+const enroll = (courseIds: string[]) =>
+  enrollStudentInCourses(
+    form({ studentProfileId: studentId, courseIds, locale: "en" }),
+  );
 
 describe("enrollStudentInCourses", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockEnrollmentFindMany.mockReset();
-    mockEnrollmentCreateMany.mockReset();
-    mockAuditCreate.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
-
   test("1. Centre Staff can enroll a student in multiple courses in one submission", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
-
-    mockEnrollmentFindMany.mockResolvedValue([]);
-    mockEnrollmentCreateMany.mockResolvedValue({ count: 3 });
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-
-    const fd = makeFormData({
-      studentProfileId: "cp_1",
-      courseIds: ["c1", "c2", "c3"],
-      locale: "en",
-    });
-
-    await expect(enrollStudentInCourses(fd)).rejects.toThrow(
-      "redirect:/en/admin/students/course-enrollment",
+    await expect(enroll([c1, c2, c3])).rejects.toThrow(
+      `redirect:/en/admin/students/course-enrollment?studentProfileId=${studentId}&created=3&skipped=0&skippedCourses=`,
     );
 
-    expect(mockEnrollmentFindMany).toHaveBeenCalledWith({
-      where: { studentProfileId: "cp_1", courseId: { in: ["c1", "c2", "c3"] } },
-      select: { courseId: true, course: { select: { titleEn: true } } },
-    });
-
-    expect(mockEnrollmentCreateMany).toHaveBeenCalledTimes(1);
-    expect(mockEnrollmentCreateMany).toHaveBeenCalledWith({
-      data: [
-        { studentProfileId: "cp_1", courseId: "c1" },
-        { studentProfileId: "cp_1", courseId: "c2" },
-        { studentProfileId: "cp_1", courseId: "c3" },
-      ],
-    });
-
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "studentCourseEnrollment.enroll",
-        entityType: "StudentCourseEnrollment",
-        entityId: "cp_1",
-      }),
-    });
-
-    const auditMeta = mockAuditCreate.mock.calls[0][0].data.metadata as Record<
-      string,
-      unknown
-    >;
-    expect(auditMeta.createdCourseIds).toEqual(["c1", "c2", "c3"]);
-    expect(auditMeta.skippedCourseIds).toEqual([]);
-
+    expect(await enrolledCourseIds()).toEqual([c1, c2, c3].sort());
     expect(mockRevalidatePath).toHaveBeenCalledWith(
       "/en/admin/students/course-enrollment",
     );
   });
 
   test("2. already-enrolled courses are skipped gracefully, others still succeed", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
+    await pg
+      .insert(studentCourseEnrollment)
+      .values({ studentProfileId: studentId, courseId: c2 });
 
-    mockEnrollmentFindMany.mockResolvedValue([
-      { courseId: "c2", course: { titleEn: "Course Two" } },
+    await expect(enroll([c1, c2, c3])).rejects.toThrow(
+      "&created=2&skipped=1&skippedCourses=Data%20Science",
+    );
+
+    expect(await enrolledCourseIds()).toEqual([c1, c2, c3].sort());
+    const [audit] = await audits();
+    expect(audit.metadata).toEqual({
+      createdCourseIds: [c1, c3],
+      skippedCourseIds: [c2],
+    });
+  });
+
+  test("all courses already enrolled — none created", async () => {
+    await pg.insert(studentCourseEnrollment).values([
+      { studentProfileId: studentId, courseId: c1 },
+      { studentProfileId: studentId, courseId: c2 },
     ]);
-    mockEnrollmentCreateMany.mockResolvedValue({ count: 2 });
-    mockAuditCreate.mockResolvedValue({ id: "audit_2" });
 
-    const fd = makeFormData({
-      studentProfileId: "cp_1",
-      courseIds: ["c1", "c2", "c3"],
-      locale: "en",
-    });
-
-    await expect(enrollStudentInCourses(fd)).rejects.toThrow(
-      "redirect:/en/admin/students/course-enrollment",
-    );
-
-    expect(mockEnrollmentCreateMany).toHaveBeenCalledWith({
-      data: [
-        { studentProfileId: "cp_1", courseId: "c1" },
-        { studentProfileId: "cp_1", courseId: "c3" },
-      ],
-    });
-
-    const auditMeta = mockAuditCreate.mock.calls[0][0].data.metadata as Record<
-      string,
-      unknown
-    >;
-    expect(auditMeta.createdCourseIds).toEqual(["c1", "c3"]);
-    expect(auditMeta.skippedCourseIds).toEqual(["c2"]);
+    await expect(enroll([c1, c2])).rejects.toThrow("&created=0&skipped=2");
+    expect(await enrolledCourseIds()).toEqual([c1, c2].sort());
   });
 
-  test("3a. STUDENT role is denied (403) — enroll action", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_1",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
+  test("5. enrollment writes a valid audit log entry", async () => {
+    await expect(enroll([c1])).rejects.toThrow("redirect:");
 
-    const fd = makeFormData({
-      studentProfileId: "cp_1",
-      courseIds: ["c1"],
-      locale: "en",
-    });
-
-    await expect(enrollStudentInCourses(fd)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-    expect(mockEnrollmentCreateMany).not.toHaveBeenCalled();
-  });
-
-  test("3b. JOB_SEEKER role is denied (403) — enroll action", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "jobseeker_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
-
-    const fd = makeFormData({
-      studentProfileId: "cp_1",
-      courseIds: ["c1"],
-      locale: "en",
-    });
-
-    await expect(enrollStudentInCourses(fd)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-    expect(mockEnrollmentCreateMany).not.toHaveBeenCalled();
-  });
-
-  test("3c. EMPLOYER role is denied (403) — enroll action", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "employer_1",
-      sessionClaims: { metadata: { role: "EMPLOYER" } },
-    });
-
-    const fd = makeFormData({
-      studentProfileId: "cp_1",
-      courseIds: ["c1"],
-      locale: "en",
-    });
-
-    await expect(enrollStudentInCourses(fd)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-    expect(mockEnrollmentCreateMany).not.toHaveBeenCalled();
-  });
-
-  test("3d. STUDENT role is denied (403) — unenroll action", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_1",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
-
-    const fd = makeFormData({
-      enrollmentId: "enc_1",
-      studentProfileId: "cp_1",
-      locale: "en",
-    });
-
-    await expect(unenrollStudentFromCourse(fd)).rejects.toThrow(
-      "redirect:/en/forbidden",
-    );
-    expect(mockEnrollmentDelete).not.toHaveBeenCalled();
-  });
-
-  test("3e. page component redirects STUDENT role", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_1",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
-
-    const { default: CourseEnrollmentPage } = await import("./page");
-
-    await expect(
-      CourseEnrollmentPage({
-        params: Promise.resolve({ locale: "en" }),
-        searchParams: Promise.resolve({}),
+    expect(await audits()).toEqual([
+      expect.objectContaining({
+        actorUserId: "staff_1",
+        actorRole: "CENTRE_STAFF",
+        action: "studentCourseEnrollment.enroll",
+        entityType: "StudentCourseEnrollment",
+        entityId: studentId,
+        metadata: { createdCourseIds: [c1], skippedCourseIds: [] },
       }),
-    ).rejects.toThrow("redirect:/en/forbidden");
+    ]);
   });
 
-  test("3f. page component redirects JOB_SEEKER role", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "jobseeker_1",
-      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
-    });
-
-    const { default: CourseEnrollmentPage } = await import("./page");
-
+  test("requires a student and at least one course", async () => {
     await expect(
-      CourseEnrollmentPage({
-        params: Promise.resolve({ locale: "en" }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow("redirect:/en/forbidden");
-  });
-
-  test("3g. page component redirects EMPLOYER role", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "employer_1",
-      sessionClaims: { metadata: { role: "EMPLOYER" } },
-    });
-
-    const { default: CourseEnrollmentPage } = await import("./page");
-
-    await expect(
-      CourseEnrollmentPage({
-        params: Promise.resolve({ locale: "en" }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow("redirect:/en/forbidden");
+      enrollStudentInCourses(
+        form({ studentProfileId: studentId, locale: "en" }),
+      ),
+    ).rejects.toThrow(
+      "studentProfileId and at least one courseIds is required",
+    );
   });
 });
 
 describe("unenrollStudentFromCourse", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockEnrollmentDelete.mockReset();
-    mockAuditCreate.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
+  test("4. unenrolling removes only that StudentCourseEnrollment row and writes audit", async () => {
+    const other = await insertStudentProfile(pg);
+    const [keep, remove] = await pg
+      .insert(studentCourseEnrollment)
+      .values([
+        { studentProfileId: studentId, courseId: c1 },
+        { studentProfileId: studentId, courseId: c2 },
+        { studentProfileId: other.id, courseId: c2 },
+      ])
+      .returning();
 
-  test("4. unenrolling removes the StudentCourseEnrollment row and writes audit", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
+    await expect(
+      unenrollStudentFromCourse(
+        form({
+          enrollmentId: remove.id,
+          studentProfileId: studentId,
+          courseTitle: "Data Science",
+          locale: "en",
+        }),
+      ),
+    ).rejects.toThrow("&unenrolled=true&unenrolledCourse=Data%20Science");
 
-    mockEnrollmentDelete.mockResolvedValue({ id: "enc_1" });
-    mockAuditCreate.mockResolvedValue({ id: "audit_3" });
-
-    const fd = makeFormData({
-      enrollmentId: "enc_1",
-      studentProfileId: "cp_1",
-      courseTitle: "Course One",
-      locale: "en",
-    });
-
-    await expect(unenrollStudentFromCourse(fd)).rejects.toThrow(
-      "redirect:/en/admin/students/course-enrollment",
-    );
-
-    expect(mockEnrollmentDelete).toHaveBeenCalledWith({
-      where: { id: "enc_1" },
-    });
-
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(await enrolledCourseIds()).toEqual([keep.courseId]);
+    expect(await enrolledCourseIds(other.id)).toEqual([c2]);
+    expect(await audits()).toEqual([
+      expect.objectContaining({
         actorUserId: "staff_1",
         actorRole: "CENTRE_STAFF",
         action: "studentCourseEnrollment.unenroll",
         entityType: "StudentCourseEnrollment",
-        entityId: "enc_1",
+        entityId: remove.id,
+        metadata: { studentProfileId: studentId, courseTitle: "Data Science" },
       }),
-    });
+    ]);
+  });
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith(
-      "/en/admin/students/course-enrollment",
-    );
+  test("unenrolling a missing enrollment fails without auditing", async () => {
+    await expect(
+      unenrollStudentFromCourse(
+        form({
+          enrollmentId: "missing",
+          studentProfileId: studentId,
+          locale: "en",
+        }),
+      ),
+    ).rejects.toThrow("Enrollment not found");
+    expect(await audits()).toHaveLength(0);
   });
 });
 
-describe("audit log on enrollment", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockEnrollmentFindMany.mockReset();
-    mockEnrollmentCreateMany.mockReset();
-    mockAuditCreate.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockCandidateFindMany.mockReset();
-    mockCourseFindMany.mockReset();
-    mockEnrollmentDelete.mockReset();
-  });
+describe("role gate", () => {
+  test.each(["STUDENT", "JOB_SEEKER", "EMPLOYER"])(
+    "%s is denied (403) — enroll action",
+    async (role) => {
+      mockAuth.mockResolvedValue(session("someone", role));
 
-  test("5. enrollment writes a valid audit log entry", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
+      await expect(enroll([c1])).rejects.toThrow("redirect:/en/forbidden");
+      expect(await enrolledCourseIds()).toEqual([]);
+    },
+  );
 
-    mockEnrollmentFindMany.mockResolvedValue([]);
-    mockEnrollmentCreateMany.mockResolvedValue({ count: 1 });
-    mockAuditCreate.mockResolvedValue({ id: "audit_5" });
+  test.each(["STUDENT", "JOB_SEEKER", "EMPLOYER"])(
+    "%s is denied (403) — unenroll action",
+    async (role) => {
+      const [enrollment] = await pg
+        .insert(studentCourseEnrollment)
+        .values({ studentProfileId: studentId, courseId: c1 })
+        .returning();
+      mockAuth.mockResolvedValue(session("someone", role));
 
-    const fd = makeFormData({
-      studentProfileId: "cp_1",
-      courseIds: ["c1"],
-      locale: "en",
-    });
+      await expect(
+        unenrollStudentFromCourse(
+          form({
+            enrollmentId: enrollment.id,
+            studentProfileId: studentId,
+            locale: "en",
+          }),
+        ),
+      ).rejects.toThrow("redirect:/en/forbidden");
+      expect(await enrolledCourseIds()).toEqual([c1]);
+    },
+  );
 
-    await expect(enrollStudentInCourses(fd)).rejects.toThrow();
+  test.each(["STUDENT", "JOB_SEEKER", "EMPLOYER"])(
+    "%s is redirected from the page",
+    async (role) => {
+      mockAuth.mockResolvedValue(session("someone", role));
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-
-    const auditData = mockAuditCreate.mock.calls[0][0].data;
-    expect(auditData.actorUserId).toBe("staff_1");
-    expect(auditData.actorRole).toBe("CENTRE_STAFF");
-    expect(auditData.action).toBe("studentCourseEnrollment.enroll");
-    expect(auditData.entityType).toBe("StudentCourseEnrollment");
-    expect(auditData.entityId).toBe("cp_1");
-    expect(auditData.metadata.createdCourseIds).toEqual(["c1"]);
-    expect(auditData.metadata.skippedCourseIds).toEqual([]);
-  });
+      await expect(
+        CourseEnrollmentPage({
+          params: Promise.resolve({ locale: "en" }),
+          searchParams: Promise.resolve({}),
+        }),
+      ).rejects.toThrow("redirect:/en/forbidden");
+    },
+  );
 });

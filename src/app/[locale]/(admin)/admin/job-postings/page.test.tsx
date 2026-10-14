@@ -1,205 +1,118 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { renderToString } from "react-dom/server";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
+import JobPostingsPage from "./page";
+
+// "@/db" is the in-memory fake installed by src/__tests__/setup.ts.
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockStaffPermissionFindUnique = vi.hoisted(() => vi.fn());
-
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: mockAuth,
-}));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    jobPosting: {
-      findMany: mockFindMany,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    staffPermission: {
-      findUnique: mockStaffPermissionFindUnique,
-    },
-  },
-}));
-
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
 
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: mockAuth,
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
+
+function posting(
+  id: string,
+  title: string,
+  status: string,
+  autoPublished: boolean,
+  companyName: string,
+) {
+  return {
+    id,
+    title,
+    jobType: "FULL_TIME",
+    applicationDeadline: new Date("2026-12-01"),
+    description: "desc",
+    status,
+    autoPublished,
+    skillIds: [],
+    salaryVisibility: "PRIVATE",
+    createdAt: new Date("2026-06-01"),
+    employerId: `emp_${id}`,
+    employer: {
+      id: `emp_${id}`,
+      companyName,
+      email: `hr@${companyName.toLowerCase().replace(/\s/g, "")}.com`,
+      autoPublishTrusted: autoPublished,
+    },
+  };
+}
+
+const render = async (searchParams: { status?: string } = {}) =>
+  renderToString(
+    await JobPostingsPage({
+      params: Promise.resolve({ locale: "en" }),
+      searchParams: Promise.resolve(searchParams),
+    }),
+  );
+
+const signIn = (userId: string, role: string) =>
+  mockAuth.mockResolvedValue({ userId, sessionClaims: { metadata: { role } } });
 
 describe("JobPostingsPage filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockFindMany.mockReset();
-    mockUserFindUnique.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue(null);
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
-    });
+    setMockRows(db, "jobPosting", [
+      posting("jp_1", "Software Engineer", "PENDING", false, "Acme Corp"),
+      posting("jp_2", "Accountant", "APPROVED", true, "Beta Ltd"),
+      posting("jp_3", "Designer", "APPROVED", false, "Gamma Inc"),
+    ]);
   });
 
   test("1. PENDING posting from a non-trusted employer appears in queue", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
+    signIn("super_admin_1", "SUPER_ADMIN");
 
-    mockFindMany.mockResolvedValue([
-      {
-        id: "jp_1",
-        title: "Software Engineer",
-        jobType: "FULL_TIME",
-        applicationDeadline: new Date("2026-08-01"),
-        status: "PENDING",
-        autoPublished: false,
-        employer: {
-          companyName: "Acme Corp",
-          email: "hr@acme.com",
-          autoPublishTrusted: false,
-        },
-      },
-    ]);
+    const html = await render({ status: "PENDING" });
 
-    const { default: JobPostingsPage } = await import("./page");
-
-    const result = await JobPostingsPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({ status: "PENDING" }),
-    });
-
-    expect(result).toBeDefined();
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { status: "PENDING" },
-      }),
-    );
+    expect(html).toContain("Software Engineer");
+    expect(html).not.toContain("Accountant");
+    expect(html).not.toContain("Designer");
   });
 
   test("2. APPROVED autoPublished=true posting does NOT appear in needs-action but DOES appear in auto-published audit filter", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
+    signIn("super_admin_1", "SUPER_ADMIN");
 
-    // First call — needs-action filter (status=APPROVED but autoPublished=true excluded by design)
-    mockFindMany.mockResolvedValueOnce([]);
+    expect(await render({ status: "PENDING" })).not.toContain("Accountant");
 
-    const { default: JobPostingsPage } = await import("./page");
-
-    // Test needs-action view — PENDING status filter
-    await JobPostingsPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({ status: "PENDING" }),
-    });
-
-    // Reset and test auto-published audit view
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
-
-    mockFindMany.mockResolvedValueOnce([
-      {
-        id: "jp_2",
-        title: "Accountant",
-        jobType: "FULL_TIME",
-        applicationDeadline: new Date("2026-09-01"),
-        status: "APPROVED",
-        autoPublished: true,
-        employer: {
-          companyName: "Beta Ltd",
-          email: "hr@beta.com",
-          autoPublishTrusted: true,
-        },
-      },
-    ]);
-
-    await JobPostingsPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({ status: "AUTO_PUBLISHED" }),
-    });
-
-    // The auto-published filter should query for status=APPROVED AND autoPublished=true
-    expect(mockFindMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        where: { status: "APPROVED", autoPublished: true },
-      }),
-    );
+    const auditView = await render({ status: "AUTO_PUBLISHED" });
+    expect(auditView).toContain("Accountant");
+    // Approved but not auto-published postings are not part of the audit view.
+    expect(auditView).not.toContain("Designer");
   });
 
   test("3. Centre Staff can view the page (read-only access)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "staff_1",
-      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
-    });
+    signIn("staff_1", "CENTRE_STAFF");
 
-    mockFindMany.mockResolvedValue([]);
+    const html = await render();
 
-    const { default: JobPostingsPage } = await import("./page");
-
-    const result = await JobPostingsPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({}),
-    });
-
-    expect(result).toBeDefined();
-    expect(mockFindMany).toHaveBeenCalledTimes(1);
+    expect(html).toContain("Software Engineer");
+    expect(html).toContain("Accountant");
   });
 
   test("4. EMPLOYER role is denied (redirects to forbidden)", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "employer_1",
-      sessionClaims: { metadata: { role: "EMPLOYER" } },
-    });
+    signIn("employer_1", "EMPLOYER");
 
-    const { default: JobPostingsPage } = await import("./page");
-
-    await expect(
-      JobPostingsPage({
-        params: Promise.resolve({ locale: "en" }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow("redirect:/en/forbidden");
+    await expect(render()).rejects.toThrow("redirect:/en/forbidden");
   });
 
   test("5. SUPER_ADMIN can view with full actions", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "super_admin_1",
-      sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
-    });
+    signIn("super_admin_1", "SUPER_ADMIN");
 
-    mockFindMany.mockResolvedValue([
-      {
-        id: "jp_1",
-        title: "Software Engineer",
-        jobType: "FULL_TIME",
-        applicationDeadline: new Date("2026-08-01"),
-        status: "PENDING",
-        autoPublished: false,
-        employer: {
-          companyName: "Acme Corp",
-          email: "hr@acme.com",
-          autoPublishTrusted: false,
-        },
-      },
-    ]);
+    const html = await render();
 
-    const { default: JobPostingsPage } = await import("./page");
-
-    const result = await JobPostingsPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({}),
-    });
-
-    expect(result).toBeDefined();
-    expect(mockFindMany).toHaveBeenCalledTimes(1);
+    expect(html).toContain("Software Engineer");
+    expect(html).toContain("Acme Corp");
   });
 });

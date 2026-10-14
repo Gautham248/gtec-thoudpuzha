@@ -2,20 +2,16 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
 import { Role } from "@/lib/auth";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
+import DashboardPage from "@/app/[locale]/(portal)/portal/student/page";
+
+// "@/db" is the in-memory fake installed by src/__tests__/setup.ts.
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
-}));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    candidateProfile: {
-      findUnique: mockFindUnique,
-    },
-  },
 }));
 
 vi.mock("next/link", () => ({
@@ -27,12 +23,11 @@ vi.mock("next/link", () => ({
           text += String(nodes);
         } else if (Array.isArray(nodes)) {
           nodes.forEach(extract);
-        } else if (
-          nodes &&
-          typeof nodes === "object" &&
-          "props" in nodes
-        ) {
-          extract(((nodes as unknown) as { props: { children: ReactNode } }).props.children);
+        } else if (nodes && typeof nodes === "object" && "props" in nodes) {
+          extract(
+            (nodes as unknown as { props: { children: ReactNode } }).props
+              .children,
+          );
         }
       }
       extract(children);
@@ -57,10 +52,10 @@ function withAuth(role: Role | undefined, userId = "user_1") {
   });
 }
 
-function withProfile(courseCompletedIds: string[]) {
-  mockFindUnique.mockResolvedValue({
-    courseCompletedIds,
-  });
+function withProfile(courseCompletedIds: string[], userId = "user_1") {
+  setMockRows(db, "candidateProfile", [
+    { id: "cp_1", userId, courseCompletedIds },
+  ]);
 }
 
 describe("Student Dashboard — /portal/student", () => {
@@ -72,10 +67,9 @@ describe("Student Dashboard — /portal/student", () => {
     withAuth(Role.STUDENT);
     withProfile(["course_1"]);
 
-    const { default: DashboardPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/page"
-    );
-    const element = await DashboardPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await DashboardPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("Study Notes");
@@ -90,10 +84,9 @@ describe("Student Dashboard — /portal/student", () => {
     withAuth(Role.STUDENT);
     withProfile([]);
 
-    const { default: DashboardPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/page"
-    );
-    const element = await DashboardPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await DashboardPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("Welcome to the Student Portal");
@@ -102,13 +95,34 @@ describe("Student Dashboard — /portal/student", () => {
     expect(html).not.toContain("Video Lectures");
   });
 
+  test("a student with no profile yet sees the empty state", async () => {
+    withAuth(Role.STUDENT);
+
+    const html = renderToString(
+      await DashboardPage({ params: Promise.resolve({ locale: "en" }) }),
+    );
+
+    expect(html).toContain("Welcome to the Student Portal");
+    expect(html).not.toContain("Study Notes");
+  });
+
+  test("only the signed-in student's own profile counts", async () => {
+    withAuth(Role.STUDENT, "user_2");
+    withProfile(["course_1"], "user_1");
+
+    const html = renderToString(
+      await DashboardPage({ params: Promise.resolve({ locale: "en" }) }),
+    );
+
+    expect(html).not.toContain("Study Notes");
+  });
+
   test("3. a job_seeker-role user is denied /portal/student entirely", async () => {
     withAuth(Role.JOB_SEEKER);
 
-    const { default: DashboardPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/page"
-    );
-    const element = await DashboardPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await DashboardPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("&#x27;t for your account type");
@@ -121,17 +135,26 @@ describe("Student Dashboard — /portal/student", () => {
     withAuth(Role.STUDENT);
     withProfile(["course_1"]);
 
-    const { default: DashboardPage } = await import(
-      "@/app/[locale]/(portal)/portal/student/page"
-    );
-    const element = await DashboardPage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await DashboardPage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     const html = renderToString(element);
 
     expect(html).toContain("href=&quot;/portal/student/resources/notes&quot;");
-    expect(html).toContain("href=&quot;/portal/student/resources/lectures&quot;");
-    expect(html).toContain("href=&quot;/portal/student/resources/assignments&quot;");
-    expect(html).toContain("href=&quot;/portal/student/resources/progress&quot;");
-    expect(html).toContain("href=&quot;/portal/student/resources/timetable&quot;");
-    expect(html).toContain("href=&quot;/portal/student/resources/past-papers&quot;");
+    expect(html).toContain(
+      "href=&quot;/portal/student/resources/lectures&quot;",
+    );
+    expect(html).toContain(
+      "href=&quot;/portal/student/resources/assignments&quot;",
+    );
+    expect(html).toContain(
+      "href=&quot;/portal/student/resources/progress&quot;",
+    );
+    expect(html).toContain(
+      "href=&quot;/portal/student/resources/timetable&quot;",
+    );
+    expect(html).toContain(
+      "href=&quot;/portal/student/resources/past-papers&quot;",
+    );
   });
 });

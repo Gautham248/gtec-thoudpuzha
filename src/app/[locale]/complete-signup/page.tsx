@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { candidateProfile, staffPermission, user } from "@/db/schema";
 import { Role } from "@/lib/auth";
 
 export default async function CompleteSignupPage(props: {
@@ -17,23 +18,22 @@ export default async function CompleteSignupPage(props: {
 
   const client = await clerkClient();
   const clerkUser = await client.users.getUser(session.userId);
-  const invitedRole = (clerkUser.publicMetadata?.role as string | undefined);
+  const invitedRole = clerkUser.publicMetadata?.role as string | undefined;
 
   if (invitedRole === Role.CENTRE_STAFF) {
-    await prisma.user.upsert({
-      where: { id: session.userId },
-      update: { role: Role.CENTRE_STAFF },
-      create: { id: session.userId, role: Role.CENTRE_STAFF },
-    });
-
-    const existingPerm = await prisma.staffPermission.findUnique({
-      where: { userId: session.userId },
-    });
-    if (!existingPerm) {
-      await prisma.staffPermission.create({
-        data: { userId: session.userId },
+    await db
+      .insert(user)
+      .values({ id: session.userId, role: Role.CENTRE_STAFF })
+      .onConflictDoUpdate({
+        target: user.id,
+        set: { role: Role.CENTRE_STAFF },
       });
-    }
+
+    // Default permissions on first sign-in; keep existing ones untouched.
+    await db
+      .insert(staffPermission)
+      .values({ userId: session.userId })
+      .onConflictDoNothing({ target: staffPermission.userId });
 
     redirect(`/${locale}/admin`);
   }
@@ -48,24 +48,16 @@ export default async function CompleteSignupPage(props: {
     publicMetadata: { role },
   });
 
-  await prisma.user.upsert({
-    where: { id: session.userId },
-    update: { role },
-    create: { id: session.userId, role },
-  });
+  await db
+    .insert(user)
+    .values({ id: session.userId, role })
+    .onConflictDoUpdate({ target: user.id, set: { role } });
 
   if (intent === "job_seeker") {
-    const existing = await prisma.candidateProfile.findUnique({
-      where: { userId: session.userId },
-    });
-    if (!existing) {
-      await prisma.candidateProfile.create({
-        data: {
-          userId: session.userId,
-          isVerifiedStudent: false,
-        },
-      });
-    }
+    await db
+      .insert(candidateProfile)
+      .values({ userId: session.userId, isVerifiedStudent: false })
+      .onConflictDoNothing({ target: candidateProfile.userId });
     redirect(`/${locale}/portal/student/biodata`);
   }
 

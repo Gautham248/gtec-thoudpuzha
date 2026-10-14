@@ -35,7 +35,7 @@ Three reinforcing differentiators:
 
 ## Capabilities and Constraints
 
-- Next.js 16 App Router with TypeScript, Tailwind CSS v4, shadcn/ui, Prisma (PostgreSQL), Clerk auth.
+- Next.js 16 App Router with TypeScript, Tailwind CSS v4, shadcn/ui, Drizzle ORM (PostgreSQL), Clerk auth.
 - Three route groups: `(public)`, `(portal)`, `(admin)` with distinct layouts.
 - Fine-grained role-based permissions (Super Admin, Centre Staff) with row-level access control.
 - File storage via AWS S3 for media, gallery, and certification partner logos.

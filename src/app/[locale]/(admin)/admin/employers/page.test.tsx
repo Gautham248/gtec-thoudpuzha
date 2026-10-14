@@ -1,48 +1,62 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { renderToString } from "react-dom/server";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
+import EmployersPage from "./page";
+
+// "@/db" is the in-memory fake installed by src/__tests__/setup.ts.
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockStaffPermissionFindUnique = vi.hoisted(() => vi.fn());
-
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: mockAuth,
-}));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    employerProfile: {
-      findMany: mockFindMany,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    staffPermission: {
-      findUnique: mockStaffPermissionFindUnique,
-    },
-  },
-}));
-
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
 
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: mockAuth,
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
+
+function employer(
+  id: string,
+  companyName: string,
+  status: string,
+  createdAt: string,
+) {
+  return {
+    id,
+    companyName,
+    contactPersonName: "John Doe",
+    phone: "9876543210",
+    email: `${id}@acme.com`,
+    industrySector: "IT_SOFTWARE",
+    status,
+    autoPublishTrusted: false,
+    rejectionReason: null,
+    createdAt: new Date(createdAt),
+  };
+}
+
+const render = async (searchParams: { status?: string } = {}) =>
+  renderToString(
+    await EmployersPage({
+      params: Promise.resolve({ locale: "en" }),
+      searchParams: Promise.resolve(searchParams),
+    }),
+  );
 
 describe("EmployersPage permission gate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockReset();
-    mockFindMany.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-    mockStaffPermissionFindUnique.mockResolvedValue(null);
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
-    });
+    setMockRows(db, "employerProfile", [
+      employer("ep_1", "Acme Corp", "PENDING", "2026-01-01"),
+      employer("ep_2", "Beta Ltd", "APPROVED", "2026-02-01"),
+    ]);
   });
 
   test("Centre Staff can view /admin/employers (read-only access)", async () => {
@@ -51,19 +65,10 @@ describe("EmployersPage permission gate", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockFindMany.mockResolvedValue([]);
+    const html = await render();
 
-    const { default: EmployersPage } = await import("./page");
-
-    // Should not throw — Centre Staff is allowed to view
-    const result = await EmployersPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({}),
-    });
-
-    // Should render something (React element)
-    expect(result).toBeDefined();
-    expect(mockFindMany).toHaveBeenCalledTimes(1);
+    expect(html).toContain("Acme Corp");
+    expect(html).toContain("Beta Ltd");
   });
 
   test("EMPLOYER role is denied (redirects to forbidden)", async () => {
@@ -72,44 +77,18 @@ describe("EmployersPage permission gate", () => {
       sessionClaims: { metadata: { role: "EMPLOYER" } },
     });
 
-    const { default: EmployersPage } = await import("./page");
-
-    await expect(
-      EmployersPage({
-        params: Promise.resolve({ locale: "en" }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow("redirect:/en/forbidden");
+    await expect(render()).rejects.toThrow("redirect:/en/forbidden");
   });
 
-  test("SUPER_ADMIN can view /admin/employers", async () => {
+  test("SUPER_ADMIN can view /admin/employers, filtered by status", async () => {
     mockAuth.mockResolvedValue({
       userId: "super_admin_1",
       sessionClaims: { metadata: { role: "SUPER_ADMIN" } },
     });
 
-    mockFindMany.mockResolvedValue([
-      {
-        id: "ep_1",
-        companyName: "Acme Corp",
-        contactPersonName: "John Doe",
-        phone: "9876543210",
-        email: "john@acme.com",
-        industrySector: "IT_SOFTWARE",
-        status: "PENDING",
-        autoPublishTrusted: false,
-        rejectionReason: null,
-      },
-    ]);
+    const html = await render({ status: "PENDING" });
 
-    const { default: EmployersPage } = await import("./page");
-
-    const result = await EmployersPage({
-      params: Promise.resolve({ locale: "en" }),
-      searchParams: Promise.resolve({}),
-    });
-
-    expect(result).toBeDefined();
-    expect(mockFindMany).toHaveBeenCalledTimes(1);
+    expect(html).toContain("Acme Corp");
+    expect(html).not.toContain("Beta Ltd");
   });
 });

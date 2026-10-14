@@ -1,11 +1,26 @@
+// @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import {
+  academicResource,
+  auditLogEntry,
+  studentCourseEnrollment,
+} from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  insertCourse,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 
 // --- Test 4: embed URL derivation (pure utility, no mocks needed) ---
 
 describe("deriveEmbedUrl (video URL utility)", () => {
   test("4. converts YouTube watch URL to embed URL", async () => {
     const { deriveEmbedUrl } = await import("@/lib/video");
-    const result = deriveEmbedUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    const result = deriveEmbedUrl(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    );
     expect(result).toBe("https://www.youtube.com/embed/dQw4w9WgXcQ");
   });
 
@@ -31,7 +46,9 @@ describe("validateVideoUrl (video URL utility)", () => {
 
   test("accepts a valid YouTube URL", async () => {
     const { validateVideoUrl } = await import("@/lib/video");
-    const result = validateVideoUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    const result = validateVideoUrl(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    );
     expect(result).toBeNull();
   });
 
@@ -51,13 +68,6 @@ describe("validateVideoUrl (video URL utility)", () => {
 // --- Hoisted mocks shared by action + component tests ---
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockAcCreate = vi.hoisted(() => vi.fn());
-const mockAcFindMany = vi.hoisted(() => vi.fn());
-const mockEnrollFindMany = vi.hoisted(() => vi.fn());
-const mockProfileFindUnique = vi.hoisted(() => vi.fn());
-const mockCourseFindMany = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -69,30 +79,11 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    academicResource: {
-      create: mockAcCreate,
-      delete: vi.fn(),
-      findMany: mockAcFindMany,
-    },
-    studentCourseEnrollment: {
-      findMany: mockEnrollFindMany,
-    },
-    candidateProfile: {
-      findUnique: mockProfileFindUnique,
-    },
-    course: {
-      findMany: mockCourseFindMany,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
+
+const pg = db as unknown as TestDb;
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -104,7 +95,13 @@ vi.mock("next/cache", () => ({
 
 vi.mock("next/link", () => ({
   default: vi.fn(
-    ({ href, children }: { href: string; children: React.ReactNode }): string => {
+    ({
+      href,
+      children,
+    }: {
+      href: string;
+      children: React.ReactNode;
+    }): string => {
       let text = "";
       function extract(nodes: React.ReactNode): void {
         if (typeof nodes === "string" || typeof nodes === "number") {
@@ -112,7 +109,10 @@ vi.mock("next/link", () => ({
         } else if (Array.isArray(nodes)) {
           nodes.forEach(extract);
         } else if (nodes && typeof nodes === "object" && "props" in nodes) {
-          extract(((nodes as unknown) as { props: { children: React.ReactNode } }).props.children);
+          extract(
+            (nodes as unknown as { props: { children: React.ReactNode } }).props
+              .children,
+          );
         }
       }
       extract(children);
@@ -122,9 +122,12 @@ vi.mock("next/link", () => ({
 }));
 
 describe("uploadResource — LECTURE type (admin server action)", () => {
-  beforeEach(() => {
+  let courseId: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await truncateAll(pg);
+    courseId = (await insertCourse(pg)).id;
   });
 
   test("1. adding a LECTURE resource with a valid YouTube URL succeeds", async () => {
@@ -133,25 +136,11 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockAcCreate.mockResolvedValue({
-      id: "res_lecture_1",
-      courseId: "course_1",
-      type: "LECTURE",
-      title: "React Hooks Explained",
-      fileUrl: null,
-      embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      uploadedAt: new Date(),
-      createdAt: new Date(),
-    });
-
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-
-    const { uploadResource } = await import(
-      "@/app/[locale]/(admin)/admin/academic-resources/actions"
-    );
+    const { uploadResource } =
+      await import("@/app/[locale]/(admin)/admin/academic-resources/actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", courseId);
     formData.append("type", "LECTURE");
     formData.append("title", "React Hooks Explained");
     formData.append("embedUrl", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
@@ -159,29 +148,28 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
 
     await uploadResource(formData);
 
-    expect(mockAcCreate).toHaveBeenCalledTimes(1);
-    expect(mockAcCreate).toHaveBeenCalledWith({
-      data: {
-        courseId: "course_1",
-        type: "LECTURE",
-        title: "React Hooks Explained",
-        fileUrl: null,
-        embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      },
+    const [resource] = await pg.select().from(academicResource);
+    expect(resource).toMatchObject({
+      courseId,
+      type: "LECTURE",
+      title: "React Hooks Explained",
+      fileUrl: null,
+      embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "academicResource.upload",
-        entityType: "AcademicResource",
-        entityId: "res_lecture_1",
-      }),
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: "staff_1",
+      actorRole: "CENTRE_STAFF",
+      action: "academicResource.upload",
+      entityType: "AcademicResource",
+      entityId: resource.id,
     });
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/academic-resources");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      "/en/admin/academic-resources",
+    );
   });
 
   test("2. adding a LECTURE resource with a non-allowed host URL is rejected", async () => {
@@ -190,12 +178,11 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    const { uploadResource } = await import(
-      "@/app/[locale]/(admin)/admin/academic-resources/actions"
-    );
+    const { uploadResource } =
+      await import("@/app/[locale]/(admin)/admin/academic-resources/actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", courseId);
     formData.append("type", "LECTURE");
     formData.append("title", "Bad Host Lecture");
     formData.append("embedUrl", "https://dailymotion.com/video/abc123");
@@ -205,60 +192,54 @@ describe("uploadResource — LECTURE type (admin server action)", () => {
       "Only YouTube and Vimeo URLs are allowed.",
     );
 
-    expect(mockAcCreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(academicResource)).toHaveLength(0);
   });
 });
 
 describe("VideoLectureList — course-scoped retrieval", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await truncateAll(pg);
   });
 
   test("3. a student sees only their enrolled course's lecture videos, correctly embedded", async () => {
+    await insertUser(pg, { id: "student_1", role: "STUDENT" });
+    const profile = await insertStudentProfile(pg, { userId: "student_1" });
     mockAuth.mockResolvedValue({
       userId: "student_1",
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
-
-    // Profile exists
-    mockProfileFindUnique.mockResolvedValue({ id: "profile_1" });
-
-    // Student is enrolled in Course A only
-    mockEnrollFindMany.mockResolvedValue([{ courseId: "course_a" }]);
-
-    // Only Course A has LECTURE resources
-    mockAcFindMany.mockResolvedValue([
+    const courseA = await insertCourse(pg, { titleEn: "Course A" });
+    const courseB = await insertCourse(pg, { titleEn: "Course B" });
+    await pg
+      .insert(studentCourseEnrollment)
+      .values({ studentProfileId: profile.id, courseId: courseA.id });
+    await pg.insert(academicResource).values([
       {
-        id: "lec_a1",
-        courseId: "course_a",
+        courseId: courseA.id,
         type: "LECTURE",
         title: "Course A Lecture 1",
-        fileUrl: null,
         embedUrl: "https://www.youtube.com/watch?v=abc123",
-        uploadedAt: new Date(),
-        createdAt: new Date(),
-        course: { titleEn: "Course A" },
+      },
+      { courseId: courseA.id, type: "NOTE", title: "Course A Notes" },
+      {
+        courseId: courseB.id,
+        type: "LECTURE",
+        title: "Course B Lecture",
+        embedUrl: "https://vimeo.com/123",
       },
     ]);
 
-    mockCourseFindMany.mockResolvedValue([{ id: "course_a", titleEn: "Course A" }]);
-
-    const { VideoLectureList } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/video-lecture-list"
-    );
-
+    const { VideoLectureList } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/video-lecture-list");
     const { renderToString } = await import("react-dom/server");
-    const element = await VideoLectureList({ locale: "en" });
-    const html = renderToString(element);
+    const html = renderToString(await VideoLectureList({ locale: "en" }));
 
-    // Course A's lectures appear
+    // Course A's lectures appear, embedded
     expect(html).toContain("Course A Lecture 1");
-    expect(html).toContain("Course A");
-
-    // The embed URL is derived to its embeddable form
     expect(html).toContain("www.youtube.com/embed/abc123");
-
-    // Course B is never mentioned since student isn't enrolled
+    // Notes aren't lectures; Course B isn't enrolled
+    expect(html).not.toContain("Course A Notes");
     expect(html).not.toContain("Course B");
   });
 });

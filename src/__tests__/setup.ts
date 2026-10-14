@@ -7,6 +7,19 @@ import "@testing-library/jest-dom/vitest";
 
 afterEach(cleanup);
 
+// Every test gets an in-memory fake "@/db" so nothing can reach the real
+// database from .env.local. A test file may still vi.mock("@/db") itself
+// (e.g. with ./pg-test-db for real write semantics); that mock wins.
+vi.mock("@/db", async () => (await import("./drizzle-mock")).mockDbModule());
+
+afterEach(async () => {
+  const [{ db }, { isMockDb, resetMockDb }] = await Promise.all([
+    import("@/db"),
+    import("./drizzle-mock"),
+  ]);
+  if (isMockDb(db)) resetMockDb(db);
+});
+
 // shadcn sidebar uses useIsMobile → window.matchMedia
 // Guard: only in jsdom environments (not in e.g. edge-runtime tests)
 if (typeof window !== "undefined") {
@@ -28,8 +41,14 @@ if (typeof window !== "undefined") {
 // Load en.json for test translation mocks so existing string assertions still work
 import enMessages from "@/lib/i18n/en.json";
 
-function lookup(namespace: string, key: string, values?: Record<string, string>): string {
-  const ns = (enMessages as unknown as Record<string, Record<string, string>>)[namespace];
+function lookup(
+  namespace: string,
+  key: string,
+  values?: Record<string, string>,
+): string {
+  const ns = (enMessages as unknown as Record<string, Record<string, string>>)[
+    namespace
+  ];
   let msg = ns?.[key] ?? key;
   if (values) {
     for (const [k, v] of Object.entries(values)) {
@@ -47,9 +66,8 @@ vi.mock("next-intl/server", async (importOriginal) => {
     getTranslations: vi.fn(
       (opts: string | { locale?: string; namespace: string }) => {
         const namespace = typeof opts === "string" ? opts : opts.namespace;
-        return Promise.resolve(
-          (key: string, values?: Record<string, string>) =>
-            lookup(namespace, key, values),
+        return Promise.resolve((key: string, values?: Record<string, string>) =>
+          lookup(namespace, key, values),
         );
       },
     ),
@@ -62,9 +80,8 @@ vi.mock("next-intl", async (importOriginal) => {
     ...mod,
     useLocale: vi.fn(() => "en"),
     useTranslations: vi.fn(
-      (namespace: string) =>
-        (key: string, values?: Record<string, string>) =>
-          lookup(namespace, key, values),
+      (namespace: string) => (key: string, values?: Record<string, string>) =>
+        lookup(namespace, key, values),
     ),
   };
 });
@@ -103,6 +120,8 @@ vi.mock("next/cache", async (importOriginal) => {
     ...mod,
     revalidatePath: vi.fn(),
     revalidateTag: vi.fn(),
-    unstable_cache: <T extends (...args: unknown[]) => Promise<unknown>>(fn: T) => fn,
+    unstable_cache: <T extends (...args: unknown[]) => Promise<unknown>>(
+      fn: T,
+    ) => fn,
   };
 });

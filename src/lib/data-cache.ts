@@ -61,6 +61,20 @@ export const getCachedPlacementGalleryData = unstable_cache(
   { revalidate: 3600, tags: ["placement-gallery", "gallery"] },
 );
 
+export const getCachedPlacedStudentsPosters = unstable_cache(
+  async () => {
+    const { getPlacedStudentsPosters } = await import("@/lib/gallery");
+    try {
+      return await getPlacedStudentsPosters();
+    } catch (err) {
+      logger.exception("cache", "Failed to load placed students posters", err);
+      throw err;
+    }
+  },
+  ["placed-students-posters"],
+  { revalidate: 3600, tags: ["placed-students-posters", "gallery"] },
+);
+
 export const getCachedCertificationPartners = unstable_cache(
   async (): Promise<PublicCertificationPartner[]> => {
     const { getCertificationPartners } = await import(

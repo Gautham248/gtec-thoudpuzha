@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
+// Imported at module level (vi.mock calls are hoisted above them) so loading
+// these large module graphs happens during collection, not inside a test.
+import { Header } from "@/components/shared/Header";
+import HomePage from "@/app/[locale]/(public)/page";
 import type { Mock } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
@@ -12,24 +16,34 @@ vi.mock("@/lib/i18n/navigation", () => ({
 }));
 
 vi.mock("@/lib/data-cache", () => ({
-  getCachedSiteSettings: vi.fn(() => Promise.resolve({
-    id: "settings_1",
-    yearsInOperation: "25+",
-    studentsTrained: "3.2M+",
-    centresWorldwide: "800+",
-    affiliations: "100+",
-    countries: "23",
-    aboutBodyEn: "About",
-    aboutBodyMl: null,
-    aboutPhotoUrl: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    whyChooseUsCards: [],
-  })),
+  getCachedSiteSettings: vi.fn(() =>
+    Promise.resolve({
+      id: "settings_1",
+      yearsInOperation: "25+",
+      studentsTrained: "3.2M+",
+      centresWorldwide: "800+",
+      affiliations: "100+",
+      countries: "23",
+      aboutBodyEn: "About",
+      aboutBodyMl: null,
+      aboutPhotoUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      whyChooseUsCards: [],
+    }),
+  ),
   getCachedPublishedCourses: vi.fn(() => Promise.resolve([])),
-  getCachedHomepageTeaser: vi.fn(() => Promise.resolve({ newsItems: [], nextEvent: null, flashNews: [], featuredNews: null })),
+  getCachedHomepageTeaser: vi.fn(() =>
+    Promise.resolve({
+      newsItems: [],
+      nextEvent: null,
+      flashNews: [],
+      featuredNews: null,
+    }),
+  ),
   getCachedUpcomingEvents: vi.fn(() => Promise.resolve([])),
   getCachedPlacementGalleryData: vi.fn(() => Promise.resolve(null)),
+  getCachedPlacedStudentsPosters: vi.fn(() => Promise.resolve([])),
   getCachedCertificationPartners: vi.fn(() => Promise.resolve([])),
 }));
 
@@ -84,7 +98,12 @@ describe("Bilingual route sweep — no untranslated strings", () => {
 
       // Skip layouts / error / loading / not-found (structural files)
       const base = path.basename(file);
-      if (["layout.tsx", "error.tsx", "loading.tsx", "not-found.tsx"].includes(base)) continue;
+      if (
+        ["layout.tsx", "error.tsx", "loading.tsx", "not-found.tsx"].includes(
+          base,
+        )
+      )
+        continue;
 
       for (const pattern of UNTRANSLATED_PATTERNS) {
         const match = content.match(pattern);
@@ -122,22 +141,30 @@ function collectPageFiles(dir: string, acc: string[]) {
 // ---------------------------------------------------------------------------
 describe("test 2: LanguageSwitcher preserves dynamic route state", () => {
   test("preserves a news slug when toggling /en/news/some-article → /ml/news/some-article", async () => {
-    const { buildLocalePath } = await import("@/components/shared/LanguageSwitcher");
-    expect(buildLocalePath("/news/some-article", "ml")).toBe("/ml/news/some-article");
+    const { buildLocalePath } =
+      await import("@/components/shared/LanguageSwitcher");
+    expect(buildLocalePath("/news/some-article", "ml")).toBe(
+      "/ml/news/some-article",
+    );
   });
 
   test("preserves a job id when toggling /en/jobs/abc-123 → /ml/jobs/abc-123", async () => {
-    const { buildLocalePath } = await import("@/components/shared/LanguageSwitcher");
+    const { buildLocalePath } =
+      await import("@/components/shared/LanguageSwitcher");
     expect(buildLocalePath("/jobs/abc-123", "en")).toBe("/en/jobs/abc-123");
   });
 
   test("preserves a nested dynamic path like /candidate/xyz/applicant/42 → /ml/candidate/xyz/applicant/42", async () => {
-    const { buildLocalePath } = await import("@/components/shared/LanguageSwitcher");
-    expect(buildLocalePath("/candidate/xyz/applicant/42", "ml")).toBe("/ml/candidate/xyz/applicant/42");
+    const { buildLocalePath } =
+      await import("@/components/shared/LanguageSwitcher");
+    expect(buildLocalePath("/candidate/xyz/applicant/42", "ml")).toBe(
+      "/ml/candidate/xyz/applicant/42",
+    );
   });
 
   test("handles root path correctly", async () => {
-    const { buildLocalePath } = await import("@/components/shared/LanguageSwitcher");
+    const { buildLocalePath } =
+      await import("@/components/shared/LanguageSwitcher");
     expect(buildLocalePath("/", "en")).toBe("/en");
     expect(buildLocalePath("/", "ml")).toBe("/ml");
   });
@@ -161,10 +188,10 @@ describe("test 2: LanguageSwitcher preserves dynamic route state", () => {
 // ---------------------------------------------------------------------------
 describe("Test 3: Visual/layout regression — Header + Hero under both locales", () => {
   test("Header renders with translated nav items in EN locale", async () => {
-    const { useLocale, useTranslations: _useTranslations } = await import("next-intl");
+    const { useLocale, useTranslations: _useTranslations } =
+      await import("next-intl");
     (useLocale as Mock).mockReturnValue("en");
 
-    const { Header } = await import("@/components/shared/Header");
     const html = renderToString(<Header />);
 
     // Nav items come from the mocked en.json dictionary
@@ -175,13 +202,15 @@ describe("Test 3: Visual/layout regression — Header + Hero under both locales"
   });
 
   test("Header renders with translated nav items in ML locale", async () => {
-    const { useLocale, useTranslations: _useTranslations } = await import("next-intl");
+    const { useLocale, useTranslations: _useTranslations } =
+      await import("next-intl");
     (useLocale as Mock).mockReturnValue("ml");
 
     // Override useTranslations to return Malayalam strings for the Header test
-    const _originalUseTranslations = vi.mocked((await import("next-intl")).useTranslations);
+    const _originalUseTranslations = vi.mocked(
+      (await import("next-intl")).useTranslations,
+    );
     // We just verify the component doesn't crash and still renders structure
-    const { Header } = await import("@/components/shared/Header");
     const html = renderToString(<Header />);
 
     // Structural elements should still render
@@ -194,8 +223,9 @@ describe("Test 3: Visual/layout regression — Header + Hero under both locales"
     // Validates the data-fetching and translation pipeline works for the
     // homepage. Content bilingual assertions are covered by the static
     // route-sweep file scan above (Test 1).
-    const { default: HomePage } = await import("@/app/[locale]/(public)/page");
-    const element = await HomePage({ params: Promise.resolve({ locale: "en" }) });
+    const element = await HomePage({
+      params: Promise.resolve({ locale: "en" }),
+    });
     expect(element).toBeDefined();
     expect(element.type).toBeDefined();
   });

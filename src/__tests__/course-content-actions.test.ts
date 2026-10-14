@@ -1,20 +1,19 @@
-import { describe, test, expect, vi, beforeEach } from "vitest";
+// @vitest-environment node
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { db } from "@/db";
+import { course } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertCourse } from "@/__tests__/pg-fixtures";
 
-const mockCourseUpdate = vi.fn();
-const mockCourseFindUnique = vi.fn();
-const mockLogAdminAction = vi.fn();
+const mockLogAdminAction = vi.hoisted(() => vi.fn());
+const mockRevalidatePath = vi.hoisted(() => vi.fn());
 
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    course: {
-      update: mockCourseUpdate,
-      findUnique: mockCourseFindUnique,
-    },
-  },
+vi.mock("next/cache", () => ({
+  revalidatePath: mockRevalidatePath,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -36,15 +35,20 @@ vi.mock("@/lib/auth", () => ({
   Role: { CENTRE_STAFF: "CENTRE_STAFF", SUPER_ADMIN: "SUPER_ADMIN" },
 }));
 
-const { saveCourseContent, getCourseContent } = await import(
-  "@/app/[locale]/(admin)/admin/courses/[courseId]/content/actions"
-);
+const { saveCourseContent, getCourseContent } =
+  await import("@/app/[locale]/(admin)/admin/courses/[courseId]/content/actions");
 
-function makeFormData(overrides: Record<string, string> = {}, omit: string[] = []) {
+const pg = db as unknown as TestDb;
+let courseId: string;
+
+function makeFormData(
+  overrides: Record<string, string> = {},
+  omit: string[] = [],
+) {
   const fd = new FormData();
   const defaults: Record<string, string> = {
     locale: "en",
-    courseId: "course-123",
+    courseId,
     contentBlocks: JSON.stringify({
       heroTaglineEn: "Test tagline",
       courseLists: [],
@@ -59,35 +63,49 @@ function makeFormData(overrides: Record<string, string> = {}, omit: string[] = [
   return fd;
 }
 
-describe("saveCourseContent", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockCourseUpdate.mockResolvedValue({ id: "course-123" });
-    mockCourseFindUnique.mockResolvedValue({
-      slug: "test-course",
-      titleEn: "Test Course",
-    });
-    mockLogAdminAction.mockResolvedValue(undefined);
-  });
+const storedContent = async () =>
+  (await pg.select().from(course))[0].contentBlocks;
 
-  test("saves valid content", async () => {
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  courseId = (
+    await insertCourse(pg, { slug: "test-course", titleEn: "Test Course" })
+  ).id;
+});
+
+describe("saveCourseContent", () => {
+  test("saves valid content, audits it and revalidates the public course page", async () => {
     await saveCourseContent(makeFormData());
-    expect(mockCourseUpdate).toHaveBeenCalledWith(
+
+    expect(await storedContent()).toEqual(
       expect.objectContaining({
-        where: { id: "course-123" },
-        data: expect.objectContaining({
-          contentBlocks: expect.any(Object),
-        }),
+        heroTaglineEn: "Test tagline",
+        courseLists: [],
       }),
     );
-    expect(mockLogAdminAction).toHaveBeenCalled();
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "courseContent.save",
+        entityId: courseId,
+        metadata: { titleEn: "Test Course" },
+      }),
+    );
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/courses/test-course");
+  });
+
+  test("fails for an unknown course without auditing", async () => {
+    await expect(
+      saveCourseContent(makeFormData({ courseId: "missing" })),
+    ).rejects.toThrow("Course not found");
+    expect(mockLogAdminAction).not.toHaveBeenCalled();
   });
 
   test("rejects invalid JSON content", async () => {
     await expect(
       saveCourseContent(makeFormData({ contentBlocks: "not-json" })),
     ).rejects.toThrow("Invalid JSON");
-    expect(mockCourseUpdate).not.toHaveBeenCalled();
+    expect(await storedContent()).toBeNull();
   });
 
   test("rejects missing content data", async () => {
@@ -118,38 +136,31 @@ describe("saveCourseContent", () => {
         }),
       ),
     ).rejects.toThrow();
-    expect(mockCourseUpdate).not.toHaveBeenCalled();
+    expect(await storedContent()).toBeNull();
   });
 });
 
 describe("getCourseContent", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   test("returns null when no content", async () => {
-    mockCourseFindUnique.mockResolvedValue(null);
-    const result = await getCourseContent("no-content");
-    expect(result).toBeNull();
+    expect(await getCourseContent(courseId)).toBeNull();
+    expect(await getCourseContent("missing")).toBeNull();
   });
 
   test("returns parsed content when valid", async () => {
-    const validData = {
-      heroTaglineEn: "Test",
-      courseLists: [],
-    };
-    mockCourseFindUnique.mockResolvedValue({
-      contentBlocks: validData,
-    });
-    const result = await getCourseContent("valid-course");
+    await pg
+      .update(course)
+      .set({ contentBlocks: { heroTaglineEn: "Test", courseLists: [] } });
+
+    const result = await getCourseContent(courseId);
+
     expect(result).toEqual(expect.objectContaining({ heroTaglineEn: "Test" }));
   });
 
   test("returns null for malformed JSON", async () => {
-    mockCourseFindUnique.mockResolvedValue({
-      contentBlocks: { courseLists: "not-an-array" },
-    });
-    const result = await getCourseContent("malformed");
-    expect(result).toBeNull();
+    await pg
+      .update(course)
+      .set({ contentBlocks: { courseLists: "not-an-array" } });
+
+    expect(await getCourseContent(courseId)).toBeNull();
   });
 });

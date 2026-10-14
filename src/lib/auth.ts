@@ -1,5 +1,5 @@
 import { auth as clerkAuth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { fetchRoleFromApi } from "@/lib/role-fallback";
 
 export enum Role {
@@ -31,7 +31,10 @@ export enum Role {
  * Backend API (including if userId is missing from the session).
  */
 export async function getEffectiveRole(
-  session: Pick<Awaited<ReturnType<typeof clerkAuth>>, "userId" | "sessionClaims">,
+  session: Pick<
+    Awaited<ReturnType<typeof clerkAuth>>,
+    "userId" | "sessionClaims"
+  >,
 ): Promise<Role | undefined> {
   if (!session.userId) return undefined;
 
@@ -43,7 +46,10 @@ export async function getEffectiveRole(
 }
 
 export type RequireRoleResult =
-  | { authorized: false; reason: "unauthenticated" | "no_role" | "forbidden" | "deactivated" }
+  | {
+      authorized: false;
+      reason: "unauthenticated" | "no_role" | "forbidden" | "deactivated";
+    }
   | { authorized: true; role: Role; userId: string };
 
 export async function requireRole(
@@ -67,9 +73,9 @@ export async function requireRole(
 
   // Deactivation check — enforced even for valid roles
   if (role === Role.CENTRE_STAFF || role === Role.SUPER_ADMIN) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { deactivatedAt: true },
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, session.userId!),
+      columns: { deactivatedAt: true },
     });
     if (user?.deactivatedAt) {
       return { authorized: false, reason: "deactivated" };
@@ -105,7 +111,15 @@ export const StaffPermissionKeys = {
 } as const;
 
 export type RequirePermissionResult =
-  | { authorized: false; reason: "unauthenticated" | "no_role" | "forbidden" | "deactivated" | "no_permission" }
+  | {
+      authorized: false;
+      reason:
+        | "unauthenticated"
+        | "no_role"
+        | "forbidden"
+        | "deactivated"
+        | "no_permission";
+    }
   | { authorized: true; role: Role; userId: string };
 
 /**
@@ -133,9 +147,9 @@ export async function requirePermission(
   }
 
   // Deactivation check
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { deactivatedAt: true },
+  const user = await db.query.user.findFirst({
+    where: (u, { eq }) => eq(u.id, session.userId!),
+    columns: { deactivatedAt: true },
   });
   if (user?.deactivatedAt) {
     return { authorized: false, reason: "deactivated" };
@@ -147,8 +161,8 @@ export async function requirePermission(
   }
 
   // Centre Staff — check the specific permission flag
-  const permission = await prisma.staffPermission.findUnique({
-    where: { userId: session.userId },
+  const permission = await db.query.staffPermission.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
   });
 
   if (!permission || !permission[permissionKey]) {
@@ -165,8 +179,8 @@ export async function requirePermission(
 export async function getAllStaffPermissions(
   userId: string,
 ): Promise<Record<PermissionKey, boolean>> {
-  const permission = await prisma.staffPermission.findUnique({
-    where: { userId },
+  const permission = await db.query.staffPermission.findFirst({
+    where: (p, { eq }) => eq(p.userId, userId),
   });
   if (!permission) {
     return {

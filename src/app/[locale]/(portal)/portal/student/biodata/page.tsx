@@ -1,10 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { BiodataForm } from "@/components/shared/BiodataForm";
 import { getPublishedCourses } from "@/lib/courses";
 import { getApprovedSkills, createPENDINGSkill } from "@/lib/skills";
 import { submitBiodataForm } from "./actions";
+import { withProfileLists } from "@/db/helpers";
 
 export default async function BiodataPage() {
   const session = await auth();
@@ -17,19 +18,19 @@ export default async function BiodataPage() {
   const isVerifiedStudent = role === Role.STUDENT;
 
   const [profile, courses, skills] = await Promise.all([
-    prisma.candidateProfile.findUnique({
-      where: { userId: session.userId },
-    }),
+    db.query.candidateProfile
+      .findFirst({ where: (p, { eq }) => eq(p.userId, session.userId!) })
+      .then((p) => p ?? null),
     getPublishedCourses(),
     getApprovedSkills(),
   ]);
 
   const profileWithCompletion = profile
     ? {
-      ...profile,
-      isVerifiedStudent,
-      studentRecordId: profile.studentRecordId,
-    }
+        ...withProfileLists(profile),
+        isVerifiedStudent,
+        studentRecordId: profile.studentRecordId,
+      }
     : null;
 
   return (

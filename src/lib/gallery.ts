@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 
 export type PublicGalleryCategory = {
   id: string;
@@ -25,13 +25,13 @@ export function slugFromName(name: string): string {
 }
 
 export async function getGalleryData(): Promise<PublicGalleryCategory[]> {
-  const categories = await prisma.galleryCategory.findMany({
-    include: {
+  const categories = await db.query.galleryCategory.findMany({
+    with: {
       items: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: (i, { asc }) => asc(i.sortOrder),
       },
     },
-    orderBy: { sortOrder: "asc" },
+    orderBy: (c, { asc }) => asc(c.sortOrder),
   });
 
   return categories;
@@ -42,12 +42,12 @@ export async function getGalleryCategoryBySlug(
   slug: string,
   limit?: number,
 ): Promise<PublicGalleryCategory | null> {
-  const category = await prisma.galleryCategory.findUnique({
-    where: { slug },
-    include: {
+  const category = await db.query.galleryCategory.findFirst({
+    where: (c, { eq }) => eq(c.slug, slug),
+    with: {
       items: {
-        orderBy: { sortOrder: "asc" },
-        ...(limit !== undefined ? { take: limit } : {}),
+        orderBy: (i, { asc }) => asc(i.sortOrder),
+        ...(limit !== undefined ? { limit } : {}),
       },
     },
   });
@@ -71,6 +71,26 @@ export async function getPlacementGalleryData(): Promise<{
     const category = await getGalleryCategoryBySlug(PLACEMENT_SLUG, DISPLAY_LIMIT);
     if (!category) return null;
     return { slug: category.slug, items: category.items };
+  } catch {
+    return null;
+  }
+}
+
+export const PLACED_STUDENTS_SLUG = "placed-students";
+const POSTER_LIMIT = 12;
+
+/** Fetch placed-student poster images (up to POSTER_LIMIT). Returns null if no such category exists. */
+export async function getPlacedStudentsPosters(): Promise<{
+  slug: string;
+  items: PublicGalleryCategory["items"];
+} | null> {
+  try {
+    const category = await getGalleryCategoryBySlug(PLACED_STUDENTS_SLUG, POSTER_LIMIT);
+    if (!category) return null;
+    return {
+      slug: category.slug,
+      items: category.items.filter((item) => item.mediaType === "IMAGE"),
+    };
   } catch {
     return null;
   }

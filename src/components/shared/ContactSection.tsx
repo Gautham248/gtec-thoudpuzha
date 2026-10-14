@@ -6,7 +6,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { useEnquiryModal } from "@/components/enquiry/EnquiryModal";
 import { siteConfig } from "@/lib/site";
 import type { PublicCourse } from "@/lib/courses";
-import type { SiteSettings } from "@prisma/client";
+import type { SiteSettings } from "@/db/types";
 
 interface ContactSectionProps {
   settings: Pick<

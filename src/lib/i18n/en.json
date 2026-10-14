@@ -31,12 +31,22 @@
     "whatsappUs": "WhatsApp Us",
     "callNow": "Call Now"
   },
+  "homeVideo": {
+    "badge": "Watch the tour",
+    "heading": "See G-TEC Thodupuzha in Action",
+    "subhead": "Take a quick look inside our classrooms, labs and student life, and see how we help learners build real careers.",
+    "fallback": "Your browser does not support embedded videos."
+  },
   "about": {
     "heading": "About G-TEC Thodupuzha",
     "photoPlaceholder": "Centre photo placeholder",
     "aboutUs": "About Us"
   },
   "aboutPage": {
+    "directorEyebrow": "Director's Message",
+    "directorQuote": "At G-TEC Thodupuzha, our success is measured by the satisfaction of our students. We strive to ensure that every student who walks through our doors leaves with quality training, valuable skills, greater confidence, and a positive learning experience.",
+    "directorName": "Noby K Sudharsan",
+    "directorRole": "Director, G-TEC Thodupuzha",
     "badge": "25+ Years of Excellence",
     "title": "About G-TEC Education Thodupuzha",
     "subtitle": "Transforming careers with world-class computer education, multimedia, accounting, and soft skills training.",
@@ -62,6 +72,12 @@
     "heading": "News & Upcoming Events",
     "viewAll": "View all news →",
     "upcomingEvent": "Upcoming Event"
+  },
+  "placedStudents": {
+    "badge": "Success stories",
+    "heading": "Our Placed Students",
+    "subhead": "Meet the G-TEC learners now building careers at leading companies.",
+    "viewAll": "View all"
   },
   "placementSupport": {
     "heading": "Placement & Support",

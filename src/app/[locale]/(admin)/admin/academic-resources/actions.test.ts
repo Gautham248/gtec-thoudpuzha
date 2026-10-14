@@ -1,13 +1,19 @@
+// @vitest-environment node
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import {
+  academicResource,
+  auditLogEntry,
+  studentCourseEnrollment,
+} from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import {
+  insertCourse,
+  insertStudentProfile,
+  insertUser,
+} from "@/__tests__/pg-fixtures";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockCreate = vi.hoisted(() => vi.fn());
-const mockDelete = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockFindUnique = vi.hoisted(() => vi.fn());
-const mockFindManyCourses = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -19,30 +25,11 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    academicResource: {
-      create: mockCreate,
-      delete: mockDelete,
-      findMany: mockFindMany,
-    },
-    studentCourseEnrollment: {
-      findMany: mockFindMany,
-    },
-    candidateProfile: {
-      findUnique: mockFindUnique,
-    },
-    course: {
-      findMany: mockFindManyCourses,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: {
-      create: mockAuditCreate,
-    },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
+
+const pg = db as unknown as TestDb;
 
 vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
@@ -53,9 +40,12 @@ vi.mock("next/cache", () => ({
 }));
 
 describe("uploadResource (admin server action)", () => {
-  beforeEach(() => {
+  let courseId: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    await truncateAll(pg);
+    courseId = (await insertCourse(pg)).id;
   });
 
   test("1. uploading a NOTE resource persists with the right type and courseId", async () => {
@@ -64,22 +54,10 @@ describe("uploadResource (admin server action)", () => {
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
 
-    mockCreate.mockResolvedValue({
-      id: "res_1",
-      courseId: "course_1",
-      type: "NOTE",
-      title: "Introduction to Programming",
-      fileUrl: "https://example.com/notes.pdf",
-      uploadedAt: new Date(),
-      createdAt: new Date(),
-    });
-
-    mockAuditCreate.mockResolvedValue({ id: "audit_1" });
-
     const { uploadResource } = await import("./actions");
 
     const formData = new FormData();
-    formData.append("courseId", "course_1");
+    formData.append("courseId", courseId);
     formData.append("type", "NOTE");
     formData.append("title", "Introduction to Programming");
     formData.append("fileUrl", "https://example.com/notes.pdf");
@@ -87,28 +65,28 @@ describe("uploadResource (admin server action)", () => {
 
     await uploadResource(formData);
 
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: {
-        courseId: "course_1",
-        type: "NOTE",
-        title: "Introduction to Programming",
-        fileUrl: "https://example.com/notes.pdf",
-      },
+    const [resource] = await pg.select().from(academicResource);
+    expect(resource).toMatchObject({
+      courseId,
+      type: "NOTE",
+      title: "Introduction to Programming",
+      fileUrl: "https://example.com/notes.pdf",
+      embedUrl: null,
     });
 
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actorUserId: "staff_1",
-        actorRole: "CENTRE_STAFF",
-        action: "academicResource.upload",
-        entityType: "AcademicResource",
-        entityId: "res_1",
-      }),
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      actorUserId: "staff_1",
+      actorRole: "CENTRE_STAFF",
+      action: "academicResource.upload",
+      entityType: "AcademicResource",
+      entityId: resource.id,
     });
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/en/admin/academic-resources");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(
+      "/en/admin/academic-resources",
+    );
   });
 
   test("4. admin upload flow is denied to a student-role user (403)", async () => {
@@ -133,7 +111,7 @@ describe("uploadResource (admin server action)", () => {
       "redirect:/en/forbidden",
     );
 
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(await pg.select().from(academicResource)).toHaveLength(0);
   });
 });
 
@@ -141,7 +119,13 @@ describe("uploadResource (admin server action)", () => {
 // by importing and rendering the component as the student-dashboard tests do.
 vi.mock("next/link", () => ({
   default: vi.fn(
-    ({ href, children }: { href: string; children: React.ReactNode }): string => {
+    ({
+      href,
+      children,
+    }: {
+      href: string;
+      children: React.ReactNode;
+    }): string => {
       let text = "";
       function extract(nodes: React.ReactNode): void {
         if (typeof nodes === "string" || typeof nodes === "number") {
@@ -149,7 +133,10 @@ vi.mock("next/link", () => ({
         } else if (Array.isArray(nodes)) {
           nodes.forEach(extract);
         } else if (nodes && typeof nodes === "object" && "props" in nodes) {
-          extract(((nodes as unknown) as { props: { children: React.ReactNode } }).props.children);
+          extract(
+            (nodes as unknown as { props: { children: React.ReactNode } }).props
+              .children,
+          );
         }
       }
       extract(children);
@@ -159,91 +146,61 @@ vi.mock("next/link", () => ({
 }));
 
 describe("ResourceList — student-facing course-scoped retrieval", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockFindMany.mockReset();
-    mockFindUnique.mockReset();
-    mockFindManyCourses.mockReset();
+    await truncateAll(pg);
   });
 
-  test("2. a student enrolled in Course A sees Course A's notes but NOT Course B's notes", async () => {
+  async function student(userId: string) {
+    await insertUser(pg, { id: userId, role: "STUDENT" });
     mockAuth.mockResolvedValue({
-      userId: "student_1",
+      userId,
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
+    return insertStudentProfile(pg, { userId });
+  }
 
-    mockFindUnique.mockResolvedValue({ id: "profile_1" });
+  const renderList = async () => {
+    const { ResourceList } =
+      await import("@/app/[locale]/(portal)/portal/student/resources/resource-list");
+    const { renderToString } = await import("react-dom/server");
+    return renderToString(
+      await ResourceList({ type: "NOTE", title: "Study Notes", locale: "en" }),
+    );
+  };
 
-    // Student is enrolled in Course A and Course B
-    mockFindMany
-      .mockResolvedValueOnce([
-        { courseId: "course_a" },
-        { courseId: "course_b" },
-      ]) // enrollments
-      .mockResolvedValueOnce([
-        {
-          id: "res_a1",
-          courseId: "course_a",
-          type: "NOTE",
-          title: "Course A Notes 1",
-          fileUrl: null,
-          uploadedAt: new Date(),
-          createdAt: new Date(),
-          course: { titleEn: "Course A" },
-        },
-        {
-          id: "res_a2",
-          courseId: "course_a",
-          type: "NOTE",
-          title: "Course A Notes 2",
-          fileUrl: null,
-          uploadedAt: new Date(),
-          createdAt: new Date(),
-          course: { titleEn: "Course A" },
-        },
-      ]); // resources — only Course A's notes
-
-    mockFindManyCourses.mockResolvedValue([
-      { id: "course_a", titleEn: "Course A" },
-      { id: "course_b", titleEn: "Course B" },
+  test("2. a student enrolled in Course A sees Course A's notes but NOT Course B's notes", async () => {
+    const profile = await student("student_1");
+    const courseA = await insertCourse(pg, { titleEn: "Course A" });
+    const courseB = await insertCourse(pg, { titleEn: "Course B" });
+    await pg
+      .insert(studentCourseEnrollment)
+      .values({ studentProfileId: profile.id, courseId: courseA.id });
+    await pg.insert(academicResource).values([
+      { courseId: courseA.id, type: "NOTE", title: "Course A Notes 1" },
+      { courseId: courseA.id, type: "NOTE", title: "Course A Notes 2" },
+      {
+        courseId: courseA.id,
+        type: "LECTURE",
+        title: "Course A Lecture",
+        embedUrl: "https://youtu.be/x",
+      },
+      { courseId: courseB.id, type: "NOTE", title: "Course B Notes" },
     ]);
 
-    const { ResourceList } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/resource-list"
-    );
+    const html = await renderList();
 
-    const { renderToString } = await import("react-dom/server");
-    const element = await ResourceList({ type: "NOTE", title: "Study Notes", locale: "en" });
-    const html = renderToString(element);
-
-    // Course A's notes appear
     expect(html).toContain("Course A Notes 1");
     expect(html).toContain("Course A Notes 2");
     expect(html).toContain("Course A");
-
-    // Course B's resources are never shown — the component skips courses
-    // with zero matching resources.
-    expect(html).not.toContain("Course B Notes");
+    expect(html).not.toContain("Course A Lecture"); // other resource type
+    expect(html).not.toContain("Course B Notes"); // not enrolled
   });
 
   test("3. a student with zero course enrollments sees an empty state, not an error", async () => {
-    mockAuth.mockResolvedValue({
-      userId: "student_2",
-      sessionClaims: { metadata: { role: "STUDENT" } },
-    });
+    await student("student_2");
 
-    mockFindUnique.mockResolvedValue({ id: "profile_2" });
-
-    // No enrollments
-    mockFindMany.mockResolvedValue([]);
-
-    const { ResourceList } = await import(
-      "@/app/[locale]/(portal)/portal/student/resources/resource-list"
-    );
-
-    const { renderToString } = await import("react-dom/server");
-    const element = await ResourceList({ type: "NOTE", title: "Study Notes", locale: "en" });
-    const html = renderToString(element);
+    const html = await renderList();
 
     expect(html).toContain("Study Notes");
     expect(html).toContain("aren&#x27;t enrolled");

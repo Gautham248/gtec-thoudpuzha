@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
-import type { ResourceType } from "@prisma/client";
+import { db } from "@/db";
+import type { ResourceType } from "@/db/types";
 import Link from "next/link";
 
 interface ResourceListProps {
@@ -16,9 +16,9 @@ export async function ResourceList({ type, title, locale }: ResourceListProps) {
 
   const t = await getTranslations({ locale, namespace: "resources" });
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
-    select: { id: true },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
+    columns: { id: true },
   });
 
   if (!profile) {
@@ -26,17 +26,15 @@ export async function ResourceList({ type, title, locale }: ResourceListProps) {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-semibold">{title}</h1>
-          <p className="mt-4 text-muted-foreground">
-            {t("completeProfile")}
-          </p>
+          <p className="mt-4 text-muted-foreground">{t("completeProfile")}</p>
         </div>
       </div>
     );
   }
 
-  const enrollments = await prisma.studentCourseEnrollment.findMany({
-    where: { studentProfileId: profile.id },
-    select: { courseId: true },
+  const enrollments = await db.query.studentCourseEnrollment.findMany({
+    where: (e, { eq }) => eq(e.studentProfileId, profile.id),
+    columns: { courseId: true },
   });
 
   if (enrollments.length === 0) {
@@ -44,9 +42,7 @@ export async function ResourceList({ type, title, locale }: ResourceListProps) {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-semibold">{title}</h1>
-          <p className="mt-4 text-muted-foreground">
-            {t("notEnrolled")}
-          </p>
+          <p className="mt-4 text-muted-foreground">{t("notEnrolled")}</p>
           <Link
             href="/portal/student"
             className="mt-4 inline-block text-primary underline"
@@ -61,14 +57,15 @@ export async function ResourceList({ type, title, locale }: ResourceListProps) {
   const courseIds = enrollments.map((e) => e.courseId);
 
   const [resources, courses] = await Promise.all([
-    prisma.academicResource.findMany({
-      where: { courseId: { in: courseIds }, type },
-      orderBy: { uploadedAt: "desc" },
-      include: { course: { select: { titleEn: true } } },
+    db.query.academicResource.findMany({
+      where: (r, { and, eq, inArray }) =>
+        and(inArray(r.courseId, courseIds), eq(r.type, type)),
+      orderBy: (r, { desc }) => desc(r.uploadedAt),
+      with: { course: { columns: { titleEn: true } } },
     }),
-    prisma.course.findMany({
-      where: { id: { in: courseIds } },
-      select: { id: true, titleEn: true },
+    db.query.course.findMany({
+      where: (c, { inArray }) => inArray(c.id, courseIds),
+      columns: { id: true, titleEn: true },
     }),
   ]);
 

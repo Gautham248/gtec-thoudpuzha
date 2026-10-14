@@ -16,11 +16,17 @@ import {
 import { SkillMultiSelect } from "@/components/shared/SkillMultiSelect";
 import type { PublicCourse } from "@/lib/courses";
 import type { SkillDto } from "@/lib/skills";
-import { isProfileComplete, type CandidateProfileWithCompletion } from "@/lib/biodata";
+import {
+  isProfileComplete,
+  type CandidateProfileWithCompletion,
+} from "@/lib/biodata";
 import type { BiodataFormData } from "@/app/[locale]/(portal)/portal/student/biodata/actions";
-import type { EducationalQualification, PreferredJobType } from "@prisma/client";
+import type { EducationalQualification, PreferredJobType } from "@/db/types";
 
-const QUALIFICATION_OPTIONS: { value: EducationalQualification; label: string }[] = [
+const QUALIFICATION_OPTIONS: {
+  value: EducationalQualification;
+  label: string;
+}[] = [
   { value: "SSLC", label: "SSLC / 10th" },
   { value: "PLUS_TWO", label: "Plus Two / 12th" },
   { value: "DIPLOMA", label: "Diploma" },
@@ -55,9 +61,7 @@ export function BiodataForm({
 }: BiodataFormProps) {
   const [fullName, setFullName] = useState(profile?.fullName ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(
-    profile?.dateOfBirth
-      ? profile.dateOfBirth.toISOString().split("T")[0]
-      : "",
+    profile?.dateOfBirth ? profile.dateOfBirth.toISOString().split("T")[0] : "",
   );
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [email, setEmail] = useState(profile?.email ?? "");
@@ -69,7 +73,10 @@ export function BiodataForm({
   );
   const [educationalQualification, setEducationalQualification] = useState<
     EducationalQualification | undefined
-  >((profile?.educationalQualification as EducationalQualification) ?? undefined);
+  >(
+    (profile?.educationalQualification as EducationalQualification) ??
+      undefined,
+  );
   const [yearOfPassing, setYearOfPassing] = useState(
     profile?.yearOfPassing?.toString() ?? "",
   );
@@ -77,9 +84,7 @@ export function BiodataForm({
   const [languagesKnownInput, setLanguagesKnownInput] = useState(
     profile?.languagesKnown?.join(", ") ?? "",
   );
-  const [skillIds, setSkillIds] = useState<string[]>(
-    profile?.skillIds ?? [],
-  );
+  const [skillIds, setSkillIds] = useState<string[]>(profile?.skillIds ?? []);
   const [preferredJobLocation, setPreferredJobLocation] = useState(
     profile?.preferredJobLocation ?? "",
   );
@@ -93,9 +98,7 @@ export function BiodataForm({
   const [profileVisible, setProfileVisible] = useState(
     profile?.profileVisible ?? true,
   );
-  const [consentAcknowledged, setConsentAcknowledged] = useState(
-    !!profile?.id,
-  );
+  const [consentAcknowledged, setConsentAcknowledged] = useState(!!profile?.id);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -329,9 +332,7 @@ export function BiodataForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="certificationIds">
-                Certification Earned
-              </Label>
+              <Label htmlFor="certificationIds">Certification Earned</Label>
               <CourseSelect
                 courses={courses}
                 mode="multi"
@@ -358,9 +359,7 @@ export function BiodataForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="languagesKnown">
-            Languages Known
-          </Label>
+          <Label htmlFor="languagesKnown">Languages Known</Label>
           <Input
             id="languagesKnown"
             value={languagesKnownInput}
@@ -371,9 +370,7 @@ export function BiodataForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="preferredJobLocation">
-              Preferred Job Location
-            </Label>
+            <Label htmlFor="preferredJobLocation">Preferred Job Location</Label>
             <Input
               id="preferredJobLocation"
               value={preferredJobLocation}
@@ -385,9 +382,7 @@ export function BiodataForm({
             <Label htmlFor="preferredJobType">Preferred Job Type</Label>
             <Select
               value={preferredJobType}
-              onValueChange={(v) =>
-                setPreferredJobType(v as PreferredJobType)
-              }
+              onValueChange={(v) => setPreferredJobType(v as PreferredJobType)}
             >
               <SelectTrigger id="preferredJobType" className="w-full">
                 <SelectValue placeholder="Select job type" />
@@ -444,7 +439,10 @@ export function BiodataForm({
             className="mt-1 h-4 w-4 rounded border-border"
           />
           <div className="space-y-1">
-            <Label htmlFor="profileVisible" className="font-medium cursor-pointer">
+            <Label
+              htmlFor="profileVisible"
+              className="font-medium cursor-pointer"
+            >
               Allow employers to search and view my profile
             </Label>
             <p className="text-sm text-muted-foreground">
@@ -459,16 +457,17 @@ export function BiodataForm({
           <div className="rounded-md bg-primary/10 p-4 text-sm text-primary dark:bg-primary/20 dark:text-primary-foreground">
             <p className="font-medium">Consent to profile visibility</p>
             <p className="mt-1">
-              By saving this profile, you agree to make it visible to
-              registered employers searching for candidates. Your contact
-              information will be shared with employers who express interest.
-              You can change this setting at any time.
+              By saving this profile, you agree to make it visible to registered
+              employers searching for candidates. Your contact information will
+              be shared with employers who express interest. You can change this
+              setting at any time.
             </p>
             <p className="mt-2 text-sm text-primary/80 dark:text-primary-foreground/80">
               Your data is handled in accordance with our{" "}
               <Link href="/privacy" className="underline hover:no-underline">
                 Privacy Policy
-              </Link>.
+              </Link>
+              .
             </p>
           </div>
         )}
@@ -490,9 +489,7 @@ export function BiodataForm({
           </a>
         )}
         {saved && (
-          <span className="text-sm text-primary">
-            ✓ Saved successfully
-          </span>
+          <span className="text-sm text-primary">✓ Saved successfully</span>
         )}
       </div>
     </div>

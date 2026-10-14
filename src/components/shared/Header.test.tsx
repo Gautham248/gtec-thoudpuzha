@@ -74,7 +74,8 @@ describe("Header", () => {
     fireEvent.click(screen.getByLabelText("Open menu"));
     const mobileNav = screen.getByLabelText("Mobile navigation");
     expect(mobileNav).toBeInTheDocument();
-    expect(within(mobileNav).getByText("Resources")).toBeInTheDocument();
+    expect(within(mobileNav).getByText("Gallery")).toBeInTheDocument();
+    expect(within(mobileNav).queryByText("Resources")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("Close menu"));
     expect(

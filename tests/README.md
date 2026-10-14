@@ -2,16 +2,27 @@
 
 ## Setup
 
-The DB integration tests in `src/__tests__/db.test.ts` use Node environment and connect directly to a local PostgreSQL instance (not the Vercel-hosted Neon database). This avoids test-pollution of the dev/production Neon branches and keeps test runs fast without network round-trips.
+Tests never connect to a real database. Database tests run against PGlite, an
+in-memory Postgres, built from `src/db/schema.ts` (see
+`src/__tests__/pg-test-db.ts`). The empty schema is built once per schema
+version and cached in the OS temp directory, so each test database starts in
+milliseconds. Tests that only need canned query results use the in-memory
+fake in `src/__tests__/drizzle-mock.ts`, which `src/__tests__/setup.ts`
+installs for `@/db` by default.
 
-The test database connection string is hardcoded in the test file:
-
-```
-postgresql://gtec_dev:gtec_dev_pass@localhost:5432/gtec_thodupuzha_test
-```
+`src/db/schema.test.ts` also checks that the SQL migrations in `drizzle/` build
+exactly the schema `src/db/schema.ts` describes.
 
 ## CI Strategy
 
-CI uses a local PostgreSQL container (Docker) with the same credentials and database name. The container is started before the test run and torn down afterward. This is documented in `.github/workflows/ci.yml`.
+CI starts a throwaway PostgreSQL service and runs `npm run db:migrate` against
+it before linting, testing and building (see `.github/workflows/ci.yml`).
 
-To run DB tests locally, ensure PostgreSQL is running with a `gtec_thodupuzha_test` database accessible with the credentials above, and the Prisma schema has been migrated to it.
+## Seed verification (opt-in)
+
+`src/__tests__/seed-verification.test.ts` can run read-only checks against a
+seeded database:
+
+```bash
+SEED_VERIFICATION=true DATABASE_URL=<database-url> npm test -- seed-verification
+```

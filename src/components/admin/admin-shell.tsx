@@ -1,6 +1,7 @@
 "use client";
 
 import { Home } from "lucide-react";
+import { Toaster } from "sonner";
 import { Link } from "@/lib/i18n/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
@@ -35,6 +36,7 @@ export function AdminShell({
         {children}
         <AdminBottomNav isSuperAdmin={isSuperAdmin} permissions={permissions} />
       </main>
+      <Toaster position="top-right" richColors closeButton />
     </SidebarProvider>
   );
 }

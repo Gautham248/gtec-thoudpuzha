@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { getSearchableCandidates } from "@/lib/biodata-search";
 import { CandidateSearchForm } from "./search-form";
@@ -24,8 +24,8 @@ export default async function CandidateSearchPage({ params }: PageProps) {
     redirect("/forbidden");
   }
 
-  const profile = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
   if (!profile) {
@@ -40,14 +40,15 @@ export default async function CandidateSearchPage({ params }: PageProps) {
 
   const [candidates, employerPostings] = await Promise.all([
     getSearchableCandidates(),
-    prisma.jobPosting.findMany({
-      where: {
-        employerId: profile.id,
-        status: "APPROVED",
-        deletedAt: null,
-      },
-      select: { id: true, title: true, status: true },
-      orderBy: { createdAt: "desc" },
+    db.query.jobPosting.findMany({
+      where: (p, { and, eq, isNull }) =>
+        and(
+          eq(p.employerId, profile.id),
+          eq(p.status, "APPROVED"),
+          isNull(p.deletedAt),
+        ),
+      columns: { id: true, title: true, status: true },
+      orderBy: (p, { desc }) => desc(p.createdAt),
     }),
   ]);
 

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { submitEmployerRegistration } from "./actions";
-import type { IndustrySector, EmployeeCountRange } from "@prisma/client";
+import type { IndustrySector, EmployeeCountRange } from "@/db/types";
 
 const SECTORS = [
   { value: "IT_SOFTWARE", key: "IT_SOFTWARE" },
@@ -66,19 +66,33 @@ export function RegistrationForm({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  const [companyName, setCompanyName] = useState(initialData?.companyName ?? "");
-  const [industrySector, setIndustrySector] = useState(initialData?.industrySector ?? "");
-  const [contactPersonName, setContactPersonName] = useState(initialData?.contactPersonName ?? "");
-  const [designation, setDesignation] = useState(initialData?.designation ?? "");
+  const [companyName, setCompanyName] = useState(
+    initialData?.companyName ?? "",
+  );
+  const [industrySector, setIndustrySector] = useState(
+    initialData?.industrySector ?? "",
+  );
+  const [contactPersonName, setContactPersonName] = useState(
+    initialData?.contactPersonName ?? "",
+  );
+  const [designation, setDesignation] = useState(
+    initialData?.designation ?? "",
+  );
   const [phone, setPhone] = useState(initialData?.phone ?? "");
   const [email, setEmail] = useState(initialData?.email ?? "");
-  const [companyAddress, setCompanyAddress] = useState(initialData?.companyAddress ?? "");
+  const [companyAddress, setCompanyAddress] = useState(
+    initialData?.companyAddress ?? "",
+  );
   const [hasWebsite, setHasWebsite] = useState<"yes" | "no" | "">(
     initialData ? (initialData.hasWebsite ? "yes" : "no") : "",
   );
   const [websiteUrl, setWebsiteUrl] = useState(initialData?.websiteUrl ?? "");
-  const [employeeCountRange, setEmployeeCountRange] = useState(initialData?.employeeCountRange ?? "");
-  const [aboutCompany, setAboutCompany] = useState(initialData?.aboutCompany ?? "");
+  const [employeeCountRange, setEmployeeCountRange] = useState(
+    initialData?.employeeCountRange ?? "",
+  );
+  const [aboutCompany, setAboutCompany] = useState(
+    initialData?.aboutCompany ?? "",
+  );
 
   const isEdit = Boolean(initialData);
 
@@ -160,7 +174,10 @@ export function RegistrationForm({
       )}
 
       {saved && (
-        <div className="mb-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-primary" role="status">
+        <div
+          className="mb-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-primary"
+          role="status"
+        >
           {t("saved")}
         </div>
       )}
@@ -349,14 +366,23 @@ export function RegistrationForm({
         </div>
 
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? t("submitting") : isEdit ? t("saveChanges") : t("register")}
+          {submitting
+            ? t("submitting")
+            : isEdit
+              ? t("saveChanges")
+              : t("register")}
         </Button>
 
         <p className="text-sm text-muted-foreground text-center">
           Your company data is handled in accordance with our{" "}
-          <Link href="/privacy" className="underline hover:no-underline">Privacy Policy</Link>
-          {" "}and{" "}
-          <Link href="/terms" className="underline hover:no-underline">Terms of Service</Link>.
+          <Link href="/privacy" className="underline hover:no-underline">
+            Privacy Policy
+          </Link>{" "}
+          and{" "}
+          <Link href="/terms" className="underline hover:no-underline">
+            Terms of Service
+          </Link>
+          .
         </p>
       </form>
     </div>

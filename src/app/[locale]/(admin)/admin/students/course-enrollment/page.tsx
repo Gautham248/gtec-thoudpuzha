@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import EnrollmentDashboard from "./enrollment-dashboard";
 
 interface Props {
@@ -15,7 +15,10 @@ interface Props {
   }>;
 }
 
-export default async function CourseEnrollmentPage({ params, searchParams }: Props) {
+export default async function CourseEnrollmentPage({
+  params,
+  searchParams,
+}: Props) {
   const { locale } = await params;
   const authResult = await requireRole([Role.CENTRE_STAFF, Role.SUPER_ADMIN]);
 
@@ -32,26 +35,28 @@ export default async function CourseEnrollmentPage({ params, searchParams }: Pro
   const unenrolledCourse = sp.unenrolledCourse || null;
 
   const [candidates, courses] = await Promise.all([
-    prisma.candidateProfile.findMany({
-      where: { isVerifiedStudent: true },
-      select: {
+    db.query.candidateProfile.findMany({
+      where: (c, { eq }) => eq(c.isVerifiedStudent, true),
+      columns: {
         id: true,
         fullName: true,
         phone: true,
         studentRecordId: true,
+      },
+      with: {
         enrollments: {
-          include: {
-            course: { select: { id: true, titleEn: true } },
+          with: {
+            course: { columns: { id: true, titleEn: true } },
           },
-          orderBy: { enrolledAt: "desc" },
+          orderBy: (e, { desc }) => desc(e.enrolledAt),
         },
       },
-      orderBy: { fullName: "asc" },
+      orderBy: (c, { asc }) => asc(c.fullName),
     }),
-    prisma.course.findMany({
-      where: { status: "PUBLISHED" },
-      select: { id: true, titleEn: true },
-      orderBy: { titleEn: "asc" },
+    db.query.course.findMany({
+      where: (c, { eq }) => eq(c.status, "PUBLISHED"),
+      columns: { id: true, titleEn: true },
+      orderBy: (c, { asc }) => asc(c.titleEn),
     }),
   ]);
 
@@ -59,17 +64,20 @@ export default async function CourseEnrollmentPage({ params, searchParams }: Pro
     .map((c) => c.studentRecordId)
     .filter((id): id is string => id !== null);
 
-  const studentRecords = studentRecordIds.length > 0
-    ? await prisma.studentRecord.findMany({
-        where: { id: { in: studentRecordIds } },
-        select: { id: true, studentId: true, phone: true },
-      })
-    : [];
+  const studentRecords =
+    studentRecordIds.length > 0
+      ? await db.query.studentRecord.findMany({
+          where: (r, { inArray }) => inArray(r.id, studentRecordIds),
+          columns: { id: true, studentId: true, phone: true },
+        })
+      : [];
 
   const recordMap = new Map(studentRecords.map((r) => [r.id, r]));
 
   const students = candidates.map((c) => {
-    const record = c.studentRecordId ? recordMap.get(c.studentRecordId) : undefined;
+    const record = c.studentRecordId
+      ? recordMap.get(c.studentRecordId)
+      : undefined;
     return {
       id: c.id,
       fullName: c.fullName,

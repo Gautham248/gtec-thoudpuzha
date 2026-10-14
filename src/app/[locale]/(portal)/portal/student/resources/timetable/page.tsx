@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import Link from "next/link";
 
 interface Props {
@@ -15,9 +15,9 @@ export default async function TimetablePage({ params }: Props) {
   const rt = await getTranslations({ locale, namespace: "resources" });
   const t = await getTranslations({ locale, namespace: "timetable" });
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
-    select: { id: true },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
+    columns: { id: true },
   });
 
   if (!profile) {
@@ -31,9 +31,9 @@ export default async function TimetablePage({ params }: Props) {
     );
   }
 
-  const enrollments = await prisma.studentCourseEnrollment.findMany({
-    where: { studentProfileId: profile.id },
-    select: { courseId: true },
+  const enrollments = await db.query.studentCourseEnrollment.findMany({
+    where: (e, { eq }) => eq(e.studentProfileId, profile.id),
+    columns: { courseId: true },
   });
 
   if (enrollments.length === 0) {
@@ -56,14 +56,14 @@ export default async function TimetablePage({ params }: Props) {
   const courseIds = enrollments.map((e) => e.courseId);
 
   const [entries, courses] = await Promise.all([
-    prisma.timetableEntry.findMany({
-      where: { courseId: { in: courseIds } },
-      orderBy: { createdAt: "desc" },
-      include: { course: { select: { titleEn: true } } },
+    db.query.timetableEntry.findMany({
+      where: (t, { inArray }) => inArray(t.courseId, courseIds),
+      orderBy: (t, { desc }) => desc(t.createdAt),
+      with: { course: { columns: { titleEn: true } } },
     }),
-    prisma.course.findMany({
-      where: { id: { in: courseIds } },
-      select: { id: true, titleEn: true },
+    db.query.course.findMany({
+      where: (c, { inArray }) => inArray(c.id, courseIds),
+      columns: { id: true, titleEn: true },
     }),
   ]);
 
@@ -81,9 +81,7 @@ export default async function TimetablePage({ params }: Props) {
       <h1 className="mb-6 text-2xl font-semibold">{t("heading")}</h1>
       <div className="space-y-6">
         {courses.map((course) => {
-          const courseEntries = entries.filter(
-            (e) => e.courseId === course.id,
-          );
+          const courseEntries = entries.filter((e) => e.courseId === course.id);
           if (courseEntries.length === 0) return null;
           return (
             <div key={course.id}>
@@ -92,16 +90,15 @@ export default async function TimetablePage({ params }: Props) {
               </h2>
               <div className="space-y-3">
                 {courseEntries.map((e) => (
-                  <div
-                    key={e.id}
-                    className="rounded border border-border p-4"
-                  >
+                  <div key={e.id} className="rounded border border-border p-4">
                     <p className="text-sm text-foreground whitespace-pre-wrap">
                       {e.contentText}
                     </p>
                     {e.createdAt && (
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {t("updated", { date: e.createdAt.toISOString().slice(0, 10) })}
+                        {t("updated", {
+                          date: e.createdAt.toISOString().slice(0, 10),
+                        })}
                       </p>
                     )}
                   </div>

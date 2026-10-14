@@ -1,187 +1,136 @@
 // @vitest-environment node
 
-import { describe, expect, test, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { renderToString } from "react-dom/server";
-import { createPartner as _createPartner, updatePartner as _updatePartner, deletePartner as _deletePartner, movePartner } from "./actions";
-
-/* ─── Hoisted mocks ─── */
+import { db } from "@/db";
+import { auditLogEntry, certificationPartner } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { form, session } from "@/__tests__/pg-fixtures";
+import {
+  createPartner,
+  deletePartner,
+  movePartner,
+  updatePartner,
+} from "./actions";
 
 const mockAuth = vi.hoisted(() => vi.fn());
-const mockCreate = vi.hoisted(() => vi.fn());
-const mockUpdate = vi.hoisted(() => vi.fn());
-const mockDelete = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockAggregate = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
-const mockAuditCreate = vi.hoisted(() => vi.fn());
 const mockUploadFile = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
-const mockRevalidatePath = vi.hoisted(() => vi.fn());
 
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
 vi.mock("@clerk/nextjs/server", () => ({ auth: mockAuth }));
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    certificationPartner: {
-      create: mockCreate,
-      update: mockUpdate,
-      delete: mockDelete,
-      findMany: mockFindMany,
-      aggregate: mockAggregate,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-    auditLogEntry: { create: mockAuditCreate },
-  },
+vi.mock("@/lib/storage", () => ({ uploadFile: mockUploadFile }));
+vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 
-vi.mock("@/lib/audit", () => ({ logAdminAction: mockAuditCreate }));
+const pg = db as unknown as TestDb;
 
-vi.mock("@/lib/storage", () => ({ uploadFile: mockUploadFile }));
+const fakeLogo = (name = "logo.png") =>
+  new File([Buffer.from("fake-image-data")], name, { type: "image/png" });
 
-vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
+async function seedPartners() {
+  return pg
+    .insert(certificationPartner)
+    .values([
+      {
+        id: "cp_3",
+        name: "Tally",
+        logoUrl: "cert-partners/333-tally.png",
+        link: "https://tally.com",
+        sortOrder: 2,
+      },
+      {
+        id: "cp_1",
+        name: "Adobe",
+        logoUrl: "cert-partners/111-adobe.png",
+        link: "https://adobe.com",
+        sortOrder: 0,
+      },
+      {
+        id: "cp_2",
+        name: "SAP",
+        logoUrl: "cert-partners/222-sap.png",
+        link: null,
+        sortOrder: 1,
+      },
+    ])
+    .returning();
+}
 
-vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
-
-/* ─── Helpers ─── */
-
-function setMockAuth(userId: string, role: string) {
-  mockAuth.mockResolvedValue({
-    userId,
-    sessionClaims: { metadata: { role } },
+const ordered = () =>
+  pg.query.certificationPartner.findMany({
+    orderBy: (p, { asc }) => asc(p.sortOrder),
   });
-}
 
-function _fakeFile(name: string, type: string): File {
-  return new File([Buffer.from("fake-image-data")], name, { type });
-}
-
-function createFormData(
-  overrides: Record<string, string | File>,
-): FormData {
-  const fd = new FormData();
-  fd.append("locale", "en");
-  for (const [key, value] of Object.entries(overrides)) {
-    fd.append(key, value);
-  }
-  return fd;
-}
-
-/* ─── Mock data ─── */
-
-const partnersInOrder = [
-  {
-    id: "cp_1",
-    name: "Adobe",
-    nameMl: null,
-    logoUrl: "cert-partners/111-adobe.png",
-    link: "https://adobe.com",
-    sortOrder: 0,
-    createdAt: new Date(),
-  },
-  {
-    id: "cp_2",
-    name: "SAP",
-    nameMl: null,
-    logoUrl: "cert-partners/222-sap.png",
-    link: null,
-    sortOrder: 1,
-    createdAt: new Date(),
-  },
-  {
-    id: "cp_3",
-    name: "Tally",
-    nameMl: null,
-    logoUrl: "cert-partners/333-tally.png",
-    link: "https://tally.com",
-    sortOrder: 2,
-    createdAt: new Date(),
-  },
-];
-
-/* ─── Tests ─── */
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await truncateAll(pg);
+  mockAuth.mockResolvedValue(session("staff_1", "CENTRE_STAFF"));
+});
 
 describe("CertificationPartnerStrip rendering", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   test("1. renders partners in sortOrder", async () => {
-    mockFindMany.mockResolvedValue(partnersInOrder);
+    await seedPartners(); // inserted out of order on purpose
 
-    const { CertificationPartnerStrip } = await import(
-      "@/components/shared/CertificationPartnerStrip"
+    const { CertificationPartnerStrip } =
+      await import("@/components/shared/CertificationPartnerStrip");
+    const html = renderToString(
+      await CertificationPartnerStrip({
+        heading: "Our Certification Partners",
+      }),
     );
-    const element = await CertificationPartnerStrip({ heading: "Our Certification Partners" });
-    const html = renderToString(element);
 
-    const adobeIdx = html.indexOf("Adobe");
-    const sapIdx = html.indexOf("SAP");
-    const tallyIdx = html.indexOf("Tally");
-    expect(adobeIdx).toBeLessThan(sapIdx);
-    expect(sapIdx).toBeLessThan(tallyIdx);
+    expect(html).toContain("Adobe");
+    expect(html.indexOf("Adobe")).toBeLessThan(html.indexOf("SAP"));
+    expect(html.indexOf("SAP")).toBeLessThan(html.indexOf("Tally"));
   });
 
   test("2. partner with no link renders as non-clickable logo", async () => {
-    mockFindMany.mockResolvedValue(
-      partnersInOrder.filter((p) => p.id === "cp_2"),
+    await pg
+      .insert(certificationPartner)
+      .values({
+        name: "SAP",
+        logoUrl: "cert-partners/222-sap.png",
+        link: null,
+      });
+
+    const { CertificationPartnerStrip } =
+      await import("@/components/shared/CertificationPartnerStrip");
+    const html = renderToString(
+      await CertificationPartnerStrip({
+        heading: "Our Certification Partners",
+      }),
     );
 
-    const { CertificationPartnerStrip } = await import(
-      "@/components/shared/CertificationPartnerStrip"
-    );
-    const element = await CertificationPartnerStrip({ heading: "Our Certification Partners" });
-    const html = renderToString(element);
-
-    // No <a> tag for SAP (no link)
-    expect(html).not.toContain('href="https://');
-    // Logo img still renders
     expect(html).toContain('alt="SAP"');
-    // Rendered as a <span> wrapper, not an <a>
-    expect(html).not.toContain('<a');
+    expect(html).not.toContain('href="https://');
+    expect(html).not.toContain("<a");
   });
 });
 
-describe("movePartner — reordering", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockFindMany.mockReset();
-    mockUpdate.mockReset();
-    mockAuditCreate.mockReset();
-    mockRevalidatePath.mockReset();
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
-  });
-
+describe("partner actions", () => {
   test("3. reordering partners persists and reflects in order", async () => {
-    setMockAuth("staff_1", "CENTRE_STAFF");
+    await seedPartners();
 
-    mockFindMany.mockResolvedValue(partnersInOrder);
+    await movePartner(form({ id: "cp_2", direction: "up", locale: "en" }));
 
-    mockUpdate
-      .mockResolvedValueOnce({ ...partnersInOrder[0], sortOrder: partnersInOrder[1].sortOrder })
-      .mockResolvedValueOnce({ ...partnersInOrder[1], sortOrder: partnersInOrder[0].sortOrder });
-
-    await movePartner(
-      createFormData({ id: "cp_2", direction: "up", locale: "en" }),
-    );
-
-    expect(mockUpdate).toHaveBeenCalledTimes(2);
-    expect(mockUpdate).toHaveBeenNthCalledWith(1, {
-      where: { id: "cp_2" },
-      data: { sortOrder: 0 },
-    });
-    expect(mockUpdate).toHaveBeenNthCalledWith(2, {
-      where: { id: "cp_1" },
-      data: { sortOrder: 1 },
-    });
-
-    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
-    expect(mockAuditCreate).toHaveBeenCalledWith({
+    expect((await ordered()).map((p) => [p.id, p.sortOrder])).toEqual([
+      ["cp_2", 0],
+      ["cp_1", 1],
+      ["cp_3", 2],
+    ]);
+    const audits = await pg.select().from(auditLogEntry);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
       actorUserId: "staff_1",
       actorRole: "CENTRE_STAFF",
       action: "certificationPartner.reorder",
@@ -190,19 +139,72 @@ describe("movePartner — reordering", () => {
       metadata: { direction: "up", swappedWith: "cp_1" },
     });
   });
-});
 
-describe("CertificationPartnersPage permission gate", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRedirect.mockReset();
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
+  test("moving the first partner up is a no-op", async () => {
+    await seedPartners();
+
+    await movePartner(form({ id: "cp_1", direction: "up", locale: "en" }));
+
+    expect((await ordered()).map((p) => p.id)).toEqual([
+      "cp_1",
+      "cp_2",
+      "cp_3",
+    ]);
+    expect(await pg.select().from(auditLogEntry)).toHaveLength(0);
+  });
+
+  test("createPartner uploads the logo and appends to the order", async () => {
+    await seedPartners();
+    mockUploadFile.mockResolvedValue("cert-partners/new.png");
+
+    await createPartner(
+      form({
+        locale: "en",
+        name: "Oracle",
+        link: "https://oracle.com",
+        logo: fakeLogo(),
+      }),
+    );
+
+    const last = (await ordered()).at(-1)!;
+    expect(last).toMatchObject({
+      name: "Oracle",
+      logoUrl: "cert-partners/new.png",
+      link: "https://oracle.com",
+      sortOrder: 3,
     });
   });
 
+  test("updatePartner keeps the old logo when no new file is given", async () => {
+    await seedPartners();
+
+    await updatePartner(
+      form({ locale: "en", id: "cp_2", name: "SAP SE", link: "" }),
+    );
+
+    const sap = (await ordered()).find((p) => p.id === "cp_2")!;
+    expect(sap).toMatchObject({
+      name: "SAP SE",
+      logoUrl: "cert-partners/222-sap.png",
+    });
+    expect(mockUploadFile).not.toHaveBeenCalled();
+  });
+
+  test("deletePartner removes it and fails loudly for a missing id", async () => {
+    await seedPartners();
+
+    await deletePartner(form({ locale: "en", id: "cp_3" }));
+    expect((await ordered()).map((p) => p.id)).toEqual(["cp_1", "cp_2"]);
+
+    await expect(
+      deletePartner(form({ locale: "en", id: "cp_3" })),
+    ).rejects.toThrow("Certification partner not found");
+  });
+});
+
+describe("CertificationPartnersPage permission gate", () => {
   test("4. /admin/certification-partners is denied to a job_seeker-role user", async () => {
-    setMockAuth("job_seeker_1", "JOB_SEEKER");
+    mockAuth.mockResolvedValue(session("job_seeker_1", "JOB_SEEKER"));
 
     const { default: Page } = await import("./page");
 

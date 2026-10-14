@@ -1,8 +1,19 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /portal/
-Disallow: /api/
-Disallow: /sign-in/
-Disallow: /sign-up/
+
+# Private areas (routes are always locale-prefixed, e.g. /en/admin, /ml/portal)
+Disallow: /admin
+Disallow: /portal
+Disallow: /api
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /*/admin
+Disallow: /*/portal
+Disallow: /*/sign-in
+Disallow: /*/sign-up
+Disallow: /*/complete-signup
+Disallow: /*/account-setup-incomplete
+Disallow: /*/forbidden
+Disallow: /*/~offline
+
 Sitemap: https://gtec-thodupuzha.com/sitemap.xml

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import Link from "next/link";
 import {
@@ -30,7 +30,9 @@ export default async function StudentDashboardPage({ params }: PageProps) {
       <div className="flex min-h-screen items-center justify-center">
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-semibold">{rgt("notYourAccount")}</h1>
-          <p className="mt-2 text-muted-foreground">{rgt("description", { roles: "Student" })}</p>
+          <p className="mt-2 text-muted-foreground">
+            {rgt("description", { roles: "Student" })}
+          </p>
           <Link
             href="/portal"
             className="mt-4 inline-block text-primary underline"
@@ -42,13 +44,12 @@ export default async function StudentDashboardPage({ params }: PageProps) {
     );
   }
 
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session.userId },
-    select: { courseCompletedIds: true },
+  const profile = await db.query.candidateProfile.findFirst({
+    where: (p, { eq }) => eq(p.userId, session.userId!),
+    columns: { courseCompletedIds: true },
   });
 
-  const hasLinkedCourse =
-    profile && profile.courseCompletedIds.length > 0;
+  const hasLinkedCourse = (profile?.courseCompletedIds?.length ?? 0) > 0;
 
   if (!hasLinkedCourse) {
     return <EmptyState t={t} />;
@@ -63,7 +64,9 @@ function EmptyState({ t }: { t: (key: string) => string }) {
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-semibold">{t("welcome")}</h1>
         <p className="mt-4 text-muted-foreground">{t("noCourses")}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{t("noCoursesHint")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("noCoursesHint")}
+        </p>
       </div>
     </div>
   );

@@ -1,13 +1,19 @@
 import { redirect } from "next/navigation";
-import { requireRole, requirePermission, StaffPermissionKeys, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import type { EmployerProfileStatus } from "@prisma/client";
+import {
+  requireRole,
+  requirePermission,
+  StaffPermissionKeys,
+  Role,
+} from "@/lib/auth";
+import { db } from "@/db";
+import type { EmployerProfileStatus } from "@/db/types";
 import {
   approveEmployer,
   rejectEmployer,
   approveAndTrustEmployer,
   toggleAutoPublishTrusted,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface EmployersPageProps {
   params: Promise<{ locale: string }>;
@@ -27,37 +33,40 @@ export default async function EmployersPage({
   const { locale } = await params;
   const { status: filterStatus } = await searchParams;
 
-  const authResult = await requireRole([
-    Role.CENTRE_STAFF,
-    Role.SUPER_ADMIN,
-  ]);
+  const authResult = await requireRole([Role.CENTRE_STAFF, Role.SUPER_ADMIN]);
 
   if (!authResult.authorized) {
     redirect(`/${locale}/forbidden`);
   }
 
-  const permResult = await requirePermission(StaffPermissionKeys.canApproveEmployers);
+  const permResult = await requirePermission(
+    StaffPermissionKeys.canApproveEmployers,
+  );
   const canApprove = permResult.authorized;
 
-  const where =
+  const status =
     filterStatus && ["PENDING", "APPROVED", "REJECTED"].includes(filterStatus)
-      ? { status: filterStatus as EmployerProfileStatus }
-      : {};
+      ? (filterStatus as EmployerProfileStatus)
+      : undefined;
 
-  const employers = await prisma.employerProfile.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
+  const employers = await db.query.employerProfile.findMany({
+    where: (e, { eq }) => (status ? eq(e.status, status) : undefined),
+    orderBy: (e, { desc }) => desc(e.createdAt),
   });
 
   const statuses = ["PENDING", "APPROVED", "REJECTED"];
 
   return (
     <main className="w-full max-w-full overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Employer Registrations</h1>
+      <h1 className="text-2xl font-bold text-foreground">
+        Employer Registrations
+      </h1>
 
       {/* Status filter */}
       <section className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground mr-1">Filter:</span>
+        <span className="text-sm font-medium text-muted-foreground mr-1">
+          Filter:
+        </span>
         <a
           href={`/${locale}/admin/employers`}
           className={`rounded px-3 py-1 text-sm font-medium ${!filterStatus ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
@@ -158,7 +167,9 @@ export default async function EmployersPage({
                       </td>
                       <td className="border border-border px-3 py-2 text-sm">
                         {ep.autoPublishTrusted ? (
-                          <span className="text-primary font-medium">Trusted</span>
+                          <span className="text-primary font-medium">
+                            Trusted
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">No</span>
                         )}
@@ -167,8 +178,15 @@ export default async function EmployersPage({
                         <td className="border border-border px-3 py-2">
                           {ep.status === "PENDING" && (
                             <div className="flex flex-wrap gap-1">
-                              <form action={approveEmployer}>
-                                <input type="hidden" name="locale" value={locale} />
+                              <ActionForm
+                                action={approveEmployer}
+                                success="Employer approved"
+                              >
+                                <input
+                                  type="hidden"
+                                  name="locale"
+                                  value={locale}
+                                />
                                 <input
                                   type="hidden"
                                   name="profileId"
@@ -180,10 +198,17 @@ export default async function EmployersPage({
                                 >
                                   Approve
                                 </button>
-                              </form>
+                              </ActionForm>
 
-                              <form action={approveAndTrustEmployer}>
-                                <input type="hidden" name="locale" value={locale} />
+                              <ActionForm
+                                action={approveAndTrustEmployer}
+                                success="Employer approved and trusted"
+                              >
+                                <input
+                                  type="hidden"
+                                  name="locale"
+                                  value={locale}
+                                />
                                 <input
                                   type="hidden"
                                   name="profileId"
@@ -195,14 +220,15 @@ export default async function EmployersPage({
                                 >
                                   Approve + Trust
                                 </button>
-                              </form>
+                              </ActionForm>
 
                               <details className="inline-block">
                                 <summary className="cursor-pointer rounded bg-destructive px-2 py-1 text-sm text-white hover:bg-destructive/90">
                                   Reject
                                 </summary>
-                                <form
+                                <ActionForm
                                   action={rejectEmployer}
+                                  success="Employer rejected"
                                   className="mt-1 flex gap-1"
                                 >
                                   <input
@@ -227,14 +253,21 @@ export default async function EmployersPage({
                                   >
                                     Submit
                                   </button>
-                                </form>
+                                </ActionForm>
                               </details>
                             </div>
                           )}
 
                           {ep.status === "REJECTED" && (
-                            <form action={approveEmployer}>
-                              <input type="hidden" name="locale" value={locale} />
+                            <ActionForm
+                              action={approveEmployer}
+                              success="Employer approved"
+                            >
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
                               <input
                                 type="hidden"
                                 name="profileId"
@@ -246,12 +279,19 @@ export default async function EmployersPage({
                               >
                                 Re-approve
                               </button>
-                            </form>
+                            </ActionForm>
                           )}
 
                           {ep.status === "APPROVED" && (
-                            <form action={toggleAutoPublishTrusted}>
-                              <input type="hidden" name="locale" value={locale} />
+                            <ActionForm
+                              action={toggleAutoPublishTrusted}
+                              success="Auto-publish setting updated"
+                            >
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
                               <input
                                 type="hidden"
                                 name="profileId"
@@ -265,7 +305,7 @@ export default async function EmployersPage({
                                   ? "Remove Trust"
                                   : "Mark Trusted"}
                               </button>
-                            </form>
+                            </ActionForm>
                           )}
                         </td>
                       )}
@@ -278,11 +318,18 @@ export default async function EmployersPage({
             {/* Mobile Card View */}
             <div className="space-y-3 mt-4 md:hidden">
               {employers.map((ep) => (
-                <div key={ep.id} className="w-full overflow-hidden rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div
+                  key={ep.id}
+                  className="w-full overflow-hidden rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs"
+                >
                   <div className="flex items-start justify-between border-b pb-2 gap-2">
                     <div className="min-w-0 flex-1">
-                      <span className="font-semibold text-foreground text-sm block break-all">{ep.companyName}</span>
-                      <span className="text-sm text-muted-foreground">{ep.contactPersonName}</span>
+                      <span className="font-semibold text-foreground text-sm block break-all">
+                        {ep.companyName}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {ep.contactPersonName}
+                      </span>
                     </div>
                     <span
                       className={`shrink-0 whitespace-nowrap rounded px-2 py-0.5 text-sm font-semibold uppercase tracking-wider ${
@@ -299,21 +346,40 @@ export default async function EmployersPage({
 
                   <div className="text-sm space-y-1.5 text-muted-foreground">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="font-medium text-foreground shrink-0">Phone:</span>
-                      <a href={`tel:${ep.phone}`} className="text-primary font-mono hover:underline">{ep.phone}</a>
+                      <span className="font-medium text-foreground shrink-0">
+                        Phone:
+                      </span>
+                      <a
+                        href={`tel:${ep.phone}`}
+                        className="text-primary font-mono hover:underline"
+                      >
+                        {ep.phone}
+                      </a>
                     </div>
                     <div className="flex justify-between items-start gap-2">
-                      <span className="font-medium text-foreground shrink-0">Email:</span>
-                      <span className="font-mono text-foreground break-all text-right">{ep.email}</span>
+                      <span className="font-medium text-foreground shrink-0">
+                        Email:
+                      </span>
+                      <span className="font-mono text-foreground break-all text-right">
+                        {ep.email}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
-                      <span className="font-medium text-foreground shrink-0">Industry:</span>
-                      <span className="text-foreground">{ep.industrySector.replace(/_/g, " ")}</span>
+                      <span className="font-medium text-foreground shrink-0">
+                        Industry:
+                      </span>
+                      <span className="text-foreground">
+                        {ep.industrySector.replace(/_/g, " ")}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
-                      <span className="font-medium text-foreground shrink-0">Auto-Publish:</span>
+                      <span className="font-medium text-foreground shrink-0">
+                        Auto-Publish:
+                      </span>
                       {ep.autoPublishTrusted ? (
-                        <span className="text-primary font-medium">Trusted</span>
+                        <span className="text-primary font-medium">
+                          Trusted
+                        </span>
                       ) : (
                         <span className="text-muted-foreground">No</span>
                       )}
@@ -330,38 +396,76 @@ export default async function EmployersPage({
                       {ep.status === "PENDING" && (
                         <>
                           <div className="flex flex-col sm:flex-row gap-2 w-full">
-                            <form action={approveEmployer} className="w-full">
-                              <input type="hidden" name="locale" value={locale} />
-                              <input type="hidden" name="profileId" value={ep.id} />
+                            <ActionForm
+                              action={approveEmployer}
+                              success="Employer approved"
+                              className="w-full"
+                            >
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
+                              <input
+                                type="hidden"
+                                name="profileId"
+                                value={ep.id}
+                              />
                               <button
                                 type="submit"
                                 className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                               >
                                 Approve
                               </button>
-                            </form>
+                            </ActionForm>
 
-                            <form action={approveAndTrustEmployer} className="w-full">
-                              <input type="hidden" name="locale" value={locale} />
-                              <input type="hidden" name="profileId" value={ep.id} />
+                            <ActionForm
+                              action={approveAndTrustEmployer}
+                              success="Employer approved and trusted"
+                              className="w-full"
+                            >
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
+                              <input
+                                type="hidden"
+                                name="profileId"
+                                value={ep.id}
+                              />
                               <button
                                 type="submit"
                                 className="w-full rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
                               >
                                 Approve + Trust
                               </button>
-                            </form>
+                            </ActionForm>
                           </div>
 
                           <details className="w-full">
                             <summary className="cursor-pointer text-center rounded bg-destructive px-3 py-1.5 text-sm font-medium text-white hover:bg-destructive/90">
                               Reject Registration
                             </summary>
-                            <form action={rejectEmployer} className="mt-2 space-y-2">
-                              <input type="hidden" name="locale" value={locale} />
-                              <input type="hidden" name="profileId" value={ep.id} />
+                            <ActionForm
+                              action={rejectEmployer}
+                              success="Employer rejected"
+                              className="mt-2 space-y-2"
+                            >
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
+                              <input
+                                type="hidden"
+                                name="profileId"
+                                value={ep.id}
+                              />
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-1">Rejection Reason *</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">
+                                  Rejection Reason *
+                                </label>
                                 <input
                                   name="rejectionReason"
                                   placeholder="Specify reason..."
@@ -375,13 +479,17 @@ export default async function EmployersPage({
                               >
                                 Submit Rejection
                               </button>
-                            </form>
+                            </ActionForm>
                           </details>
                         </>
                       )}
 
                       {ep.status === "REJECTED" && (
-                        <form action={approveEmployer} className="w-full">
+                        <ActionForm
+                          action={approveEmployer}
+                          success="Employer approved"
+                          className="w-full"
+                        >
                           <input type="hidden" name="locale" value={locale} />
                           <input type="hidden" name="profileId" value={ep.id} />
                           <button
@@ -390,20 +498,26 @@ export default async function EmployersPage({
                           >
                             Re-approve Employer
                           </button>
-                        </form>
+                        </ActionForm>
                       )}
 
                       {ep.status === "APPROVED" && (
-                        <form action={toggleAutoPublishTrusted} className="w-full">
+                        <ActionForm
+                          action={toggleAutoPublishTrusted}
+                          success="Auto-publish setting updated"
+                          className="w-full"
+                        >
                           <input type="hidden" name="locale" value={locale} />
                           <input type="hidden" name="profileId" value={ep.id} />
                           <button
                             type="submit"
                             className={`w-full rounded px-3 py-1.5 text-sm font-medium text-white ${ep.autoPublishTrusted ? "bg-accent/80 hover:bg-accent/90" : "bg-primary hover:bg-primary/90"}`}
                           >
-                            {ep.autoPublishTrusted ? "Remove Trust Status" : "Mark as Trusted Employer"}
+                            {ep.autoPublishTrusted
+                              ? "Remove Trust Status"
+                              : "Mark as Trusted Employer"}
                           </button>
-                        </form>
+                        </ActionForm>
                       )}
                     </div>
                   )}

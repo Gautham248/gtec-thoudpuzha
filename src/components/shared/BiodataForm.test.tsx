@@ -2,17 +2,12 @@ import { describe, expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BiodataForm } from "./BiodataForm";
-import { isProfileComplete, type CandidateProfileWithCompletion } from "@/lib/biodata";
+import {
+  isProfileComplete,
+  type CandidateProfileWithCompletion,
+} from "@/lib/biodata";
 import type { PublicCourse } from "@/lib/courses";
 import type { SkillDto } from "@/lib/skills";
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    candidateProfile: {
-      findMany: vi.fn(),
-    },
-  },
-}));
 
 const mockCourses: PublicCourse[] = [
   {
@@ -62,7 +57,9 @@ const mockPendingSkill: SkillDto = {
   createdAt: new Date(),
 };
 
-function emptyProfile(isVerifiedStudent: boolean): CandidateProfileWithCompletion {
+function emptyProfile(
+  isVerifiedStudent: boolean,
+): CandidateProfileWithCompletion {
   return {
     id: "",
     fullName: null,
@@ -285,11 +282,15 @@ describe("SkillMultiSelect (inside BiodataForm)", () => {
     );
 
     // The pending skill is NOT in the approved skills list passed to the form
-    const input = screen.getByPlaceholderText("Type to add skills...") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type to add skills...",
+    ) as HTMLInputElement;
     expect(input).not.toBeNull();
     // mockApprovedSkills contains only APPROVED skills (s1=JavaScript, s2=Python, s3=React)
     // mockPendingSkill (Rust) is not in that list, so it should never appear as a suggestion
-    expect(mockApprovedSkills.find((s) => s.id === "s-pending-1")).toBeUndefined();
+    expect(
+      mockApprovedSkills.find((s) => s.id === "s-pending-1"),
+    ).toBeUndefined();
     // Verify the approved skills ARE present
     expect(mockApprovedSkills).toHaveLength(3);
   });
@@ -377,7 +378,9 @@ describe("profileVisible toggle", () => {
       />,
     );
 
-    expect(screen.getByText("Consent to profile visibility")).toBeInTheDocument();
+    expect(
+      screen.getByText("Consent to profile visibility"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/By saving this profile, you agree/i),
     ).toBeInTheDocument();
@@ -397,14 +400,14 @@ describe("profileVisible toggle", () => {
       />,
     );
 
-    expect(
-      screen.queryByText("Consent to profile visibility"),
-    ).toBeNull();
+    expect(screen.queryByText("Consent to profile visibility")).toBeNull();
   });
 });
 
 describe("getSearchableCandidates", () => {
-  function makeProfile(overrides: Partial<CandidateProfileWithCompletion> = {}): CandidateProfileWithCompletion {
+  function makeProfile(
+    overrides: Partial<CandidateProfileWithCompletion> = {},
+  ): CandidateProfileWithCompletion {
     return {
       id: "c1",
       fullName: "John Doe",
@@ -430,28 +433,24 @@ describe("getSearchableCandidates", () => {
   }
 
   test("excludes profiles where profileVisible is false", async () => {
-    const dbModule = await import("@/lib/db");
-    const findManyMock = dbModule.prisma.candidateProfile.findMany as ReturnType<typeof vi.fn>;
-    findManyMock.mockResolvedValue([
+    const { db } = await import("@/db");
+    const { setMockRows } = await import("@/__tests__/drizzle-mock");
+    setMockRows(db, "candidateProfile", [
       makeProfile({ id: "p1", profileVisible: true }),
+      makeProfile({ id: "p2", profileVisible: false }),
       makeProfile({ id: "p3", profileVisible: true }),
     ]);
 
     const { getSearchableCandidates } = await import("@/lib/biodata-search");
     const results = await getSearchableCandidates();
 
-    // Verify Prisma was called with the correct where filter
-    expect(findManyMock).toHaveBeenCalledWith({
-      where: { profileVisible: true },
-    });
-    expect(results).toHaveLength(2);
-    expect(results.map((r) => r.id)).toEqual(["p1", "p3"]);
+    expect(results.map((r) => r.id).sort()).toEqual(["p1", "p3"]);
   });
 
   test("excludes incomplete profiles even if profileVisible is true", async () => {
-    const dbModule = await import("@/lib/db");
-    const findManyMock = dbModule.prisma.candidateProfile.findMany as ReturnType<typeof vi.fn>;
-    findManyMock.mockResolvedValue([
+    const { db } = await import("@/db");
+    const { setMockRows } = await import("@/__tests__/drizzle-mock");
+    setMockRows(db, "candidateProfile", [
       makeProfile({ id: "p1", profileVisible: true, fullName: null }),
       makeProfile({ id: "p2", profileVisible: true }),
       makeProfile({ id: "p3", profileVisible: true, phone: null }),
@@ -460,10 +459,6 @@ describe("getSearchableCandidates", () => {
     const { getSearchableCandidates } = await import("@/lib/biodata-search");
     const results = await getSearchableCandidates();
 
-    expect(findManyMock).toHaveBeenCalledWith({
-      where: { profileVisible: true },
-    });
-    expect(results).toHaveLength(1);
-    expect(results[0].id).toBe("p2");
+    expect(results.map((r) => r.id)).toEqual(["p2"]);
   });
 });

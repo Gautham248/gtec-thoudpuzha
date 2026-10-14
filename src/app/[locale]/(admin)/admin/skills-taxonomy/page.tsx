@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import { approveSkill, mergeSkill, deleteSkill } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface SkillsTaxonomyPageProps {
   params: Promise<{ locale: string }>;
@@ -22,21 +24,30 @@ export default async function SkillsTaxonomyPage({
   }
 
   // Fetch all skills with reference counts
-  const allSkills = await prisma.skill.findMany({ orderBy: { label: "asc" } });
+  // Usage counts per skill in two grouped queries (not two per skill).
+  // count(distinct t.id) = rows whose skillIds contain the skill, like `has`.
+  const usage = (table: "CandidateProfile" | "JobPosting") =>
+    db
+      .execute<{ skillId: string; n: number }>(
+        sql.raw(
+          `select s.id as "skillId", count(distinct t.id)::int as n
+             from "${table}" t, unnest(t."skillIds") as s(id)
+            group by s.id`,
+        ),
+      )
+      .then((res) => new Map(res.rows.map((r) => [r.skillId, Number(r.n)])));
 
-  const skillsWithCounts = await Promise.all(
-    allSkills.map(async (skill) => {
-      const [candidateCount, jobPostingCount] = await Promise.all([
-        prisma.candidateProfile.count({
-          where: { skillIds: { has: skill.id } },
-        }),
-        prisma.jobPosting.count({
-          where: { skillIds: { has: skill.id } },
-        }),
-      ]);
-      return { ...skill, candidateCount, jobPostingCount };
-    }),
-  );
+  const [allSkills, candidateCounts, jobPostingCounts] = await Promise.all([
+    db.query.skill.findMany({ orderBy: (s, { asc }) => asc(s.label) }),
+    usage("CandidateProfile"),
+    usage("JobPosting"),
+  ]);
+
+  const skillsWithCounts = allSkills.map((skill) => ({
+    ...skill,
+    candidateCount: candidateCounts.get(skill.id) ?? 0,
+    jobPostingCount: jobPostingCounts.get(skill.id) ?? 0,
+  }));
 
   // Filter by status if param is provided
   const filtered =
@@ -79,15 +90,21 @@ export default async function SkillsTaxonomyPage({
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="border border-border px-3 py-2 text-left">Label</th>
-                    <th className="border border-border px-3 py-2 text-left">Status</th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Label
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Status
+                    </th>
                     <th className="border border-border px-3 py-2 text-right">
                       Candidate refs
                     </th>
                     <th className="border border-border px-3 py-2 text-right">
                       Job Posting refs
                     </th>
-                    <th className="border border-border px-3 py-2 text-left">Actions</th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,20 +134,37 @@ export default async function SkillsTaxonomyPage({
                         <div className="flex flex-wrap items-center gap-2">
                           {/* Approve */}
                           {skill.status === "PENDING" && (
-                            <form action={approveSkill}>
+                            <ActionForm
+                              action={approveSkill}
+                              success="Skill approved"
+                            >
                               <input type="hidden" name="id" value={skill.id} />
-                              <input type="hidden" name="locale" value={locale} />
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
                               <Button type="submit" size="xs" variant="default">
                                 Approve
                               </Button>
-                            </form>
+                            </ActionForm>
                           )}
 
                           {/* Merge */}
-                          <form action={mergeSkill} className="flex items-center gap-1">
-                            <input type="hidden" name="sourceId" value={skill.id} />
+                          <ActionForm
+                            action={mergeSkill}
+                            success="Skills merged"
+                            className="flex items-center gap-1"
+                          >
+                            <input
+                              type="hidden"
+                              name="sourceId"
+                              value={skill.id}
+                            />
                             <input type="hidden" name="locale" value={locale} />
-                            <span className="text-sm text-muted-foreground">merge into</span>
+                            <span className="text-sm text-muted-foreground">
+                              merge into
+                            </span>
                             <select
                               name="targetId"
                               className="max-w-[120px] rounded border border-border bg-background px-1 py-0.5 text-sm"
@@ -148,17 +182,31 @@ export default async function SkillsTaxonomyPage({
                             <Button type="submit" size="xs" variant="outline">
                               Merge
                             </Button>
-                          </form>
+                          </ActionForm>
 
                           {/* Delete (only if zero references) */}
-                          {canDelete(skill.candidateCount, skill.jobPostingCount) && (
-                            <form action={deleteSkill}>
+                          {canDelete(
+                            skill.candidateCount,
+                            skill.jobPostingCount,
+                          ) && (
+                            <ActionForm
+                              action={deleteSkill}
+                              success="Skill deleted"
+                            >
                               <input type="hidden" name="id" value={skill.id} />
-                              <input type="hidden" name="locale" value={locale} />
-                              <Button type="submit" size="xs" variant="destructive">
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
+                              <Button
+                                type="submit"
+                                size="xs"
+                                variant="destructive"
+                              >
                                 Delete
                               </Button>
-                            </form>
+                            </ActionForm>
                           )}
                         </div>
                       </td>
@@ -171,9 +219,14 @@ export default async function SkillsTaxonomyPage({
             {/* Mobile Card View */}
             <div className="space-y-3 md:hidden">
               {filtered.map((skill) => (
-                <div key={skill.id} className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div
+                  key={skill.id}
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs"
+                >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="font-semibold text-foreground text-sm">{skill.label}</span>
+                    <span className="font-semibold text-foreground text-sm">
+                      {skill.label}
+                    </span>
                     <span
                       className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${
                         skill.status === "APPROVED"
@@ -188,31 +241,50 @@ export default async function SkillsTaxonomyPage({
                   <div className="text-sm space-y-1 text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Candidate refs:</span>
-                      <span className="font-medium text-foreground">{skill.candidateCount}</span>
+                      <span className="font-medium text-foreground">
+                        {skill.candidateCount}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Job Posting refs:</span>
-                      <span className="font-medium text-foreground">{skill.jobPostingCount}</span>
+                      <span className="font-medium text-foreground">
+                        {skill.jobPostingCount}
+                      </span>
                     </div>
                   </div>
 
                   <div className="pt-2 border-t space-y-2">
                     {/* Approve */}
                     {skill.status === "PENDING" && (
-                      <form action={approveSkill} className="w-full">
+                      <ActionForm
+                        action={approveSkill}
+                        success="Skill approved"
+                        className="w-full"
+                      >
                         <input type="hidden" name="id" value={skill.id} />
                         <input type="hidden" name="locale" value={locale} />
-                        <Button type="submit" size="xs" variant="default" className="w-full">
+                        <Button
+                          type="submit"
+                          size="xs"
+                          variant="default"
+                          className="w-full"
+                        >
                           Approve Skill
                         </Button>
-                      </form>
+                      </ActionForm>
                     )}
 
                     {/* Merge */}
-                    <form action={mergeSkill} className="flex flex-col gap-1.5 bg-muted/30 p-2 rounded border border-border/50">
+                    <ActionForm
+                      action={mergeSkill}
+                      success="Skills merged"
+                      className="flex flex-col gap-1.5 bg-muted/30 p-2 rounded border border-border/50"
+                    >
                       <input type="hidden" name="sourceId" value={skill.id} />
                       <input type="hidden" name="locale" value={locale} />
-                      <label className="text-sm font-medium text-muted-foreground">Merge into target skill:</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Merge into target skill:
+                      </label>
                       <div className="flex items-center gap-2">
                         <select
                           name="targetId"
@@ -232,17 +304,26 @@ export default async function SkillsTaxonomyPage({
                           Merge
                         </Button>
                       </div>
-                    </form>
+                    </ActionForm>
 
                     {/* Delete */}
                     {canDelete(skill.candidateCount, skill.jobPostingCount) && (
-                      <form action={deleteSkill} className="w-full">
+                      <ActionForm
+                        action={deleteSkill}
+                        success="Skill deleted"
+                        className="w-full"
+                      >
                         <input type="hidden" name="id" value={skill.id} />
                         <input type="hidden" name="locale" value={locale} />
-                        <Button type="submit" size="xs" variant="destructive" className="w-full">
+                        <Button
+                          type="submit"
+                          size="xs"
+                          variant="destructive"
+                          className="w-full"
+                        >
                           Delete Skill
                         </Button>
-                      </form>
+                      </ActionForm>
                     )}
                   </div>
                 </div>

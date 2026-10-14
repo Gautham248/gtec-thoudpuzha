@@ -1,23 +1,28 @@
-import { describe, expect, test, afterAll } from "vitest";
-import { prisma } from "@/lib/db";
+// @vitest-environment node
+// Basic schema/driver checks for the Drizzle client, against an in-memory
+// Postgres (never the real database in DATABASE_URL).
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { candidateProfile, user } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
 
-const hasDb = !!process.env.DATABASE_URL && process.env.SKIP_DB_TESTS !== "true";
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
+}));
 
-afterAll(async () => {
-  if (hasDb) {
-    await prisma.$disconnect();
-  }
-});
+const pg = db as unknown as TestDb;
 
-describe.skipIf(!hasDb)("Prisma client singleton", () => {
-  test("can connect and run a trivial query against the dev database", async () => {
-    const result = await prisma.$queryRaw<Array<{ one: number }>>`SELECT 1 as one`;
-    expect(result).toHaveLength(1);
-    expect(result[0].one).toBe(1);
+beforeEach(() => truncateAll(pg));
+
+describe("Drizzle client", () => {
+  test("can connect and run a trivial query", async () => {
+    const result = await pg.execute<{ one: number }>(sql`SELECT 1 as one`);
+    expect(result.rows).toEqual([{ one: 1 }]);
   });
 });
 
-describe.skipIf(!hasDb)("Role enum values", () => {
+describe("Role enum values", () => {
   const roles = [
     "STUDENT",
     "JOB_SEEKER",
@@ -26,41 +31,50 @@ describe.skipIf(!hasDb)("Role enum values", () => {
     "SUPER_ADMIN",
   ] as const;
 
-  for (const role of roles) {
-    test(`User can be created with role ${role}`, async () => {
-      const userId = `test-user-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  test.each(roles)("User can be created with role %s", async (role) => {
+    const [created] = await pg
+      .insert(user)
+      .values({ id: `test-user-${role}`, role })
+      .returning();
 
-      const user = await prisma.user.create({
-        data: {
-          id: userId,
-          role,
-        },
-      });
-
-      expect(user.id).toBe(userId);
-      expect(user.role).toBe(role);
-
-      await prisma.user.delete({ where: { id: userId } });
+    expect(created).toMatchObject({
+      id: `test-user-${role}`,
+      role,
+      languagePreference: "en",
     });
-  }
+  });
+
+  test("an unknown role is rejected by the database", async () => {
+    await expect(
+      pg.execute(sql`insert into "User" (id, role) values ('x', 'NOT_A_ROLE')`),
+    ).rejects.toThrow();
+  });
 });
 
-describe.skipIf(!hasDb)("CandidateProfile", () => {
+describe("CandidateProfile", () => {
   test("can be created linked to a User, with isVerifiedStudent defaulting to false", async () => {
-    const userId = `test-cp-user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    await pg.insert(user).values({ id: "test-cp-user", role: "STUDENT" });
 
-    const _user = await prisma.user.create({
-      data: { id: userId, role: "STUDENT" },
-    });
+    const [profile] = await pg
+      .insert(candidateProfile)
+      .values({ userId: "test-cp-user" })
+      .returning();
 
-    const profile = await prisma.candidateProfile.create({
-      data: { userId },
-    });
-
-    expect(profile.userId).toBe(userId);
+    expect(profile.userId).toBe("test-cp-user");
     expect(profile.isVerifiedStudent).toBe(false);
+    expect(profile.profileVisible).toBe(true);
+    expect(profile.skillIds).toEqual([]);
 
-    await prisma.candidateProfile.delete({ where: { id: profile.id } });
-    await prisma.user.delete({ where: { id: userId } });
+    const loaded = await pg.query.candidateProfile.findFirst({
+      where: eq(candidateProfile.id, profile.id),
+      with: { user: true },
+    });
+    expect(loaded?.user.role).toBe("STUDENT");
+  });
+
+  test("requires an existing User (foreign key)", async () => {
+    await expect(
+      pg.insert(candidateProfile).values({ userId: "missing" }),
+    ).rejects.toThrow();
   });
 });

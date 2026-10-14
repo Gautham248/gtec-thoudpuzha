@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 
 export interface PublicCertificationPartner {
   id: string;
@@ -11,8 +11,8 @@ export async function getCertificationPartners(): Promise<
   PublicCertificationPartner[]
 > {
   try {
-    const partners = await prisma.certificationPartner.findMany({
-      orderBy: { sortOrder: "asc" },
+    const partners = await db.query.certificationPartner.findMany({
+      orderBy: (p, { asc }) => asc(p.sortOrder),
     });
 
     return partners.map((p) => ({

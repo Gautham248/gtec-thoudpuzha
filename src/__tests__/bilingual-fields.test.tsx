@@ -4,6 +4,8 @@ import { describe, expect, test, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import { pickLocalizedText } from "@/lib/site-settings";
 import mlMessages from "@/lib/i18n/ml.json";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
 
 /* ─── Test 1 & 2: pickLocalizedText fallback logic ─── */
 
@@ -17,10 +19,7 @@ describe("Course locale-aware rendering", () => {
   });
 
   test("2. course with titleMl null falls back to titleEn under /ml", () => {
-    const title = pickLocalizedText(
-      { en: "Web Development", ml: null },
-      "ml",
-    );
+    const title = pickLocalizedText({ en: "Web Development", ml: null }, "ml");
     expect(title).toBe("Web Development");
   });
 });
@@ -28,20 +27,16 @@ describe("Course locale-aware rendering", () => {
 /* ─── Test 3: Admin forms render both language inputs ─── */
 
 const mockRequireRole = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth", () => ({
   requireRole: mockRequireRole,
   Role: { SUPER_ADMIN: "SUPER_ADMIN", CENTRE_STAFF: "CENTRE_STAFF" },
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    siteSettings: { findFirst: mockFindFirst },
-  },
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
-
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 describe("Admin forms show bilingual inputs", () => {
   const mockSettings = {
@@ -86,11 +81,10 @@ describe("Admin forms show bilingual inputs", () => {
       role: "SUPER_ADMIN",
       userId: "admin_1",
     });
-    mockFindFirst.mockResolvedValue(mockSettings);
+    setMockRows(db, "siteSettings", [mockSettings]);
 
-    const { default: SiteSettingsPage } = await import(
-      "@/app/[locale]/(admin)/admin/settings/site/page"
-    );
+    const { default: SiteSettingsPage } =
+      await import("@/app/[locale]/(admin)/admin/settings/site/page");
 
     const html = await SiteSettingsPage({
       params: Promise.resolve({ locale: "en" }),

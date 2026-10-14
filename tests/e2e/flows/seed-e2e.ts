@@ -1,12 +1,9 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { createClerkClient } from "@clerk/backend";
-import pg from "pg";
+import { eq } from "drizzle-orm";
+import { db } from "../../../src/db";
+import * as t from "../../../src/db/schema";
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL! });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
 
 /**
@@ -124,19 +121,29 @@ async function seedTestData() {
   await deleteExistingClerkUser(TEST_IDS.centreStaffUserId);
 
   const clerkStudentId = await findOrCreateClerkUser(
-    TEST_IDS.studentUserId, TEST_IDS.studentEmail, "STUDENT",
+    TEST_IDS.studentUserId,
+    TEST_IDS.studentEmail,
+    "STUDENT",
   );
   const clerkJobSeekerId = await findOrCreateClerkUser(
-    TEST_IDS.jobSeekerUserId, TEST_IDS.jobSeekerEmail, "JOB_SEEKER",
+    TEST_IDS.jobSeekerUserId,
+    TEST_IDS.jobSeekerEmail,
+    "JOB_SEEKER",
   );
   const clerkEmployerId = await findOrCreateClerkUser(
-    TEST_IDS.employerUserId, TEST_IDS.employerEmail, "EMPLOYER",
+    TEST_IDS.employerUserId,
+    TEST_IDS.employerEmail,
+    "EMPLOYER",
   );
   const clerkSuperAdminId = await findOrCreateClerkUser(
-    TEST_IDS.superAdminUserId, TEST_IDS.superAdminEmail, "SUPER_ADMIN",
+    TEST_IDS.superAdminUserId,
+    TEST_IDS.superAdminEmail,
+    "SUPER_ADMIN",
   );
   const clerkCentreStaffId = await findOrCreateClerkUser(
-    TEST_IDS.centreStaffUserId, TEST_IDS.centreStaffEmail, "CENTRE_STAFF",
+    TEST_IDS.centreStaffUserId,
+    TEST_IDS.centreStaffEmail,
+    "CENTRE_STAFF",
   );
 
   console.log("");
@@ -151,35 +158,32 @@ async function seedTestData() {
   ];
 
   for (const u of users) {
-    await prisma.user.upsert({
-      where: { id: u.id },
-      create: { id: u.id, role: u.role },
-      update: { role: u.role },
-    });
+    await db
+      .insert(t.user)
+      .values({ id: u.id, role: u.role })
+      .onConflictDoUpdate({ target: t.user.id, set: { role: u.role } });
   }
   console.log(`  ✅ ${users.length} DB user records (mapped to Clerk IDs)`);
 
   // ── 2. Student Record ──
-  await prisma.studentRecord.upsert({
-    where: { studentId: TEST_IDS.studentRecordId },
-    create: {
-      studentId: TEST_IDS.studentRecordId,
-      fullName: TEST_IDS.studentFullName,
-      phone: TEST_IDS.studentPhone,
-      email: TEST_IDS.studentEmail,
-    },
-    update: {
-      fullName: TEST_IDS.studentFullName,
-      phone: TEST_IDS.studentPhone,
-      email: TEST_IDS.studentEmail,
-    },
-  });
+  const studentFields = {
+    fullName: TEST_IDS.studentFullName,
+    phone: TEST_IDS.studentPhone,
+    email: TEST_IDS.studentEmail,
+  };
+  await db
+    .insert(t.studentRecord)
+    .values({ studentId: TEST_IDS.studentRecordId, ...studentFields })
+    .onConflictDoUpdate({
+      target: t.studentRecord.studentId,
+      set: studentFields,
+    });
   console.log("  ✅ Student record");
 
   // ── 3. Course ──
-  await prisma.course.upsert({
-    where: { slug: TEST_IDS.testCourseSlug },
-    create: {
+  await db
+    .insert(t.course)
+    .values({
       id: TEST_IDS.testCourseId,
       slug: TEST_IDS.testCourseSlug,
       titleEn: "E2E Test Course",
@@ -193,7 +197,8 @@ async function seedTestData() {
         heroTaglineEn: "Master E2E Testing",
         heroTaglineMl: "ഇ2ഇ ടെസ്റ്റിംഗ് മാസ്റ്റർ ചെയ്യുക",
         overviewEn: "This course covers everything about end-to-end testing.",
-        overviewMl: "ഈ കോഴ്സ് എൻഡ്-ടു-എൻഡ് ടെസ്റ്റിംഗിനെക്കുറിച്ച് എല്ലാം ഉൾക്കൊള്ളുന്നു.",
+        overviewMl:
+          "ഈ കോഴ്സ് എൻഡ്-ടു-എൻഡ് ടെസ്റ്റിംഗിനെക്കുറിച്ച് എല്ലാം ഉൾക്കൊള്ളുന്നു.",
         courseLists: [
           {
             heading: "Testing Modules",
@@ -207,34 +212,43 @@ async function seedTestData() {
         benefits: {
           heading: "What you'll learn",
           items: [
-            { textEn: "Write reliable E2E tests", textMl: "വിശ്വസനീയമായ ഇ2ഇ ടെസ്റ്റുകൾ എഴുതുക" },
-            { textEn: "Test Clerk authentication", textMl: "ക്ലർക്ക് ഓഥെന്റിക്കേഷൻ ടെസ്റ്റ് ചെയ്യുക" },
+            {
+              textEn: "Write reliable E2E tests",
+              textMl: "വിശ്വസനീയമായ ഇ2ഇ ടെസ്റ്റുകൾ എഴുതുക",
+            },
+            {
+              textEn: "Test Clerk authentication",
+              textMl: "ക്ലർക്ക് ഓഥെന്റിക്കേഷൻ ടെസ്റ്റ് ചെയ്യുക",
+            },
           ],
         },
       },
-    },
-    update: {
-      titleEn: "E2E Test Course",
-      titleMl: "ഇ2ഇ ടെസ്റ്റ് കോഴ്സ്",
-      status: "PUBLISHED",
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: t.course.slug,
+      set: {
+        titleEn: "E2E Test Course",
+        titleMl: "ഇ2ഇ ടെസ്റ്റ് കോഴ്സ്",
+        status: "PUBLISHED",
+      },
+    });
   console.log("  ✅ Test course with content blocks");
 
   // ── 4. Skill ──
-  await prisma.skill.upsert({
-    where: { label: TEST_IDS.testSkillLabel },
-    create: { label: TEST_IDS.testSkillLabel, status: "APPROVED" },
-    update: { status: "APPROVED" },
-  });
+  await db
+    .insert(t.skill)
+    .values({ label: TEST_IDS.testSkillLabel, status: "APPROVED" })
+    .onConflictDoUpdate({ target: t.skill.label, set: { status: "APPROVED" } });
   console.log("  ✅ Test skill");
 
-  const skill = await prisma.skill.findUnique({ where: { label: TEST_IDS.testSkillLabel } });
+  const skill = await db.query.skill.findFirst({
+    where: (s, { eq }) => eq(s.label, TEST_IDS.testSkillLabel),
+  });
 
   // ── 5. Employer Profile (APPROVED) ──
-  await prisma.employerProfile.upsert({
-    where: { userId: clerkEmployerId },
-    create: {
+  await db
+    .insert(t.employerProfile)
+    .values({
       id: TEST_IDS.employerProfileId,
       userId: clerkEmployerId,
       companyName: "E2E Test Corp",
@@ -250,18 +264,20 @@ async function seedTestData() {
       aboutCompany: "A test company for E2E testing.",
       status: "APPROVED",
       autoPublishTrusted: true,
-    },
-    update: { status: "APPROVED", autoPublishTrusted: true },
-  });
+    })
+    .onConflictDoUpdate({
+      target: t.employerProfile.userId,
+      set: { status: "APPROVED", autoPublishTrusted: true },
+    });
   console.log("  ✅ Approved employer profile");
 
   // ── 6. Job Posting (APPROVED) ──
   const deadline = new Date();
   deadline.setDate(deadline.getDate() + 30);
 
-  await prisma.jobPosting.upsert({
-    where: { id: TEST_IDS.testJobPostingId },
-    create: {
+  await db
+    .insert(t.jobPosting)
+    .values({
       id: TEST_IDS.testJobPostingId,
       employerId: TEST_IDS.employerProfileId,
       title: "E2E Test Position",
@@ -272,22 +288,25 @@ async function seedTestData() {
       jobType: "FULL_TIME",
       skillIds: skill ? [skill.id] : [],
       applicationDeadline: deadline,
-      description: "A test job posting for E2E testing of the application flow.",
+      description:
+        "A test job posting for E2E testing of the application flow.",
       status: "APPROVED",
-    },
-    update: {
-      title: "E2E Test Position",
-      status: "APPROVED",
-      applicationDeadline: deadline,
-      skillIds: skill ? [skill.id] : [],
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: t.jobPosting.id,
+      set: {
+        title: "E2E Test Position",
+        status: "APPROVED",
+        applicationDeadline: deadline,
+        skillIds: skill ? [skill.id] : [],
+      },
+    });
   console.log("  ✅ Approved job posting (30-day deadline)");
 
   // ── 7. Candidate Profile for Job Seeker ──
-  await prisma.candidateProfile.upsert({
-    where: { userId: clerkJobSeekerId },
-    create: {
+  await db
+    .insert(t.candidateProfile)
+    .values({
       userId: clerkJobSeekerId,
       fullName: "E2E Job Seeker",
       phone: "9876500003",
@@ -296,15 +315,17 @@ async function seedTestData() {
       skillIds: skill ? [skill.id] : [],
       educationalQualification: "GRADUATE",
       profileVisible: true,
-    },
-    update: { fullName: "E2E Job Seeker", profileVisible: true },
-  });
+    })
+    .onConflictDoUpdate({
+      target: t.candidateProfile.userId,
+      set: { fullName: "E2E Job Seeker", profileVisible: true },
+    });
   console.log("  ✅ Job seeker candidate profile");
 
   // ── 8. Candidate Profile for Student ──
-  const studentCandidateProfile = await prisma.candidateProfile.upsert({
-    where: { userId: clerkStudentId },
-    create: {
+  const [studentCandidateProfile] = await db
+    .insert(t.candidateProfile)
+    .values({
       userId: clerkStudentId,
       isVerifiedStudent: true,
       studentRecordId: TEST_IDS.studentRecordId,
@@ -315,126 +336,125 @@ async function seedTestData() {
       skillIds: skill ? [skill.id] : [],
       educationalQualification: "PLUS_TWO",
       profileVisible: true,
-    },
-    update: {
-      fullName: TEST_IDS.studentFullName,
-      isVerifiedStudent: true,
-      studentRecordId: TEST_IDS.studentRecordId,
-      profileVisible: true,
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: t.candidateProfile.userId,
+      set: {
+        fullName: TEST_IDS.studentFullName,
+        isVerifiedStudent: true,
+        studentRecordId: TEST_IDS.studentRecordId,
+        profileVisible: true,
+      },
+    })
+    .returning({ id: t.candidateProfile.id });
   console.log("  ✅ Student candidate profile");
 
   // ── 9. Course Enrollment ──
-  await prisma.studentCourseEnrollment.upsert({
-    where: {
-      studentProfileId_courseId: {
-        studentProfileId: studentCandidateProfile.id,
-        courseId: TEST_IDS.testCourseId,
-      },
-    },
-    create: {
+  await db
+    .insert(t.studentCourseEnrollment)
+    .values({
       studentProfileId: studentCandidateProfile.id,
       courseId: TEST_IDS.testCourseId,
-    },
-    update: {},
-  });
+    })
+    .onConflictDoNothing({
+      target: [
+        t.studentCourseEnrollment.studentProfileId,
+        t.studentCourseEnrollment.courseId,
+      ],
+    });
   console.log("  ✅ Student course enrollment");
 
   // ── 10. Academic Resources ──
-  await prisma.academicResource.upsert({
-    where: { id: TEST_IDS.testResourceId },
-    create: {
+  await db
+    .insert(t.academicResource)
+    .values({
       id: TEST_IDS.testResourceId,
       courseId: TEST_IDS.testCourseId,
       type: "NOTE",
       title: "E2E Test Study Notes",
       fileUrl: "https://example.com/test-notes.pdf",
-    },
-    update: { title: "E2E Test Study Notes" },
-  });
+    })
+    .onConflictDoUpdate({
+      target: t.academicResource.id,
+      set: { title: "E2E Test Study Notes" },
+    });
   console.log("  ✅ Academic resource");
 
   // ── 11. Staff Permission for Centre Staff ──
-  await prisma.staffPermission.upsert({
-    where: { userId: clerkCentreStaffId },
-    create: {
-      userId: clerkCentreStaffId,
-      canEditCourses: true,
-      canEditGallery: true,
-      canEditCertificationPartners: true,
-      canEditNewsEvents: true,
-      canEditFlashNews: true,
-      canProvisionStudents: true,
-      canApproveEmployers: true,
-      canApproveJobPostings: true,
-      canModerateSkillsTaxonomy: true,
-    },
-    update: {
-      canEditCourses: true,
-      canEditGallery: true,
-      canEditCertificationPartners: true,
-      canEditNewsEvents: true,
-      canEditFlashNews: true,
-      canProvisionStudents: true,
-      canApproveEmployers: true,
-      canApproveJobPostings: true,
-      canModerateSkillsTaxonomy: true,
-    },
-  });
+  const allPermissions = {
+    canEditCourses: true,
+    canEditGallery: true,
+    canEditCertificationPartners: true,
+    canEditNewsEvents: true,
+    canEditFlashNews: true,
+    canProvisionStudents: true,
+    canApproveEmployers: true,
+    canApproveJobPostings: true,
+    canModerateSkillsTaxonomy: true,
+  };
+  await db
+    .insert(t.staffPermission)
+    .values({ userId: clerkCentreStaffId, ...allPermissions })
+    .onConflictDoUpdate({
+      target: t.staffPermission.userId,
+      set: allPermissions,
+    });
   console.log("  ✅ Centre staff permissions (all enabled)");
 
   // ── 12. Flash News ──
-  const existingFlashNews = await prisma.flashNewsItem.findFirst({
-    where: { textEn: "E2E Test: New batch starting soon!" },
+  const existingFlashNews = await db.query.flashNewsItem.findFirst({
+    where: (f, { eq }) => eq(f.textEn, "E2E Test: New batch starting soon!"),
   });
   if (!existingFlashNews) {
-    await prisma.flashNewsItem.create({
-      data: {
-        textEn: "E2E Test: New batch starting soon!",
-        textMl: "ഇ2ഇ ടെസ്റ്റ്: പുതിയ ബാച്ച് ഉടൻ ആരംഭിക്കുന്നു!",
-        active: true,
-        sortOrder: 999,
-      },
+    await db.insert(t.flashNewsItem).values({
+      textEn: "E2E Test: New batch starting soon!",
+      textMl: "ഇ2ഇ ടെസ്റ്റ്: പുതിയ ബാച്ച് ഉടൻ ആരംഭിക്കുന്നു!",
+      active: true,
+      sortOrder: 999,
     });
   }
   console.log("  ✅ Flash news item");
 
   // ── 13. SiteSettings ──
-  const existingSettings = await prisma.siteSettings.findFirst();
+  const stats = {
+    yearsInOperation: "25+",
+    studentsTrained: "3.2M+",
+    centresWorldwide: "800+",
+    affiliations: "100+",
+    countries: "23",
+  };
+  const existingSettings = await db.query.siteSettings.findFirst();
   if (!existingSettings) {
-    await prisma.siteSettings.create({
-      data: {
-        yearsInOperation: "25+",
-        studentsTrained: "3.2M+",
-        centresWorldwide: "800+",
-        affiliations: "100+",
-        countries: "23",
-        aboutBodyEn: "E2E test about section.",
-        address: "E2E Test Address, Kerala",
-      },
+    await db.insert(t.siteSettings).values({
+      ...stats,
+      aboutBodyEn: "E2E test about section.",
+      address: "E2E Test Address, Kerala",
     });
   } else {
-    await prisma.siteSettings.update({
-      where: { id: existingSettings.id },
-      data: {
-        yearsInOperation: "25+",
-        studentsTrained: "3.2M+",
-        centresWorldwide: "800+",
-        affiliations: "100+",
-        countries: "23",
-      },
-    });
+    await db
+      .update(t.siteSettings)
+      .set(stats)
+      .where(eq(t.siteSettings.id, existingSettings.id));
   }
   console.log("  ✅ Site settings\n");
 
   console.log("🎉 E2E test data seed complete!\n");
   console.log("Clerk user credentials (for manual testing):");
-  console.log(`  Student:      ${TEST_IDS.studentEmail} / ${TEST_IDS.testPassword}`);
-  console.log(`  Job Seeker:   ${TEST_IDS.jobSeekerEmail} / ${TEST_IDS.testPassword}`);
-  console.log(`  Employer:     ${TEST_IDS.employerEmail} / ${TEST_IDS.testPassword}`);
-  console.log(`  Super Admin:  ${TEST_IDS.superAdminEmail} / ${TEST_IDS.testPassword}`);
-  console.log(`  Centre Staff: ${TEST_IDS.centreStaffEmail} / ${TEST_IDS.testPassword}`);
+  console.log(
+    `  Student:      ${TEST_IDS.studentEmail} / ${TEST_IDS.testPassword}`,
+  );
+  console.log(
+    `  Job Seeker:   ${TEST_IDS.jobSeekerEmail} / ${TEST_IDS.testPassword}`,
+  );
+  console.log(
+    `  Employer:     ${TEST_IDS.employerEmail} / ${TEST_IDS.testPassword}`,
+  );
+  console.log(
+    `  Super Admin:  ${TEST_IDS.superAdminEmail} / ${TEST_IDS.testPassword}`,
+  );
+  console.log(
+    `  Centre Staff: ${TEST_IDS.centreStaffEmail} / ${TEST_IDS.testPassword}`,
+  );
   console.log(`\nClerk IDs (for Agent Tasks):`);
   console.log(`  student:      ${clerkStudentId}`);
   console.log(`  job_seeker:   ${clerkJobSeekerId}`);
@@ -444,8 +464,8 @@ async function seedTestData() {
 }
 
 seedTestData()
+  .then(() => process.exit(0))
   .catch((e) => {
     console.error("E2E seed failed:", e);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });

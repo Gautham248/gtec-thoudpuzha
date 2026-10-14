@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import { updateSiteSettings } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface SiteSettingsPageProps {
   params: Promise<{ locale: string }>;
@@ -27,10 +28,10 @@ export default async function SiteSettingsPage({
     redirect(`/${locale}/forbidden`);
   }
 
-  const settings = await prisma.siteSettings.findFirst({
-    include: {
+  const settings = await db.query.siteSettings.findFirst({
+    with: {
       whyChooseUsCards: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: (c, { asc }) => asc(c.sortOrder),
       },
     },
   });
@@ -45,7 +46,11 @@ export default async function SiteSettingsPage({
     <main className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-semibold">Site Settings</h1>
 
-      <form action={updateSiteSettings} className="mt-6 space-y-8">
+      <ActionForm
+        action={updateSiteSettings}
+        success="Site settings saved"
+        className="mt-6 space-y-8"
+      >
         <input type="hidden" name="locale" value={locale} />
 
         <section className="rounded border border-border p-4">
@@ -65,7 +70,10 @@ export default async function SiteSettingsPage({
                 <input
                   id={field.name}
                   name={field.name}
-                  defaultValue={(settings[field.name as keyof typeof settings] as string) ?? ""}
+                  defaultValue={
+                    (settings[field.name as keyof typeof settings] as string) ??
+                    ""
+                  }
                   className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -142,7 +150,11 @@ export default async function SiteSettingsPage({
                 <legend className="px-2 text-sm font-medium">
                   Card {index + 1}
                 </legend>
-                <input type="hidden" name={`card_${index}_id`} value={card.id} />
+                <input
+                  type="hidden"
+                  name={`card_${index}_id`}
+                  value={card.id}
+                />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <label
@@ -169,7 +181,8 @@ export default async function SiteSettingsPage({
                       htmlFor={`card_${index}_titleEn`}
                       className="text-sm font-medium"
                     >
-                      Title (English) <span className="text-destructive">*</span>
+                      Title (English){" "}
+                      <span className="text-destructive">*</span>
                     </label>
                     <input
                       id={`card_${index}_titleEn`}
@@ -198,7 +211,8 @@ export default async function SiteSettingsPage({
                       htmlFor={`card_${index}_descriptionEn`}
                       className="text-sm font-medium"
                     >
-                      Description (English) <span className="text-destructive">*</span>
+                      Description (English){" "}
+                      <span className="text-destructive">*</span>
                     </label>
                     <input
                       id={`card_${index}_descriptionEn`}
@@ -229,7 +243,9 @@ export default async function SiteSettingsPage({
         </section>
 
         <section className="rounded border border-border p-4">
-          <h2 className="text-lg font-medium">Location, Contact &amp; Social</h2>
+          <h2 className="text-lg font-medium">
+            Location, Contact &amp; Social
+          </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <label htmlFor="address" className="text-sm font-medium">
@@ -345,7 +361,7 @@ export default async function SiteSettingsPage({
         </section>
 
         <Button type="submit">Save Settings</Button>
-      </form>
+      </ActionForm>
     </main>
   );
 }

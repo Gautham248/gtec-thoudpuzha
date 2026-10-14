@@ -1,13 +1,15 @@
 // @vitest-environment node
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { db } from "@/db";
+import { siteSettings } from "@/db/schema";
+import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
+import { insertSiteSettings } from "@/__tests__/pg-fixtures";
 import { updateFooterSettings } from "./actions";
 import { validateUrlOrNull } from "@/lib/url-validation";
 
 const mockRequireRole = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() => vi.fn());
-const mockFindFirst = vi.hoisted(() => vi.fn());
-const mockSiteSettingsUpdate = vi.hoisted(() => vi.fn());
 const mockLogAdminAction = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockRevalidateTag = vi.hoisted(() => vi.fn());
@@ -30,14 +32,11 @@ vi.mock("next/cache", () => ({
   unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    siteSettings: {
-      findFirst: mockFindFirst,
-      update: mockSiteSettingsUpdate,
-    },
-  },
+vi.mock("@/db", async () => ({
+  db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
 }));
+
+const pg = db as unknown as TestDb;
 
 vi.mock("@/lib/audit", () => ({
   logAdminAction: mockLogAdminAction,
@@ -45,7 +44,6 @@ vi.mock("@/lib/audit", () => ({
 
 function createSettings() {
   return {
-    id: "settings_1",
     yearsInOperation: "25+",
     studentsTrained: "3.2M+",
     centresWorldwide: "800+",
@@ -63,10 +61,10 @@ function createSettings() {
     youtubeUrl: null,
     linkedinUrl: null,
     googleReviewsUrl: "https://google.com/reviews",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 }
+
+let settingsId: string;
 
 describe("validateUrlOrNull", () => {
   test("returns null for empty or whitespace values", async () => {
@@ -77,37 +75,48 @@ describe("validateUrlOrNull", () => {
 
   test("accepts valid http/https URLs", async () => {
     expect(
-      await validateUrlOrNull("https://www.instagram.com/gtec_thodupuzha/", "Instagram URL"),
+      await validateUrlOrNull(
+        "https://www.instagram.com/gtec_thodupuzha/",
+        "Instagram URL",
+      ),
     ).toBe("https://www.instagram.com/gtec_thodupuzha/");
     expect(
-      await validateUrlOrNull("https://maps.google.com/?q=G-TEC", "Google Maps URL"),
+      await validateUrlOrNull(
+        "https://maps.google.com/?q=G-TEC",
+        "Google Maps URL",
+      ),
     ).toBe("https://maps.google.com/?q=G-TEC");
   });
 
   test("throws error for invalid URL formats", async () => {
-    await expect(validateUrlOrNull("not-a-url", "Instagram URL")).rejects.toThrow();
+    await expect(
+      validateUrlOrNull("not-a-url", "Instagram URL"),
+    ).rejects.toThrow();
   });
 
   test("accepts valid phone numbers and URLs for WhatsApp", async () => {
-    expect(await validateUrlOrNull("919744221113", "WhatsApp")).toBe("919744221113");
-    expect(await validateUrlOrNull("+91 9744 221113", "WhatsApp")).toBe("+91 9744 221113");
-    expect(await validateUrlOrNull("https://wa.me/919744221113", "WhatsApp")).toBe(
-      "https://wa.me/919744221113",
+    expect(await validateUrlOrNull("919744221113", "WhatsApp")).toBe(
+      "919744221113",
     );
+    expect(await validateUrlOrNull("+91 9744 221113", "WhatsApp")).toBe(
+      "+91 9744 221113",
+    );
+    expect(
+      await validateUrlOrNull("https://wa.me/919744221113", "WhatsApp"),
+    ).toBe("https://wa.me/919744221113");
   });
 });
 
 describe("updateFooterSettings", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockRequireRole.mockReset();
     mockRedirect.mockReset();
-    mockFindFirst.mockReset();
-    mockSiteSettingsUpdate.mockReset();
     mockLogAdminAction.mockReset();
     mockRevalidatePath.mockReset();
     mockRevalidateTag.mockReset();
-    mockFindFirst.mockResolvedValue(createSettings());
+    await truncateAll(pg);
+    settingsId = (await insertSiteSettings(pg, createSettings())).id;
   });
 
   test("is denied to non-superadmin users and redirects to forbidden", async () => {
@@ -123,9 +132,12 @@ describe("updateFooterSettings", () => {
     const formData = new FormData();
     formData.append("locale", "en");
 
-    await expect(updateFooterSettings(formData)).rejects.toThrow("/en/forbidden");
+    await expect(updateFooterSettings(formData)).rejects.toThrow(
+      "/en/forbidden",
+    );
     expect(mockRedirect).toHaveBeenCalledWith("/en/forbidden");
-    expect(mockSiteSettingsUpdate).not.toHaveBeenCalled();
+    const [row] = await pg.select().from(siteSettings);
+    expect(row).toMatchObject(createSettings()); // unchanged
   });
 
   test("persists updated footer and social links for Super Admin", async () => {
@@ -134,8 +146,6 @@ describe("updateFooterSettings", () => {
       role: "SUPER_ADMIN",
       userId: "user_super_admin",
     });
-
-    mockSiteSettingsUpdate.mockResolvedValue(createSettings());
 
     const formData = new FormData();
     formData.append("locale", "en");
@@ -147,7 +157,10 @@ describe("updateFooterSettings", () => {
       "mapsUrl",
       "https://maps.google.com/?q=G-TEC+Computer+Education+Thodupuzha",
     );
-    formData.append("instagramUrl", "https://www.instagram.com/gtec_thodupuzha/");
+    formData.append(
+      "instagramUrl",
+      "https://www.instagram.com/gtec_thodupuzha/",
+    );
     formData.append("facebookUrl", "https://www.facebook.com/gtectdpa");
     formData.append("whatsappNumber", "919744221113");
     formData.append(
@@ -157,26 +170,29 @@ describe("updateFooterSettings", () => {
 
     await updateFooterSettings(formData);
 
-    expect(mockSiteSettingsUpdate).toHaveBeenCalledWith({
-      where: { id: "settings_1" },
-      data: expect.objectContaining({
-        address:
-          "East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School, Thodupuzha, Kerala 685585",
-        mapsUrl:
-          "https://maps.google.com/?q=G-TEC+Computer+Education+Thodupuzha",
-        instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
-        facebookUrl: "https://www.facebook.com/gtectdpa",
-        whatsappNumber: "919744221113",
-        googleReviewsUrl:
-          "https://www.google.com/maps/search/?api=1&query=G-TEC+Reviews",
-      }),
+    const [row] = await pg.select().from(siteSettings);
+    expect(row).toMatchObject({
+      address:
+        "East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School, Thodupuzha, Kerala 685585",
+      mapsUrl: "https://maps.google.com/?q=G-TEC+Computer+Education+Thodupuzha",
+      instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
+      facebookUrl: "https://www.facebook.com/gtectdpa",
+      whatsappNumber: "919744221113",
+      googleReviewsUrl:
+        "https://www.google.com/maps/search/?api=1&query=G-TEC+Reviews",
+      // Fields left blank in the form are cleared.
+      mapEmbedUrl: null,
+      youtubeUrl: null,
+      linkedinUrl: null,
+      // Non-footer fields are untouched.
+      aboutBodyEn: "About body",
     });
 
     expect(mockLogAdminAction).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "siteSettings.footerUpdate",
         entityType: "SiteSettings",
-        entityId: "settings_1",
+        entityId: settingsId,
       }),
     );
 

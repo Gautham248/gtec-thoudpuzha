@@ -2,15 +2,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
+import { count, eq } from "drizzle-orm";
+import { application, jobPosting } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
-import type { JobPostingStatus as _JobPostingStatus } from "@prisma/client";
+import type { JobPostingStatus as _JobPostingStatus } from "@/db/types";
 
 interface EmployerDashboardPageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function EmployerDashboardPage({ params }: EmployerDashboardPageProps) {
+export default async function EmployerDashboardPage({
+  params,
+}: EmployerDashboardPageProps) {
   const { locale } = await params;
   const session = await auth();
   if (!session.userId) {
@@ -22,8 +26,8 @@ export default async function EmployerDashboardPage({ params }: EmployerDashboar
     redirect("/forbidden");
   }
 
-  const profile = await prisma.employerProfile.findUnique({
-    where: { userId: session.userId },
+  const profile = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, session.userId!),
   });
 
   if (!profile) {
@@ -37,19 +41,34 @@ export default async function EmployerDashboardPage({ params }: EmployerDashboar
   const t = await getTranslations({ locale, namespace: "employerDashboard" });
   const sb = await getTranslations({ locale, namespace: "statusBadge" });
 
-  const postings = await prisma.jobPosting.findMany({
-    where: { employerId: profile.id, deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      jobType: true,
-      status: true,
-      applicationDeadline: true,
-      createdAt: true,
-      _count: { select: { applications: true } },
-    },
-  });
+  const [rows, applicationCounts] = await Promise.all([
+    db.query.jobPosting.findMany({
+      where: (p, { and, eq, isNull }) =>
+        and(eq(p.employerId, profile.id), isNull(p.deletedAt)),
+      orderBy: (p, { desc }) => desc(p.createdAt),
+      columns: {
+        id: true,
+        title: true,
+        jobType: true,
+        status: true,
+        applicationDeadline: true,
+        createdAt: true,
+      },
+    }),
+    db
+      .select({ jobPostingId: application.jobPostingId, n: count() })
+      .from(application)
+      .innerJoin(jobPosting, eq(jobPosting.id, application.jobPostingId))
+      .where(eq(jobPosting.employerId, profile.id))
+      .groupBy(application.jobPostingId),
+  ]);
+  const countByPosting = new Map(
+    applicationCounts.map((c) => [c.jobPostingId, c.n]),
+  );
+  const postings = rows.map((p) => ({
+    ...p,
+    _count: { applications: countByPosting.get(p.id) ?? 0 },
+  }));
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
@@ -91,23 +110,39 @@ export default async function EmployerDashboardPage({ params }: EmployerDashboar
                   <div>
                     <h3 className="font-medium">{posting.title}</h3>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      {posting.jobType.replace("_", " ")} · {t("deadline", { date: new Date(posting.applicationDeadline).toLocaleDateString() })}
+                      {posting.jobType.replace("_", " ")} ·{" "}
+                      {t("deadline", {
+                        date: new Date(
+                          posting.applicationDeadline,
+                        ).toLocaleDateString(),
+                      })}
                     </p>
                   </div>
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${
-                      posting.status === "PENDING" ? "bg-accent/10 text-accent" :
-                      posting.status === "APPROVED" ? "bg-primary/10 text-primary" :
-                      posting.status === "REJECTED" ? "bg-destructive/10 text-destructive" :
-                      "bg-muted text-foreground"
+                      posting.status === "PENDING"
+                        ? "bg-accent/10 text-accent"
+                        : posting.status === "APPROVED"
+                          ? "bg-primary/10 text-primary"
+                          : posting.status === "REJECTED"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-muted text-foreground"
                     }`}
                   >
                     {sb(posting.status)}
                   </span>
                 </div>
                 <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>{t("posted", { date: new Date(posting.createdAt).toLocaleDateString() })}</span>
-                  <span>{t("applicantCount", { count: posting._count.applications })}</span>
+                  <span>
+                    {t("posted", {
+                      date: new Date(posting.createdAt).toLocaleDateString(),
+                    })}
+                  </span>
+                  <span>
+                    {t("applicantCount", {
+                      count: posting._count.applications,
+                    })}
+                  </span>
                 </div>
               </Link>
             );

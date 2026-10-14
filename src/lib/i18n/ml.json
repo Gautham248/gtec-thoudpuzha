@@ -31,12 +31,22 @@
     "whatsappUs": "വാട്ട്സ്ആപ്പ്",
     "callNow": "ഇപ്പോൾ വിളിക്കുക"
   },
+  "homeVideo": {
+    "badge": "വീഡിയോ കാണൂ",
+    "heading": "ജി-ടെക് തൊടുപുഴയെ അടുത്തറിയൂ",
+    "subhead": "ഞങ്ങളുടെ ക്ലാസ് മുറികൾ, ലാബുകൾ, വിദ്യാർത്ഥി ജീവിതം എന്നിവ കാണൂ, ഒപ്പം യഥാർത്ഥ കരിയർ കെട്ടിപ്പടുക്കാൻ ഞങ്ങൾ എങ്ങനെ സഹായിക്കുന്നുവെന്ന് അറിയൂ.",
+    "fallback": "നിങ്ങളുടെ ബ്രൗസർ ഈ വീഡിയോ പിന്തുണയ്ക്കുന്നില്ല."
+  },
   "about": {
     "heading": "ജി-ടെക് തൊടുപുഴയെക്കുറിച്ച്",
     "photoPlaceholder": "സെന്റർ ഫോട്ടോ പ്ലെയ്‌സ്‌ഹോൾഡർ",
     "aboutUs": "ഞങ്ങളെക്കുറിച്ച്"
   },
   "aboutPage": {
+    "directorEyebrow": "ഡയറക്ടറുടെ സന്ദേശം",
+    "directorQuote": "At G-TEC Thodupuzha, our success is measured by the satisfaction of our students. We strive to ensure that every student who walks through our doors leaves with quality training, valuable skills, greater confidence, and a positive learning experience.",
+    "directorName": "Noby K Sudharsan",
+    "directorRole": "ഡയറക്ടർ, ജി-ടെക് തൊടുപുഴ",
     "badge": "25+ വർഷത്തെ മികവ്",
     "title": "ജി-ടെക് തൊടുപുഴയെക്കുറിച്ച്",
     "subtitle": "ലോകോത്തര കമ്പ്യൂട്ടർ വിദ്യാഭ്യാസം, മൾട്ടിമീഡിയ, അക്കൗണ്ടിംഗ്, സോഫ്റ്റ് സ്കിൽ പരിശീലനം എന്നിവയിലൂടെ കരിയർ കെട്ടിപ്പടുക്കുന്നു.",
@@ -62,6 +72,12 @@
     "heading": "വാർത്തകളും വരാനിരിക്കുന്ന പരിപാടികളും",
     "viewAll": "എല്ലാ വാർത്തകളും കാണുക →",
     "upcomingEvent": "വരാനിരിക്കുന്ന പരിപാടി"
+  },
+  "placedStudents": {
+    "badge": "വിജയകഥകൾ",
+    "heading": "ഞങ്ങളുടെ പ്ലേസ്‌മെന്റ് നേടിയ വിദ്യാർത്ഥികൾ",
+    "subhead": "മുൻനിര കമ്പനികളിൽ കരിയർ കെട്ടിപ്പടുക്കുന്ന ജി-ടെക് വിദ്യാർത്ഥികളെ പരിചയപ്പെടൂ.",
+    "viewAll": "എല്ലാം കാണുക"
   },
   "placementSupport": {
     "heading": "പ്ലേസ്‌മെന്റും പിന്തുണയും",

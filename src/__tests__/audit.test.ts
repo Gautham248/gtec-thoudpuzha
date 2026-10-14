@@ -1,29 +1,18 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { renderToString } from "react-dom/server";
-import { Role } from "@/lib/auth";
-import { logAdminAction } from "@/lib/audit";
+import { db } from "@/db";
+import { setMockRows } from "@/__tests__/drizzle-mock";
+import AuditLogPage from "@/app/[locale]/(admin)/admin/audit-log/page";
 
-const mockCreate = vi.hoisted(() => vi.fn());
-const mockFindMany = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
+// logAdminAction / logSystemAction are covered in src/lib/audit.test.ts.
+// "@/db" is the in-memory fake installed by src/__tests__/setup.ts.
+
 const mockRedirect = vi.hoisted(() =>
   vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
 );
 const mockAuth = vi.hoisted(() => vi.fn());
-
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    auditLogEntry: {
-      create: mockCreate,
-      findMany: mockFindMany,
-    },
-    user: {
-      findUnique: mockUserFindUnique,
-    },
-  },
-}));
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
@@ -33,73 +22,24 @@ vi.mock("next/navigation", () => ({
   redirect: mockRedirect,
 }));
 
-describe("logAdminAction", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockCreate.mockReset();
-  });
-
-  test("successfully writes a row with all fields populated", async () => {
-    const createdAt = new Date();
-    mockCreate.mockResolvedValue({
-      id: "audit_1",
-      actorUserId: "user_1",
-      actorRole: "CENTRE_STAFF",
-      action: "course.create",
-      entityType: "Course",
-      entityId: "course_1",
-      metadata: { title: "New Course" },
-      createdAt,
-      updatedAt: createdAt,
-    });
-
-    await logAdminAction({
-      actorUserId: "user_1",
-      actorRole: Role.CENTRE_STAFF,
-      action: "course.create",
-      entityType: "Course",
-      entityId: "course_1",
-      metadata: { title: "New Course" },
-    });
-
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: {
-        actorUserId: "user_1",
-        actorRole: Role.CENTRE_STAFF,
-        action: "course.create",
-        entityType: "Course",
-        entityId: "course_1",
-        metadata: { title: "New Course" },
-      },
-    });
-  });
-
-  test("does not throw when the database write fails", async () => {
-    mockCreate.mockRejectedValue(new Error("DB unavailable"));
-
-    await expect(
-      logAdminAction({
-        actorUserId: "user_2",
-        actorRole: Role.SUPER_ADMIN,
-        action: "user.ban",
-        entityType: "User",
-        entityId: "user_3",
-      }),
-    ).resolves.toBeUndefined();
-  });
-});
+function entry(id: string, action: string, minutesAgo: number) {
+  const createdAt = new Date(Date.now() - minutesAgo * 60_000);
+  return {
+    id,
+    actorUserId: "user_staff",
+    actorRole: "CENTRE_STAFF",
+    action,
+    entityType: "Course",
+    entityId: `course_${id}`,
+    metadata: { title: "New Course" },
+    createdAt,
+    updatedAt: createdAt,
+  };
+}
 
 describe("AuditLogPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreate.mockReset();
-    mockFindMany.mockReset();
-    mockRedirect.mockReset();
-    mockRedirect.mockImplementation((url: string) => {
-      throw new Error(`redirect:${url}`);
-    });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
   });
 
   test("is denied to a student-role user", async () => {
@@ -108,49 +48,52 @@ describe("AuditLogPage", () => {
       sessionClaims: { metadata: { role: "STUDENT" } },
     });
 
-    const { default: AuditLogPage } = await import(
-      "@/app/[locale]/(admin)/admin/audit-log/page"
-    );
-
     await expect(
       AuditLogPage({ params: Promise.resolve({ locale: "en" }) }),
     ).rejects.toThrow("redirect:/en/forbidden");
   });
 
-  test("is accessible to centre_staff", async () => {
+  test("is accessible to centre_staff and lists entries newest first", async () => {
     mockAuth.mockResolvedValue({
       userId: "user_staff",
       sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
     });
-
-    const createdAt = new Date();
-    mockFindMany.mockResolvedValue([
-      {
-        id: "audit_1",
-        actorUserId: "user_staff",
-        actorRole: "CENTRE_STAFF",
-        action: "course.create",
-        entityType: "Course",
-        entityId: "course_1",
-        metadata: { title: "New Course" },
-        createdAt,
-        updatedAt: createdAt,
-      },
+    setMockRows(db, "auditLogEntry", [
+      entry("1", "course.create", 10),
+      entry("2", "course.update", 1),
     ]);
 
-    const { default: AuditLogPage } = await import(
-      "@/app/[locale]/(admin)/admin/audit-log/page"
+    const html = renderToString(
+      await AuditLogPage({ params: Promise.resolve({ locale: "en" }) }),
     );
-
-    const element = await AuditLogPage({
-      params: Promise.resolve({ locale: "en" }),
-    });
-    const html = renderToString(element);
 
     expect(html).toContain("Audit Log");
     expect(html).toContain("course.create");
-    expect(html).toContain("Course");
     expect(html).toContain("course_1");
+    expect(html.indexOf("course.update")).toBeLessThan(
+      html.indexOf("course.create"),
+    );
     expect(mockRedirect).not.toHaveBeenCalled();
+  });
+
+  test("shows at most the 50 most recent entries", async () => {
+    mockAuth.mockResolvedValue({
+      userId: "user_staff",
+      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
+    });
+    setMockRows(
+      db,
+      "auditLogEntry",
+      Array.from({ length: 55 }, (_, i) =>
+        entry(String(i), `action.n${i}.`, i),
+      ),
+    );
+
+    const html = renderToString(
+      await AuditLogPage({ params: Promise.resolve({ locale: "en" }) }),
+    );
+
+    expect(html).toContain("action.n49.");
+    expect(html).not.toContain("action.n50.");
   });
 });

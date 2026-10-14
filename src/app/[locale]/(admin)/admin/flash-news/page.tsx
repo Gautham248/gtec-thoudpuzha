@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole, Role } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 import { Button } from "@/components/ui/button";
 import {
   createFlashNews,
@@ -9,6 +9,7 @@ import {
   toggleFlashNewsActive,
   moveFlashNews,
 } from "./actions";
+import { ActionForm } from "@/components/admin/action-form";
 
 interface FlashNewsPageProps {
   params: Promise<{ locale: string }>;
@@ -33,8 +34,8 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
     redirect(`/${locale}/forbidden`);
   }
 
-  const items = await prisma.flashNewsItem.findMany({
-    orderBy: { sortOrder: "asc" },
+  const items = await db.query.flashNewsItem.findMany({
+    orderBy: (f, { asc }) => asc(f.sortOrder),
   });
 
   return (
@@ -43,7 +44,12 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
 
       <section className="mt-6 rounded border border-border p-4">
         <h2 className="text-lg font-medium">Create new item</h2>
-        <form action={createFlashNews} className="mt-4 space-y-4">
+        <ActionForm
+          action={createFlashNews}
+          success="Flash news added"
+          resetOnSuccess
+          className="mt-4 space-y-4"
+        >
           <input type="hidden" name="locale" value={locale} />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
@@ -91,7 +97,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
             </div>
           </div>
           <Button type="submit">Create</Button>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="mt-8">
@@ -103,13 +109,27 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="border border-border px-3 py-2 text-left">Order</th>
-                    <th className="border border-border px-3 py-2 text-left">English</th>
-                    <th className="border border-border px-3 py-2 text-left">Malayalam</th>
-                    <th className="border border-border px-3 py-2 text-left">Link</th>
-                    <th className="border border-border px-3 py-2 text-left">Status</th>
-                    <th className="border border-border px-3 py-2 text-left">Expires</th>
-                    <th className="border border-border px-3 py-2 text-left">Actions</th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Order
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      English
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Malayalam
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Link
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Status
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Expires
+                    </th>
+                    <th className="border border-border px-3 py-2 text-left">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -124,7 +144,10 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                     >
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-1">
-                          <form action={moveFlashNews}>
+                          <ActionForm
+                            action={moveFlashNews}
+                            success="Order updated"
+                          >
                             <input type="hidden" name="id" value={item.id} />
                             <input type="hidden" name="direction" value="up" />
                             <input type="hidden" name="locale" value={locale} />
@@ -137,10 +160,17 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                             >
                               ↑
                             </Button>
-                          </form>
-                          <form action={moveFlashNews}>
+                          </ActionForm>
+                          <ActionForm
+                            action={moveFlashNews}
+                            success="Order updated"
+                          >
                             <input type="hidden" name="id" value={item.id} />
-                            <input type="hidden" name="direction" value="down" />
+                            <input
+                              type="hidden"
+                              name="direction"
+                              value="down"
+                            />
                             <input type="hidden" name="locale" value={locale} />
                             <Button
                               type="submit"
@@ -151,11 +181,13 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                             >
                               ↓
                             </Button>
-                          </form>
+                          </ActionForm>
                           <span className="ml-2 text-sm">{item.sortOrder}</span>
                         </div>
                       </td>
-                      <td className="border border-border px-3 py-2">{item.textEn}</td>
+                      <td className="border border-border px-3 py-2">
+                        {item.textEn}
+                      </td>
                       <td className="border border-border px-3 py-2">
                         {item.textMl || "—"}
                       </td>
@@ -174,7 +206,10 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                         )}
                       </td>
                       <td className="border border-border px-3 py-2">
-                        <form action={toggleFlashNewsActive}>
+                        <ActionForm
+                          action={toggleFlashNewsActive}
+                          success="Flash news updated"
+                        >
                           <input type="hidden" name="id" value={item.id} />
                           <input
                             type="hidden"
@@ -189,7 +224,7 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                           >
                             {item.active ? "Active" : "Inactive"}
                           </Button>
-                        </form>
+                        </ActionForm>
                       </td>
                       <td className="border border-border px-3 py-2">
                         {item.expiresAt ? (
@@ -208,40 +243,100 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                       <td className="border border-border px-3 py-2">
                         <div className="flex items-center gap-2">
                           <details className="relative">
-                            <summary className="cursor-pointer text-sm text-primary font-medium">Edit</summary>
-                            <form action={updateFlashNews} className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left">
+                            <summary className="cursor-pointer text-sm text-primary font-medium">
+                              Edit
+                            </summary>
+                            <ActionForm
+                              action={updateFlashNews}
+                              success="Flash news updated"
+                              className="absolute right-0 top-6 z-20 w-80 rounded border border-border bg-card p-3 shadow-lg space-y-2 text-left"
+                            >
                               <input type="hidden" name="id" value={item.id} />
-                              <input type="hidden" name="locale" value={locale} />
+                              <input
+                                type="hidden"
+                                name="locale"
+                                value={locale}
+                              />
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Text (English) *</label>
-                                <input name="textEn" defaultValue={item.textEn} required className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Text (English) *
+                                </label>
+                                <input
+                                  name="textEn"
+                                  defaultValue={item.textEn}
+                                  required
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Text (Malayalam)</label>
-                                <input name="textMl" defaultValue={item.textMl ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Text (Malayalam)
+                                </label>
+                                <input
+                                  name="textMl"
+                                  defaultValue={item.textMl ?? ""}
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Link URL</label>
-                                <input name="link" type="url" defaultValue={item.link ?? ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Link URL
+                                </label>
+                                <input
+                                  name="link"
+                                  type="url"
+                                  defaultValue={item.link ?? ""}
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-0.5">Expires At</label>
-                                <input name="expiresAt" type="datetime-local" defaultValue={item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1 text-sm bg-background" />
+                                <label className="block text-sm font-medium text-foreground mb-0.5">
+                                  Expires At
+                                </label>
+                                <input
+                                  name="expiresAt"
+                                  type="datetime-local"
+                                  defaultValue={
+                                    item.expiresAt
+                                      ? new Date(item.expiresAt)
+                                          .toISOString()
+                                          .slice(0, 16)
+                                      : ""
+                                  }
+                                  className="w-full rounded border border-border px-2 py-1 text-sm bg-background"
+                                />
                               </div>
                               <label className="flex items-center gap-2 text-sm pt-1">
-                                <input type="checkbox" name="active" defaultChecked={item.active} />
+                                <input
+                                  type="checkbox"
+                                  name="active"
+                                  defaultChecked={item.active}
+                                />
                                 Active
                               </label>
-                              <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                            </form>
+                              <Button
+                                type="submit"
+                                size="xs"
+                                className="w-full"
+                              >
+                                Save Changes
+                              </Button>
+                            </ActionForm>
                           </details>
-                          <form action={deleteFlashNews}>
+                          <ActionForm
+                            action={deleteFlashNews}
+                            success="Flash news deleted"
+                          >
                             <input type="hidden" name="id" value={item.id} />
                             <input type="hidden" name="locale" value={locale} />
-                            <Button type="submit" size="xs" variant="destructive">
+                            <Button
+                              type="submit"
+                              size="xs"
+                              variant="destructive"
+                            >
                               Delete
                             </Button>
-                          </form>
+                          </ActionForm>
                         </div>
                       </td>
                     </tr>
@@ -256,17 +351,33 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                 <div
                   key={item.id}
                   className={`rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs ${
-                    !item.active || isExpired(item.expiresAt) ? "opacity-75 bg-muted/20" : ""
+                    !item.active || isExpired(item.expiresAt)
+                      ? "opacity-75 bg-muted/20"
+                      : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 border-b pb-2">
                     <div className="min-w-0 flex-1">
-                      <span className="font-semibold text-foreground text-sm block leading-snug">{item.textEn}</span>
-                      {item.textMl && <span className="text-sm text-muted-foreground block">ML: {item.textMl}</span>}
+                      <span className="font-semibold text-foreground text-sm block leading-snug">
+                        {item.textEn}
+                      </span>
+                      {item.textMl && (
+                        <span className="text-sm text-muted-foreground block">
+                          ML: {item.textMl}
+                        </span>
+                      )}
                     </div>
-                    <form action={toggleFlashNewsActive} className="shrink-0">
+                    <ActionForm
+                      action={toggleFlashNewsActive}
+                      success="Flash news updated"
+                      className="shrink-0"
+                    >
                       <input type="hidden" name="id" value={item.id} />
-                      <input type="hidden" name="active" value={String(!item.active)} />
+                      <input
+                        type="hidden"
+                        name="active"
+                        value={String(!item.active)}
+                      />
                       <input type="hidden" name="locale" value={locale} />
                       <Button
                         type="submit"
@@ -276,14 +387,19 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                       >
                         {item.active ? "Active" : "Inactive"}
                       </Button>
-                    </form>
+                    </ActionForm>
                   </div>
 
                   <div className="text-sm space-y-1 text-muted-foreground">
                     <div className="flex justify-between">
                       <span className="font-medium text-foreground">Link:</span>
                       {item.link ? (
-                        <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline"
+                        >
                           {item.link}
                         </a>
                       ) : (
@@ -291,10 +407,18 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                       )}
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium text-foreground">Expires:</span>
+                      <span className="font-medium text-foreground">
+                        Expires:
+                      </span>
                       <span className="font-mono text-foreground">
-                        {item.expiresAt ? formatLocalDateTime(item.expiresAt) : "Never"}
-                        {isExpired(item.expiresAt) && <span className="ml-1 text-destructive font-semibold">(expired)</span>}
+                        {item.expiresAt
+                          ? formatLocalDateTime(item.expiresAt)
+                          : "Never"}
+                        {isExpired(item.expiresAt) && (
+                          <span className="ml-1 text-destructive font-semibold">
+                            (expired)
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -302,57 +426,127 @@ export default async function FlashNewsPage({ params }: FlashNewsPageProps) {
                   <div className="pt-2 border-t space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1 text-sm">
-                        <span className="text-muted-foreground mr-1">Order ({item.sortOrder}):</span>
-                        <form action={moveFlashNews}>
+                        <span className="text-muted-foreground mr-1">
+                          Order ({item.sortOrder}):
+                        </span>
+                        <ActionForm
+                          action={moveFlashNews}
+                          success="Order updated"
+                        >
                           <input type="hidden" name="id" value={item.id} />
                           <input type="hidden" name="direction" value="up" />
                           <input type="hidden" name="locale" value={locale} />
-                          <Button type="submit" size="icon-xs" variant="outline" disabled={index === 0}>↑</Button>
-                        </form>
-                        <form action={moveFlashNews}>
+                          <Button
+                            type="submit"
+                            size="icon-xs"
+                            variant="outline"
+                            disabled={index === 0}
+                          >
+                            ↑
+                          </Button>
+                        </ActionForm>
+                        <ActionForm
+                          action={moveFlashNews}
+                          success="Order updated"
+                        >
                           <input type="hidden" name="id" value={item.id} />
                           <input type="hidden" name="direction" value="down" />
                           <input type="hidden" name="locale" value={locale} />
-                          <Button type="submit" size="icon-xs" variant="outline" disabled={index === items.length - 1}>↓</Button>
-                        </form>
+                          <Button
+                            type="submit"
+                            size="icon-xs"
+                            variant="outline"
+                            disabled={index === items.length - 1}
+                          >
+                            ↓
+                          </Button>
+                        </ActionForm>
                       </div>
 
-                      <form action={deleteFlashNews}>
+                      <ActionForm
+                        action={deleteFlashNews}
+                        success="Flash news deleted"
+                      >
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <Button type="submit" size="xs" variant="destructive">
                           Delete
                         </Button>
-                      </form>
+                      </ActionForm>
                     </div>
 
                     <details className="pt-1 border-t">
-                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">Edit</summary>
-                      <form action={updateFlashNews} className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left">
+                      <summary className="cursor-pointer text-sm font-medium text-primary py-1">
+                        Edit
+                      </summary>
+                      <ActionForm
+                        action={updateFlashNews}
+                        success="Flash news updated"
+                        className="mt-2 space-y-2.5 border border-border rounded p-3 bg-muted/20 text-left"
+                      >
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="locale" value={locale} />
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Text (English) *</label>
-                          <input name="textEn" defaultValue={item.textEn} required className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Text (English) *
+                          </label>
+                          <input
+                            name="textEn"
+                            defaultValue={item.textEn}
+                            required
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Text (Malayalam)</label>
-                          <input name="textMl" defaultValue={item.textMl ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Text (Malayalam)
+                          </label>
+                          <input
+                            name="textMl"
+                            defaultValue={item.textMl ?? ""}
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Link URL</label>
-                          <input name="link" type="url" defaultValue={item.link ?? ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Link URL
+                          </label>
+                          <input
+                            name="link"
+                            type="url"
+                            defaultValue={item.link ?? ""}
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">Expires At</label>
-                          <input name="expiresAt" type="datetime-local" defaultValue={item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 16) : ""} className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background" />
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Expires At
+                          </label>
+                          <input
+                            name="expiresAt"
+                            type="datetime-local"
+                            defaultValue={
+                              item.expiresAt
+                                ? new Date(item.expiresAt)
+                                    .toISOString()
+                                    .slice(0, 16)
+                                : ""
+                            }
+                            className="w-full rounded border border-border px-2 py-1.5 text-sm bg-background"
+                          />
                         </div>
                         <label className="flex items-center gap-2 text-sm pt-1">
-                          <input type="checkbox" name="active" defaultChecked={item.active} />
+                          <input
+                            type="checkbox"
+                            name="active"
+                            defaultChecked={item.active}
+                          />
                           Active
                         </label>
-                        <Button type="submit" size="xs" className="w-full">Save Changes</Button>
-                      </form>
+                        <Button type="submit" size="xs" className="w-full">
+                          Save Changes
+                        </Button>
+                      </ActionForm>
                     </details>
                   </div>
                 </div>

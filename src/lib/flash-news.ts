@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { db } from "@/db";
 
 export interface PublicFlashNewsItem {
   id: string;
@@ -11,12 +11,10 @@ export async function getActiveFlashNews(
 ): Promise<PublicFlashNewsItem[]> {
   try {
     const now = new Date();
-    const items = await prisma.flashNewsItem.findMany({
-      where: {
-        active: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
-      orderBy: { sortOrder: "asc" },
+    const items = await db.query.flashNewsItem.findMany({
+      where: (f, { and, eq, gt, isNull, or }) =>
+        and(eq(f.active, true), or(isNull(f.expiresAt), gt(f.expiresAt, now))),
+      orderBy: (f, { asc }) => asc(f.sortOrder),
     });
 
     return items.map((item) => ({
@@ -30,7 +28,7 @@ export async function getActiveFlashNews(
 }
 
 export async function getAllFlashNews() {
-  return prisma.flashNewsItem.findMany({
-    orderBy: { sortOrder: "asc" },
+  return db.query.flashNewsItem.findMany({
+    orderBy: (f, { asc }) => asc(f.sortOrder),
   });
 }

@@ -1,8 +1,23 @@
-import { Award, Users, BookOpen, Briefcase, Globe, Headphones, Sparkles } from "lucide-react";
-import { getLocalizedWhyCards, type Locale, type SiteSettingsWithCards } from "@/lib/site-settings";
-import type { WhyCardIcon } from "@prisma/client";
+import {
+  Award,
+  Users,
+  BookOpen,
+  Briefcase,
+  Globe,
+  Headphones,
+  Sparkles,
+} from "lucide-react";
+import {
+  getLocalizedWhyCards,
+  type Locale,
+  type SiteSettingsWithCards,
+} from "@/lib/site-settings";
+import type { WhyCardIcon } from "@/db/types";
 
-const iconMap: Record<WhyCardIcon, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<
+  WhyCardIcon,
+  React.ComponentType<{ className?: string }>
+> = {
   AWARD: Award,
   USERS: Users,
   BOOK_OPEN: BookOpen,
@@ -17,13 +32,23 @@ interface WhyChooseUsSectionProps {
   heading: string;
 }
 
-export function WhyChooseUsSection({ settings, locale, heading }: WhyChooseUsSectionProps) {
+export function WhyChooseUsSection({
+  settings,
+  locale,
+  heading,
+}: WhyChooseUsSectionProps) {
   const cards = getLocalizedWhyCards(settings, locale);
 
   return (
-    <section aria-labelledby="why-choose-us-heading" className="relative bg-muted/30 py-16 sm:py-20 lg:py-24 border-y border-border/60 overflow-hidden">
+    <section
+      aria-labelledby="why-choose-us-heading"
+      className="relative bg-muted/30 py-16 sm:py-20 lg:py-24 border-y border-border/60 overflow-hidden"
+    >
       {/* Background decoration */}
-      <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-30" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-30"
+        aria-hidden="true"
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center text-center mb-12 sm:mb-16">
@@ -77,4 +102,3 @@ export function WhyChooseUsSection({ settings, locale, heading }: WhyChooseUsSec
     </section>
   );
 }
-

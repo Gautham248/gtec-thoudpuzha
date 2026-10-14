@@ -20,8 +20,8 @@ docker compose up
 
 This will automatically:
 1. Start a local PostgreSQL container (`localhost:5432`).
-2. Push the Prisma database schema.
-3. Seed the database with sample courses, news, students, job postings, and site settings.
+2. Create the database schema from the Drizzle migrations in `drizzle/` (only when the database is empty).
+3. Seed the new database with sample courses, news, students, job postings, and site settings.
 4. Launch the Next.js development server at [http://localhost:3000](http://localhost:3000) with hot-reloading enabled.
 
 ---
@@ -39,7 +39,7 @@ If you prefer running Node.js directly on your machine:
 ```bash
 cp .env.example .env.local
 npm install
-npx prisma db push
+npm run db:migrate   # new, empty database (existing one: see below)
 npm run db:seed
 npm run dev
 ```
@@ -54,6 +54,36 @@ npm run dev
 | `npm run lint` | Run ESLint |
 | `npm test` | Run Vitest tests |
 | `npm run format` | Format code with Prettier |
+| `npm run db:generate` | Write a new SQL migration in `drizzle/` after changing `src/db/schema.ts` |
+| `npm run db:migrate` | Apply pending migrations in `drizzle/` to `DATABASE_URL` |
+| `npm run db:baseline` | One-time adoption of `drizzle/` by a database created before the Prisma → Drizzle switch (dry run; add `-- --apply`) |
+| `npm run db:seed` | Seed `DATABASE_URL` with sample data (idempotent) |
+| `npm run db:studio` | Browse the database with Drizzle Studio |
+
+## Existing databases (created by Prisma)
+
+Databases created before the switch to Drizzle (production, older local
+volumes) already have every table, but no record of `drizzle/0000_baseline.sql`.
+Run this **once per database** before its first `npm run db:migrate`:
+
+```bash
+# 1. Back up the database first.
+# 2. Dry run: checks the live schema matches 0000_baseline exactly. Writes nothing.
+DATABASE_URL=<that database> npm run db:baseline
+# 3. Record 0000_baseline as already applied.
+DATABASE_URL=<that database> npm run db:baseline -- --apply
+# 4. From now on, schema changes go through migrations as usual.
+DATABASE_URL=<that database> npm run db:migrate
+```
+
+`--apply` only creates `drizzle.__drizzle_migrations` (Drizzle's bookkeeping
+table, in its own `drizzle` schema) and inserts one row. It never touches app
+tables. If the live schema differs from the baseline in any way, it lists the
+differences and writes nothing. Running it again on a baselined database does
+nothing. Run it from a dev checkout (`npm install` with dev dependencies).
+
+**Rollback:** `DROP SCHEMA drizzle CASCADE;` removes only that bookkeeping
+table; app tables and Prisma's old `_prisma_migrations` history are untouched.
 
 ## Environment Variables
 
@@ -75,10 +105,20 @@ src/
 │   └── (admin)/       # Admin routes (Super Admin & Centre Staff)
 ├── components/
 │   └── ui/            # shadcn/ui components
+├── db/                # Drizzle schema, relations, client and seed
+├── server/
+│   ├── trpc.ts        # tRPC procedure builders (role / permission checks)
+│   ├── form.ts        # zod helpers that parse <form> FormData
+│   ├── action.ts      # api() caller + run() used by Server Actions
+│   └── routers/       # admin.*, portal.*, public.* procedures (all mutation logic)
 ├── lib/
 │   └── utils.ts       # shadcn/ui utility
 └── __tests__/         # Vitest smoke tests
 ```
+
+Each `actions.ts` Server Action is a thin wrapper: pages post plain `<form>`s
+to it, and it calls the matching tRPC procedure through `api()`. Put new
+mutation logic in a router under `src/server/routers/`, not in the action.
 
 ## Deployment
 

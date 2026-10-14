@@ -5,15 +5,11 @@ import { Role } from "@/lib/auth";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockGetUser = vi.hoisted(() => vi.fn());
-const mockUserFindUnique = vi.hoisted(() => vi.fn());
 
 const mockClerkMiddleware = vi.hoisted(
   () =>
     (
-      _handler: (
-        auth: unknown,
-        req: Request,
-      ) => Promise<Response | undefined>,
+      _handler: (auth: unknown, req: Request) => Promise<Response | undefined>,
     ) => {
       // no-op
     },
@@ -30,12 +26,6 @@ vi.mock("@clerk/nextjs/server", () => ({
     }),
 }));
 
-vi.mock("@/lib/db", () => ({
-  prisma: {
-    user: { findUnique: mockUserFindUnique },
-  },
-}));
-
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`);
@@ -45,9 +35,7 @@ vi.mock("next/navigation", () => ({
 function withAuth(role: Role | undefined, userId = "user_1") {
   mockAuth.mockResolvedValue({
     userId,
-    sessionClaims: role
-      ? { metadata: { role } }
-      : {},
+    sessionClaims: role ? { metadata: { role } } : {},
   });
 }
 
@@ -127,13 +115,18 @@ describe("PortalRoleGate — fine-grained role gating", () => {
     if (!result1.authorized) expect(result1.reason).toBe("unauthenticated");
 
     // staff passes
-    mockAuth.mockResolvedValue({ userId: "user_4", sessionClaims: { metadata: { role: "CENTRE_STAFF" } } });
-    mockUserFindUnique.mockResolvedValue({ deactivatedAt: null });
+    mockAuth.mockResolvedValue({
+      userId: "user_4",
+      sessionClaims: { metadata: { role: "CENTRE_STAFF" } },
+    });
     const result2 = await requireRole([Role.CENTRE_STAFF, Role.SUPER_ADMIN]);
     expect(result2.authorized).toBe(true);
 
     // non-admin role denied
-    mockAuth.mockResolvedValue({ userId: "user_student", sessionClaims: { metadata: { role: "STUDENT" } } });
+    mockAuth.mockResolvedValue({
+      userId: "user_student",
+      sessionClaims: { metadata: { role: "STUDENT" } },
+    });
     const result3 = await requireRole([Role.CENTRE_STAFF, Role.SUPER_ADMIN]);
     expect(result3.authorized).toBe(false);
     if (!result3.authorized) expect(result3.reason).toBe("forbidden");
@@ -174,7 +167,10 @@ describe("PortalRoleGate — fine-grained role gating", () => {
   test("10. requireRole lets authenticated users through when role is present (no-race path)", async () => {
     const { requireRole, Role } = await import("@/lib/auth");
 
-    mockAuth.mockResolvedValue({ userId: "user_1", sessionClaims: { metadata: { role: "JOB_SEEKER" } } });
+    mockAuth.mockResolvedValue({
+      userId: "user_1",
+      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
+    });
     const result = await requireRole([Role.STUDENT, Role.JOB_SEEKER]);
     expect(result.authorized).toBe(true);
     if (result.authorized) expect(result.role).toBe("JOB_SEEKER");

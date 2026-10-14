@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { updateApplicationStatus } from "./actions";
-import type { ApplicationStatus } from "@prisma/client";
+import type { ApplicationStatus } from "@/db/types";
 
 interface Applicant {
   id: string;
@@ -39,11 +39,7 @@ const NEXT_TRANSITIONS: Record<string, ApplicationStatus[]> = {
   HIRED: [],
 };
 
-function ApplicantRow({
-  applicant,
-}: {
-  applicant: Applicant;
-}) {
+function ApplicantRow({ applicant }: { applicant: Applicant }) {
   const t = useTranslations("employerApplicants");
   const [_state, action, pending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
@@ -54,7 +50,8 @@ function ApplicantRow({
     {},
   );
 
-  const badgeStyle = STATUS_BADGE[applicant.status] ?? "bg-muted text-foreground";
+  const badgeStyle =
+    STATUS_BADGE[applicant.status] ?? "bg-muted text-foreground";
   const transitions = NEXT_TRANSITIONS[applicant.status] ?? [];
 
   return (
@@ -75,7 +72,10 @@ function ApplicantRow({
                 {applicant.candidateProfile.fullName ?? t("unknown")}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {applicant.candidateProfile.preferredJobType?.replace(/_/g, " ") ?? "—"}
+                {applicant.candidateProfile.preferredJobType?.replace(
+                  /_/g,
+                  " ",
+                ) ?? "—"}
               </p>
             </div>
           </div>
@@ -83,25 +83,38 @@ function ApplicantRow({
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
             {applicant.candidateProfile.email && (
               <div>
-                <span className="text-sm font-medium text-muted-foreground">{t("email")}</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("email")}
+                </span>
                 <p>{applicant.candidateProfile.email}</p>
               </div>
             )}
             {applicant.candidateProfile.phone && (
               <div>
-                <span className="text-sm font-medium text-muted-foreground">{t("phone")}</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("phone")}
+                </span>
                 <p>{applicant.candidateProfile.phone}</p>
               </div>
             )}
             {applicant.candidateProfile.educationalQualification && (
               <div>
-                <span className="text-sm font-medium text-muted-foreground">{t("qualification")}</span>
-                <p>{applicant.candidateProfile.educationalQualification.replace(/_/g, " ")}</p>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("qualification")}
+                </span>
+                <p>
+                  {applicant.candidateProfile.educationalQualification.replace(
+                    /_/g,
+                    " ",
+                  )}
+                </p>
               </div>
             )}
             {applicant.candidateProfile.preferredJobLocation && (
               <div>
-                <span className="text-sm font-medium text-muted-foreground">{t("location")}</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("location")}
+                </span>
                 <p>{applicant.candidateProfile.preferredJobLocation}</p>
               </div>
             )}
