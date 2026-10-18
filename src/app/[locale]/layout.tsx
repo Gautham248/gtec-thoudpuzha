@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Sora } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Sans_Malayalam, Sora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -26,6 +26,16 @@ const sora = Sora({
   subsets: ["latin"],
   display: "swap",
   weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+// Sora and Inter have no Malayalam glyphs. This font is only listed in the
+// font stack on Malayalam pages (see globals.css), and its unicode-range means
+// browsers download it only when Malayalam text is actually rendered.
+const notoSansMalayalam = Noto_Sans_Malayalam({
+  variable: "--font-malayalam",
+  subsets: ["malayalam"],
+  display: "swap",
+  preload: false,
 });
 
 const APP_NAME = "GTEC Thodupuzha";
@@ -83,7 +93,7 @@ export default async function LocaleLayout({
       <html
         suppressHydrationWarning
         lang={locale}
-        className={`${inter.variable} ${jetbrainsMono.variable} ${sora.variable} h-full antialiased max-w-full overflow-x-clip`}
+        className={`${inter.variable} ${jetbrainsMono.variable} ${sora.variable} ${notoSansMalayalam.variable} h-full antialiased max-w-full overflow-x-clip`}
       >
         <body className="min-h-full flex flex-col w-full max-w-full overflow-x-clip relative font-sora">
           <Preloader />

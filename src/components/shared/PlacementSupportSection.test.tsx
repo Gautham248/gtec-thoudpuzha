@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import { describe, expect, test, vi } from "vitest";
 import { renderToString } from "react-dom/server";
+import { render, screen } from "@testing-library/react";
 import { PlacementSupportSection } from "./PlacementSupportSection";
 
 vi.mock("next/image", () => ({
@@ -76,5 +77,39 @@ describe("PlacementSupportSection", () => {
 
     expect(html).toContain('href="/portal/jobs"');
     expect(html).toContain('href="/portal/employer/register"');
+  });
+
+  test("5. photos scroll in a full-width endless row with no captions", () => {
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    render(<PlacementSupportSection {...makeProps(3)} />);
+    vi.unstubAllGlobals();
+    const row = screen.getByTestId("placement-marquee");
+
+    // Captions are no longer printed over the photos...
+    expect(row).not.toHaveTextContent("Placement 1");
+    // ...but still describe each photo for screen readers.
+    expect(
+      screen.getByRole("img", { name: "Placement 1" }),
+    ).toBeInTheDocument();
+
+    // 3 photos are repeated to fill wide screens, then doubled for the loop;
+    // each photo is announced once and every repeat is hidden.
+    const tiles = row.querySelectorAll(".gallery-marquee > div");
+    const loopCopies = row.querySelectorAll(
+      '[data-marquee-copy][aria-hidden="true"]',
+    );
+    expect(tiles.length).toBe(18);
+    expect(loopCopies.length).toBe(9);
+    expect(row.querySelectorAll('[aria-hidden="true"]').length).toBe(15);
+    expect(row.querySelector(".gallery-marquee")).toHaveStyle({
+      "--marquee-duration": "45s",
+    });
   });
 });

@@ -1,9 +1,13 @@
 import { PlayCircle } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
+import { HomeReelsStrip } from "@/components/shared/HomeReelsStrip";
+import { HomeMainVideo } from "@/components/shared/HomeMainVideo";
 
 interface HomeVideoSectionProps {
   /** Public ImageKit URL of the source .mp4; the section hides itself when unset. */
   videoUrl?: string;
+  /** Portrait clips shown as an autoplaying strip under the main video. */
+  reels?: readonly string[];
   t: {
     badge: string;
     heading: string;
@@ -12,15 +16,11 @@ interface HomeVideoSectionProps {
   };
 }
 
-/**
- * ImageKit transforms a video on the fly from URL parameters: `tr=` for
- * resize / format / quality, and `/ik-thumbnail.jpg` for a still frame.
- */
-function imagekitUrl(base: string, suffix: string) {
-  return `${base.split("?")[0]}${suffix}`;
-}
-
-export function HomeVideoSection({ videoUrl, t }: HomeVideoSectionProps) {
+export function HomeVideoSection({
+  videoUrl,
+  reels = [],
+  t,
+}: HomeVideoSectionProps) {
   if (!videoUrl) return null;
 
   return (
@@ -45,24 +45,11 @@ export function HomeVideoSection({ videoUrl, t }: HomeVideoSectionProps) {
 
         <Reveal y={40} scale={0.97} amount={0.3}>
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl ring-1 ring-[#0B57D0]/30 sm:rounded-3xl">
-            <video
-              controls
-              playsInline
-              preload="none"
-              poster={imagekitUrl(videoUrl, "/ik-thumbnail.jpg?tr=so-3")}
-              className="aspect-video h-auto w-full bg-black object-cover"
-            >
-              {/* Browsers try sources in order and skip any that fail, so the untransformed file is the last resort. */}
-              <source
-                src={imagekitUrl(videoUrl, "?tr=w-720,f-auto,q-60")}
-                media="(max-width: 767px)"
-              />
-              <source src={imagekitUrl(videoUrl, "?tr=f-auto,q-70")} />
-              <source src={videoUrl} type="video/mp4" />
-              {t.fallback}
-            </video>
+            <HomeMainVideo url={videoUrl} fallback={t.fallback} />
           </div>
         </Reveal>
+
+        <HomeReelsStrip videos={reels} />
       </div>
     </section>
   );

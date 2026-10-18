@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { WhyCardIcon } from "@/db/types";
 import {
+  DEFAULT_ABOUT_PHOTO,
   getAtAGlanceStats,
   getLocalizedAbout,
   getLocalizedWhyCards,
@@ -106,7 +107,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
   const about = getLocalizedAbout(settings, locale);
   const aboutPhoto = about.photoUrl
     ? getMediaUrl(about.photoUrl)
-    : "/images/figma/legacy-students-62c433.png";
+    : DEFAULT_ABOUT_PHOTO;
   const stats = getAtAGlanceStats(settings).filter((s) => s.value);
   const whyCards = getLocalizedWhyCards(settings, locale);
   const address = settings.address || FALLBACK_ADDRESS;

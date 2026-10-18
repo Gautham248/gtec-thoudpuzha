@@ -24,12 +24,14 @@
     "english": "English"
   },
   "hero": {
-    "badge": "Admissions Open 2025-26",
+    "badge": "Admissions Open 2026-27",
     "headline": "Build Your Career With G-TEC Thodupuzha",
     "subhead": "Learn in-demand skills in IT, multimedia, accounting, and spoken English. Join a trusted global network and take the next step toward a brighter future.",
     "applyNow": "Apply Now",
     "whatsappUs": "WhatsApp Us",
-    "callNow": "Call Now"
+    "callNow": "Call Now",
+    "yearsLabel": "years of empowering careers",
+    "ratingLabel": "rating on google"
   },
   "homeVideo": {
     "badge": "Watch the tour",
