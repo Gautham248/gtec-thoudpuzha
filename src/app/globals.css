@@ -419,3 +419,15 @@
     transform: rotate(360deg);
   }
 }
+
+/* ============================================================
+   Malayalam pages (/ml): keep Sora for Latin text and numbers, and render
+   every Malayalam character in Noto Sans Malayalam.
+   ============================================================ */
+html:lang(ml) body,
+html:lang(ml) .font-sora,
+html:lang(ml) .font-sans,
+html:lang(ml) .font-heading {
+  font-family:
+    var(--font-sora), var(--font-malayalam), var(--font-inter), sans-serif;
+}
