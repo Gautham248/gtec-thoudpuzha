@@ -146,7 +146,7 @@ export function CourseHero({
                   priority
                 />
                 <span className="absolute left-4 top-4 inline-flex items-center rounded-[18px] bg-linear-to-r from-[#D1D1D1] via-[#8D8D8D] to-[#DFDFDF] px-3.5 py-2 text-xs font-bold tracking-[-0.02em] text-black">
-                  Admissions Open 2025-26
+                  Admissions Open 2026-27
                 </span>
               </div>
             </Reveal>

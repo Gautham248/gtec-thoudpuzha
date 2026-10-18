@@ -53,6 +53,23 @@ describe("FeaturedCoursesSection", () => {
     expect(html).toContain("href=\"/courses/full-stack-web-development#enquiry\"");
   });
 
+  test("catalog banner: copy and course link on the left, image on the right", () => {
+    const html = renderToString(
+      <FeaturedCoursesSection courses={mockCourses} locale="en" />
+    );
+    const banner = html.slice(html.indexOf('data-testid="catalog-cta"'));
+
+    expect(banner).toContain("Looking for another specialization or custom diploma?");
+    expect(banner).toContain("100% placement support");
+    expect(banner).toContain('href="/courses"');
+    expect(banner).toContain("Explore All Courses");
+    expect(banner).toContain("before-footer.webp");
+    // Copy first, image second (image sits on the right / below on phones).
+    expect(banner.indexOf("Explore All Courses")).toBeLessThan(
+      banner.indexOf("before-footer.webp"),
+    );
+  });
+
   test("renders nothing when courses array is empty", () => {
     const html = renderToString(
       <FeaturedCoursesSection courses={[]} locale="en" />

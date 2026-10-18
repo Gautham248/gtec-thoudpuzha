@@ -400,6 +400,31 @@
   }
 }
 
+/* Endless image row: the track holds the images twice and slides left by
+   half its width, so the loop is seamless. Pauses on hover; with reduced
+   motion it stops, drops the copy, and becomes a row you can swipe. */
+.gallery-marquee {
+  animation: flash-marquee var(--marquee-duration, 40s) linear infinite;
+}
+
+.gallery-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-marquee-viewport {
+    overflow-x: auto;
+  }
+
+  .gallery-marquee {
+    animation: none;
+  }
+
+  .gallery-marquee > [data-marquee-copy] {
+    display: none;
+  }
+}
+
 /* Spinner on the submit button an admin ActionForm is currently running. */
 [data-submitting]::before {
   content: "";

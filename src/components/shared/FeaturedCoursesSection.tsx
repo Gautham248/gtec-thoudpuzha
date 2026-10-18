@@ -6,7 +6,7 @@ import {
   Sparkles,
   Award,
   GraduationCap,
-  ChevronRight,
+  ArrowUpRight,
   BookOpen,
 } from "lucide-react";
 import type { PublicCourse } from "@/lib/courses";
@@ -42,13 +42,17 @@ export function FeaturedCoursesSection({
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-sm font-bold text-primary mb-3">
               <Sparkles className="size-3.5 text-amber-500" />
-              <span>{isMl ? "കരിയർ പ്രോഗ്രാമുകൾ" : "Industry-Leading Programs"}</span>
+              <span>
+                {isMl ? "കരിയർ പ്രോഗ്രാമുകൾ" : "Industry-Leading Programs"}
+              </span>
             </div>
             <h2
               id="featured-courses-heading"
               className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground"
             >
-              {isMl ? "പ്രമുഖ കോഴ്‌സുകൾ & സർട്ടിഫിക്കേഷനുകൾ" : "Featured Courses & Certifications"}
+              {isMl
+                ? "പ്രമുഖ കോഴ്‌സുകൾ & സർട്ടിഫിക്കേഷനുകൾ"
+                : "Featured Courses & Certifications"}
             </h2>
             <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
               {isMl
@@ -124,16 +128,17 @@ export function FeaturedCoursesSection({
                     </div>
 
                     {/* Bottom Certification Pill */}
-                    {course.certifications && course.certifications.length > 0 && (
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center gap-1.5 overflow-hidden">
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-primary/90 text-primary-foreground backdrop-blur-md px-2.5 py-1 text-[11px] font-bold shadow-xs truncate">
-                          <Award className="size-3 shrink-0" />
-                          <span className="truncate">
-                            {course.certifications.join(" • ")} Certified
+                    {course.certifications &&
+                      course.certifications.length > 0 && (
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center gap-1.5 overflow-hidden">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-primary/90 text-primary-foreground backdrop-blur-md px-2.5 py-1 text-[11px] font-bold shadow-xs truncate">
+                            <Award className="size-3 shrink-0" />
+                            <span className="truncate">
+                              {course.certifications.join(" • ")} Certified
+                            </span>
                           </span>
-                        </span>
-                      </div>
-                    )}
+                        </div>
+                      )}
                   </div>
 
                   {/* Card Content */}
@@ -172,7 +177,9 @@ export function FeaturedCoursesSection({
                       aria-label={`View details for ${title}`}
                     >
                       <BookOpen className="size-3.5 text-muted-foreground" />
-                      <span className="hidden xs:inline">{isMl ? "വിശദാംശങ്ങൾ" : "Details"}</span>
+                      <span className="hidden xs:inline">
+                        {isMl ? "വിശദാംശങ്ങൾ" : "Details"}
+                      </span>
                     </Link>
                   </div>
                 </div>
@@ -181,28 +188,50 @@ export function FeaturedCoursesSection({
           })}
         </div>
 
-        {/* Bottom CTA Banner */}
-        <div className="mt-12 sm:mt-16 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 p-6 sm:p-8 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
-          <div>
-            <h3 className="text-lg sm:text-xl font-bold text-foreground">
+        {/* Bottom CTA Banner: copy and button on the left, the model image
+            flush on the right (below on phones). The image's white left edge
+            meets the white panel, so she leans out from behind the copy. */}
+        <div
+          data-testid="catalog-cta"
+          className="mt-12 grid overflow-hidden rounded-3xl border border-border/70 bg-white shadow-xl sm:mt-16 lg:grid-cols-2"
+        >
+          <div className="flex flex-col items-start justify-center gap-4 p-6 sm:p-10 lg:p-14">
+            <h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               {isMl
                 ? "നിങ്ങൾക്ക് അനുയോജ്യമായ കോഴ്‌സ് കണ്ടെത്താൻ ആഗ്രഹിക്കുന്നുണ്ടോ?"
                 : "Looking for another specialization or custom diploma?"}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+            <p className="max-w-xl text-sm text-muted-foreground sm:text-base lg:text-lg">
               {isMl
                 ? "ഞങ്ങളുടെ സമ്പൂർണ്ണ കോഴ്‌സ് കാറ്റലോഗ് കാണുക അല്ലെങ്കിൽ ഞങ്ങളുടെ കരിയർ കൗൺസിലറുമായി സംസാരിക്കുക."
                 : "Explore our full catalog of specialized diplomas and international certifications with 100% placement support."}
             </p>
+
+            <Link
+              href="/courses"
+              className="group mt-2 inline-flex items-center gap-4 rounded-full bg-[#0B1220] py-2 pl-6 pr-2 text-sm font-semibold text-white shadow-xl transition-all hover:bg-black active:scale-[0.98] sm:text-base"
+            >
+              <span>
+                {isMl ? "എല്ലാ കോഴ്‌സുകളും കാണുക" : "Explore All Courses"}
+              </span>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] text-white shadow-sm transition-transform group-hover:scale-105">
+                <ArrowUpRight className="size-4" />
+              </span>
+            </Link>
           </div>
 
-          <Link
-            href="/courses"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <span>{isMl ? "എല്ലാ കോഴ്‌സുകളും കാണുക" : "Explore All Courses"}</span>
-            <ChevronRight className="size-4" />
-          </Link>
+          {/* Sized from the image's own proportions (never cropped), sitting
+              on the card's bottom edge when the copy column is taller. */}
+          <div className="hidden items-end sm:flex">
+            <Image
+              src="/images/before-footer.webp"
+              alt=""
+              width={5344}
+              height={4825}
+              sizes="(max-width: 1024px) 100vw, 640px"
+              className="block h-auto w-full"
+            />
+          </div>
         </div>
       </div>
     </section>

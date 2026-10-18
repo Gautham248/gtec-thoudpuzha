@@ -1,5 +1,10 @@
 import Image from "next/image";
-import { getLocalizedAbout, type Locale, type SiteSettingsWithCards } from "@/lib/site-settings";
+import {
+  DEFAULT_ABOUT_PHOTO,
+  getLocalizedAbout,
+  type Locale,
+  type SiteSettingsWithCards,
+} from "@/lib/site-settings";
 import { getMediaUrl } from "@/lib/media";
 import { Award, Laptop, Users2, Sparkles } from "lucide-react";
 
@@ -7,10 +12,9 @@ interface AboutSectionProps {
   settings: SiteSettingsWithCards;
   locale: Locale;
   heading: string;
-  photoPlaceholder: string;
 }
 
-export async function AboutSection({ settings, locale, heading, photoPlaceholder }: AboutSectionProps) {
+export async function AboutSection({ settings, locale, heading }: AboutSectionProps) {
   const about = getLocalizedAbout(settings, locale);
 
   const pillars = [
@@ -29,25 +33,17 @@ export async function AboutSection({ settings, locale, heading, photoPlaceholder
               {/* Decorative backdrop glow */}
               <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-primary/20 to-amber-500/20 blur-xl opacity-70" aria-hidden="true" />
 
-              {about.photoUrl ? (
-                <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-border/80 shadow-2xl bg-card">
-                  <Image
-                    src={getMediaUrl(about.photoUrl)}
-                    alt="G-TEC Thodupuzha centre"
-                    fill
-                    unoptimized
-                    className="object-cover transition-transform duration-500 hover:scale-105"
-                    sizes="(max-width: 1024px) 100vw, 40vw"
-                  />
-                </div>
-              ) : (
-                <div className="relative flex aspect-[4/3] flex-col items-center justify-center rounded-3xl border border-border/80 bg-gradient-to-br from-muted/80 to-muted/40 p-8 text-center shadow-lg">
-                  <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-3">
-                    <Award className="size-7" />
-                  </div>
-                  <p className="text-sm font-semibold text-muted-foreground">{photoPlaceholder}</p>
-                </div>
-              )}
+              {/* Admin → Settings → Site photo when set, else the centre's team photo. */}
+              <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-border/80 shadow-2xl bg-card">
+                <Image
+                  src={about.photoUrl ? getMediaUrl(about.photoUrl) : DEFAULT_ABOUT_PHOTO}
+                  alt="G-TEC Thodupuzha centre"
+                  fill
+                  unoptimized={Boolean(about.photoUrl)}
+                  className="object-cover transition-transform duration-500 hover:scale-105"
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                />
+              </div>
 
               {/* Floating Excellence Pill Badge */}
               <div className="absolute -bottom-5 -right-3 sm:-right-5 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-xl p-4 sm:p-5 shadow-xl flex items-center gap-3.5">

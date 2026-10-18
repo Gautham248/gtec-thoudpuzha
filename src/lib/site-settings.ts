@@ -91,6 +91,9 @@ export function getLocalizedWhyCards(
   }));
 }
 
+/** About photo used when none is set in Admin → Settings → Site. */
+export const DEFAULT_ABOUT_PHOTO = "/images/gtec-thodupuzha.webp";
+
 export function getLocalizedAbout(
   settings: SiteSettingsWithCards,
   locale: Locale,
