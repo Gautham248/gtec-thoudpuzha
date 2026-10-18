@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
+import { Marquee } from "@/components/shared/Marquee";
 import { getMediaUrl } from "@/lib/media";
 import type { PublicGalleryCategory } from "@/lib/gallery";
 
@@ -84,72 +85,26 @@ export function PlacementSupportSection({
   );
 }
 
-/**
- * Repeat the photos until one set is long enough to fill a wide screen. Each
- * photo carries its own right margin (not a flex gap), so the two halves of the
- * track are exactly equal and the -50% loop has no jump.
- */
-const MIN_SET_SIZE = 8;
-/** Seconds each photo takes to scroll past; sets the loop's speed. */
-const SECONDS_PER_PHOTO = 5;
-
 function PlacementMarquee({
   items,
 }: {
   items: NonNullable<PlacementData>["items"];
 }) {
-  const set = Array.from(
-    { length: Math.ceil(MIN_SET_SIZE / items.length) },
-    () => items,
-  ).flat();
-
-  // Only the first appearance of each photo is announced to screen readers;
-  // repeats are decorative. The loop's second half is also dropped entirely
-  // under reduced motion (see .gallery-marquee in globals.css).
-  const photo = (
-    item: (typeof items)[number],
-    key: string,
-    { repeat, loopCopy }: { repeat: boolean; loopCopy: boolean },
-  ) => (
-    <div
-      key={key}
-      {...(loopCopy ? { "data-marquee-copy": "" } : {})}
-      {...(repeat ? { "aria-hidden": true } : {})}
-      className="relative mr-4 aspect-square w-[calc((100vw-2rem)/2.5)] shrink-0 sm:mr-6 lg:mr-8 overflow-hidden rounded-xl bg-muted shadow-sm sm:w-[calc(100vw/3.5)] lg:w-[calc(100vw/4.5)]"
-    >
-      <Image
-        src={getMediaUrl(item.url)}
-        alt={repeat ? "" : (item.captionEn ?? "Placement & Support image")}
-        fill
-        className="object-cover"
-        sizes="(max-width: 640px) 40vw, (max-width: 1024px) 29vw, 23vw"
-      />
-    </div>
-  );
-
   return (
-    <div
+    <Marquee
       data-testid="placement-marquee"
-      className="gallery-marquee-viewport w-full overflow-hidden"
-    >
-      <div
-        className="gallery-marquee flex w-max"
-        style={
-          {
-            "--marquee-duration": `${set.length * SECONDS_PER_PHOTO}s`,
-          } as React.CSSProperties
-        }
-      >
-        {set.map((item, i) =>
-          photo(item, `a-${i}-${item.id}`, {
-            repeat: i >= items.length,
-            loopCopy: false,
-          }),
-        )}
-        {set.map((item, i) =>
-          photo(item, `b-${i}-${item.id}`, { repeat: true, loopCopy: true }),
-        )}
-      </div>
-    </div>
+      items={items}
+      itemKey={(item) => item.id}
+      itemClassName="relative mr-4 aspect-square w-[calc((100vw-2rem)/2.5)] overflow-hidden rounded-xl bg-muted shadow-sm sm:mr-6 sm:w-[calc(100vw/3.5)] lg:mr-8 lg:w-[calc(100vw/4.5)]"
+      renderItem={(item, repeat) => (
+        <Image
+          src={getMediaUrl(item.url)}
+          alt={repeat ? "" : (item.captionEn ?? "Placement & Support image")}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 40vw, (max-width: 1024px) 29vw, 23vw"
+        />
+      )}
+    />
   );
 }

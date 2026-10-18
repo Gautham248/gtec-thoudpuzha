@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { CalendarDays, ArrowRight, Sparkles, MapPin, Clock } from "lucide-react";
+import {
+  CalendarDays,
+  ArrowRight,
+  Sparkles,
+  MapPin,
+  Clock,
+} from "lucide-react";
 import type { PublicNewsEvent } from "@/lib/news-events";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 
@@ -28,20 +34,27 @@ function parseEventDate(date: Date | string | null | undefined) {
 
 export function EventsSection({ events, locale }: EventsSectionProps) {
   return (
-    <section aria-labelledby="events-heading" className="relative py-16 sm:py-20 lg:py-24 bg-muted/20 border-b border-border/60">
+    <section
+      aria-labelledby="events-heading"
+      className="relative py-16 sm:py-20 lg:py-24 bg-muted/20 border-b border-border/60"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-10 sm:mb-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-sm font-bold text-primary mb-3">
               <Sparkles className="size-3.5 text-amber-500" />
-              <span>{locale === "ml" ? "ക്യാമ്പസ് ഇവന്റുകൾ" : "Campus Happenings"}</span>
+              <span>
+                {locale === "ml" ? "ക്യാമ്പസ് ഇവന്റുകൾ" : "Campus Happenings"}
+              </span>
             </div>
             <h2
               id="events-heading"
               className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground"
             >
-              {locale === "ml" ? "വരാനിരിക്കുന്ന ഇവന്റുകൾ" : "Upcoming Events & Workshops"}
+              {locale === "ml"
+                ? "വരാനിരിക്കുന്ന ഇവന്റുകൾ"
+                : "Upcoming Events & Workshops"}
             </h2>
             <p className="mt-2 text-sm sm:text-base text-muted-foreground max-w-xl">
               {locale === "ml"
@@ -53,7 +66,9 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
             href="/news"
             className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 group self-start sm:self-auto transition-colors"
           >
-            <span>{locale === "ml" ? "എല്ലാ ഇവന്റുകളും കാണുക" : "View All Events"}</span>
+            <span>
+              {locale === "ml" ? "എല്ലാ ഇവന്റുകളും കാണുക" : "View All Events"}
+            </span>
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
@@ -62,7 +77,9 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
         {events.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => {
-              const dateInfo = parseEventDate(event.eventDate || event.publishedAt);
+              const dateInfo = parseEventDate(
+                event.eventDate || event.publishedAt,
+              );
               const title = pickLocalizedText(
                 { en: event.titleEn, ml: event.titleMl },
                 locale,
@@ -99,7 +116,11 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
                       <div className="flex flex-col justify-center">
                         <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                           <Clock className="size-3" />
-                          <span>{locale === "ml" ? "വർക്ക്‌ഷോപ്പ്" : "Upcoming Workshop"}</span>
+                          <span>
+                            {locale === "ml"
+                              ? "വർക്ക്‌ഷോപ്പ്"
+                              : "Upcoming Workshop"}
+                          </span>
                         </span>
                         {dateInfo && (
                           <span className="text-xs font-semibold text-muted-foreground mt-0.5">
@@ -124,7 +145,11 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
                   <div className="mt-6 flex items-center justify-between pt-4 border-t border-border/50 text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors">
                     <span className="inline-flex items-center gap-1.5">
                       <MapPin className="size-3.5 text-primary" />
-                      <span>{locale === "ml" ? "തൊടുപുഴ ക്യാമ്പസ്" : "Thodupuzha Campus"}</span>
+                      <span>
+                        {locale === "ml"
+                          ? "തൊടുപുഴ ക്യാമ്പസ്"
+                          : "Thodupuzha Campus"}
+                      </span>
                     </span>
                     <span className="inline-flex items-center gap-1 text-primary">
                       <span>{locale === "ml" ? "വിശദാംശങ്ങൾ" : "Details"}</span>
@@ -140,7 +165,9 @@ export function EventsSection({ events, locale }: EventsSectionProps) {
           <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 p-8 sm:p-10 text-center">
             <CalendarDays className="mx-auto size-10 text-primary/60 mb-3" />
             <h3 className="text-lg font-bold text-foreground">
-              {locale === "ml" ? "പുതിയ ഇവന്റുകൾ ഉടൻ പ്രഖ്യാപിക്കും" : "New Events Coming Soon"}
+              {locale === "ml"
+                ? "പുതിയ ഇവന്റുകൾ ഉടൻ പ്രഖ്യാപിക്കും"
+                : "New Events Coming Soon"}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground max-w-md mx-auto">
               {locale === "ml"

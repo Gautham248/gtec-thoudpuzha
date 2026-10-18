@@ -1,9 +1,9 @@
-
 import { db } from "@/db";
 import type { SiteSettings, WhyChooseUsCard } from "@/db/types";
 import { pickLocalizedText, type Locale } from "@/lib/i18n-utils";
 import { getMediaUrl } from "@/lib/media";
 import { logger } from "@/lib/logger";
+import { siteConfig } from "@/lib/site";
 
 export type SiteSettingsWithCards = SiteSettings & {
   whyChooseUsCards: WhyChooseUsCard[];
@@ -27,18 +27,16 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   aboutBodyMl:
     "ജി-ടെക് എഡ്യൂക്കേഷൻ തൊടുപുഴ ഒരു പ്രമുഖ കമ്പ്യൂട്ടർ വിദ്യാഭ്യാസ സ്ഥാപനമാണ്.",
   aboutPhotoUrl: null,
-  address:
-    "G-TEC Education, Near Municipal Office, Thodupuzha, Idukki District, Kerala - 685584",
-  mapEmbedUrl: null,
-  mapsUrl:
-    "https://maps.google.com/?q=G-TEC+Computer+Education,+East+End,+Thodupuzha-Udumbanoor+Rd,+near+De+Paul+Public+School,+Thodupuzha,+Kerala+685585",
+  address: siteConfig.locationAddress,
+  mapEmbedUrl: siteConfig.mapEmbedUrl,
+  mapsUrl: siteConfig.mapsUrl,
   whatsappNumber: "919744221113",
   facebookUrl: "https://www.facebook.com/gtectdpa",
   instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
   youtubeUrl: null,
   linkedinUrl: null,
   googleReviewsUrl:
-    "https://www.google.com/maps/search/?api=1&query=G-TEC+Computer+Education+Thodupuzha+reviews",
+    "https://www.google.com/maps/search/?api=1&query=G-TEC+EDUCATION+Thodupuzha+reviews",
   whyChooseUsCards: [],
 };
 
@@ -65,7 +63,6 @@ export async function getSiteSettings(): Promise<SiteSettingsWithCards> {
     return DEFAULT_SITE_SETTINGS;
   }
 }
-
 
 export function getAtAGlanceStats(settings: SiteSettingsWithCards) {
   return [
@@ -99,7 +96,12 @@ export function getLocalizedAbout(
   locale: Locale,
 ) {
   return {
-    body: pickLocalizedText({ en: settings.aboutBodyEn, ml: settings.aboutBodyMl }, locale),
-    photoUrl: settings.aboutPhotoUrl ? getMediaUrl(settings.aboutPhotoUrl) : null,
+    body: pickLocalizedText(
+      { en: settings.aboutBodyEn, ml: settings.aboutBodyMl },
+      locale,
+    ),
+    photoUrl: settings.aboutPhotoUrl
+      ? getMediaUrl(settings.aboutPhotoUrl)
+      : null,
   };
 }

@@ -52,6 +52,7 @@ const socialIcons: Record<
 export function ContactSection({ settings }: ContactSectionProps) {
   const t = useTranslations("contact");
   const { openEnquiry } = useEnquiryModal();
+  const mapEmbedUrl = settings.mapEmbedUrl || siteConfig.mapEmbedUrl;
 
   const socialLinks = [
     { url: settings.facebookUrl, key: "facebook" },
@@ -70,21 +71,21 @@ export function ContactSection({ settings }: ContactSectionProps) {
         </Reveal>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-          {settings.mapEmbedUrl && (
+          {mapEmbedUrl && (
             <Reveal
               x={-30}
               y={0}
               className="overflow-hidden rounded-2xl border shadow-md"
             >
               <iframe
-                title="G-TEC Thodupuzha location"
-                src={settings.mapEmbedUrl}
+                title="G-TEC EDUCATION Thodupuzha location"
+                src={mapEmbedUrl}
                 width="100%"
                 height="360"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                referrerPolicy="strict-origin-when-cross-origin"
                 data-testid="google-map-iframe"
               />
             </Reveal>

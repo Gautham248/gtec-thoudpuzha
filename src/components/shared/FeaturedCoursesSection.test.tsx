@@ -18,7 +18,12 @@ describe("FeaturedCoursesSection", () => {
       careerOutcomesMl: null,
       coverImageUrl: null,
       featured: true,
-      category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
+      category: {
+        id: "cat-1",
+        nameEn: "IT & Software",
+        nameMl: "ഐടി",
+        sortOrder: 0,
+      },
       contentBlocks: null,
     },
     {
@@ -34,14 +39,19 @@ describe("FeaturedCoursesSection", () => {
       careerOutcomesMl: null,
       coverImageUrl: null,
       featured: true,
-      category: { id: "cat-1", nameEn: "IT & Software", nameMl: "ഐടി", sortOrder: 0 },
+      category: {
+        id: "cat-1",
+        nameEn: "IT & Software",
+        nameMl: "ഐടി",
+        sortOrder: 0,
+      },
       contentBlocks: null,
     },
   ];
 
   test("renders featured course titles, duration, and CTA buttons", () => {
     const html = renderToString(
-      <FeaturedCoursesSection courses={mockCourses} locale="en" />
+      <FeaturedCoursesSection courses={mockCourses} locale="en" />,
     );
 
     expect(html).toContain("Featured Courses &amp; Certifications");
@@ -50,16 +60,20 @@ describe("FeaturedCoursesSection", () => {
     expect(html).toContain("6 Months");
     expect(html).toContain("Enroll Now");
     expect(html).toContain("View All Courses");
-    expect(html).toContain("href=\"/courses/full-stack-web-development#enquiry\"");
+    expect(html).toContain(
+      'href="/courses/full-stack-web-development#enquiry"',
+    );
   });
 
   test("catalog banner: copy and course link on the left, image on the right", () => {
     const html = renderToString(
-      <FeaturedCoursesSection courses={mockCourses} locale="en" />
+      <FeaturedCoursesSection courses={mockCourses} locale="en" />,
     );
     const banner = html.slice(html.indexOf('data-testid="catalog-cta"'));
 
-    expect(banner).toContain("Looking for another specialization or custom diploma?");
+    expect(banner).toContain(
+      "Looking for another specialization or custom diploma?",
+    );
     expect(banner).toContain("100% placement support");
     expect(banner).toContain('href="/courses"');
     expect(banner).toContain("Explore All Courses");
@@ -72,7 +86,7 @@ describe("FeaturedCoursesSection", () => {
 
   test("renders nothing when courses array is empty", () => {
     const html = renderToString(
-      <FeaturedCoursesSection courses={[]} locale="en" />
+      <FeaturedCoursesSection courses={[]} locale="en" />,
     );
     expect(html).toBe("");
   });

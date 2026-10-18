@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "GTEC Thodupuzha — Education Centre",
     short_name: "GTEC Thodupuzha",
     description:
-      "G-TEC Education Centre, Thodupuzha — IT, Multimedia, Accounting & Language courses",
+      "G-TEC EDUCATION, Thodupuzha — IT, Multimedia, Accounting & Language courses",
     start_url: "/en",
     display: "standalone",
     background_color: "#ffffff",

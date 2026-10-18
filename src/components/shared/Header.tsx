@@ -52,11 +52,7 @@ const navItems: {
 
 const emptySubscribe = () => () => {};
 
-export function Header({
-  courses,
-}: {
-  courses?: NavCourse[];
-}) {
+export function Header({ courses }: { courses?: NavCourse[] }) {
   const locale = useLocale();
   const t = useTranslations("nav");
   const pathname = usePathname();
@@ -126,7 +122,9 @@ export function Header({
     <div
       className={cn(
         "fixed inset-0 z-[100] flex justify-end transition-all duration-300",
-        drawerOpen ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"
+        drawerOpen
+          ? "visible opacity-100"
+          : "invisible opacity-0 pointer-events-none",
       )}
       role="dialog"
       aria-modal={drawerOpen}
@@ -136,7 +134,9 @@ export function Header({
       <div
         className={cn(
           "fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-300 ease-in-out",
-          drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          drawerOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none",
         )}
         onClick={() => setDrawerOpen(false)}
         aria-hidden="true"
@@ -147,7 +147,7 @@ export function Header({
         id="slideout-sidebar"
         className={cn(
           "relative z-10 h-[100dvh] w-[85vw] max-w-[380px] sm:w-[360px] bg-white text-slate-800 border-l border-slate-200 shadow-2xl flex flex-col justify-between overflow-y-auto transition-transform duration-300 ease-out",
-          drawerOpen ? "translate-x-0" : "translate-x-full"
+          drawerOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
         <div className="flex flex-col p-5 sm:p-6 space-y-5">
@@ -191,7 +191,9 @@ export function Header({
                   <div className="flex items-center gap-3">
                     <UserButton
                       appearance={{
-                        elements: { avatarBox: "size-9 ring-2 ring-primary/40" },
+                        elements: {
+                          avatarBox: "size-9 ring-2 ring-primary/40",
+                        },
                       }}
                     >
                       <UserButton.MenuItems>
@@ -229,8 +231,12 @@ export function Header({
                     <User className="size-3.5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">Student & Portal Access</p>
-                    <p className="text-sm text-slate-500">Sign in to access resources and job matches</p>
+                    <p className="font-semibold text-slate-900 text-sm">
+                      Student & Portal Access
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Sign in to access resources and job matches
+                    </p>
                   </div>
                 </div>
 
@@ -262,7 +268,7 @@ export function Header({
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                   isLinkActive("/")
                     ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
                 onClick={() => setDrawerOpen(false)}
               >
@@ -276,7 +282,7 @@ export function Header({
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                   isLinkActive("/about")
                     ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
                 onClick={() => setDrawerOpen(false)}
               >
@@ -291,7 +297,7 @@ export function Header({
                     "flex items-center justify-between rounded-xl px-3 py-2 transition-all",
                     pathname.startsWith("/courses")
                       ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                   )}
                 >
                   <Link
@@ -312,7 +318,7 @@ export function Header({
                       <ChevronDown
                         className={cn(
                           "size-4 transition-transform duration-200",
-                          coursesOpenMobile ? "rotate-180" : ""
+                          coursesOpenMobile ? "rotate-180" : "",
                         )}
                       />
                     </button>
@@ -362,7 +368,7 @@ export function Header({
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                   isLinkActive("/placement")
                     ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
                 onClick={() => setDrawerOpen(false)}
               >
@@ -376,7 +382,7 @@ export function Header({
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                   isLinkActive("/gallery")
                     ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
                 onClick={() => setDrawerOpen(false)}
               >
@@ -390,7 +396,7 @@ export function Header({
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                   isLinkActive("/contact")
                     ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                 )}
                 onClick={() => setDrawerOpen(false)}
               >
@@ -428,8 +434,12 @@ export function Header({
                 <MessageCircle className="size-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-slate-900">WhatsApp Admission Desk</p>
-                <p className="text-sm text-emerald-700 truncate">Chat directly with counsellor</p>
+                <p className="font-bold text-sm text-slate-900">
+                  WhatsApp Admission Desk
+                </p>
+                <p className="text-sm text-emerald-700 truncate">
+                  Chat directly with counsellor
+                </p>
               </div>
               <ChevronRight className="size-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
             </a>
@@ -444,8 +454,12 @@ export function Header({
                 <Phone className="size-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-slate-900">{t("callNow")}</p>
-                <p className="text-sm text-slate-500 truncate">{siteConfig.phoneNumber}</p>
+                <p className="font-bold text-sm text-slate-900">
+                  {t("callNow")}
+                </p>
+                <p className="text-sm text-slate-500 truncate">
+                  {siteConfig.phoneNumber}
+                </p>
               </div>
               <ChevronRight className="size-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
             </a>
@@ -473,7 +487,7 @@ export function Header({
             <span>ISO 9001:2015 Certified Centre</span>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            G-TEC Education Centre, Thodupuzha
+            G-TEC EDUCATION, Thodupuzha
           </p>
         </div>
       </aside>
@@ -487,7 +501,7 @@ export function Header({
           "sticky top-0 z-40 w-full transition-all duration-300",
           scrolled
             ? "bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-md supports-[backdrop-filter]:bg-white/90"
-            : "bg-white border-b border-slate-200/80 shadow-xs"
+            : "bg-white border-b border-slate-200/80 shadow-xs",
         )}
       >
         <div className="mx-auto flex h-20 sm:h-22 max-w-7xl items-center justify-between px-3.5 sm:px-6 lg:px-8">
@@ -525,7 +539,7 @@ export function Header({
                     "relative text-sm font-medium px-2.5 xl:px-3.5 py-1.5 rounded-full transition-all duration-200 inline-flex items-center justify-center whitespace-nowrap",
                     active
                       ? "bg-white text-primary font-semibold shadow-xs border border-slate-200/80"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
                   )}
                 >
                   {t(item.labelKey)}
@@ -547,7 +561,7 @@ export function Header({
                   "relative text-sm font-medium px-2.5 xl:px-3.5 py-1.5 rounded-full transition-all duration-200 inline-flex items-center justify-center whitespace-nowrap",
                   pathname.startsWith("/courses")
                     ? "bg-white text-primary font-semibold shadow-xs border border-slate-200/80"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
                 )}
               >
                 {t("courses")}
@@ -565,7 +579,7 @@ export function Header({
                     "relative text-sm font-medium px-2.5 xl:px-3.5 py-1.5 rounded-full transition-all duration-200 inline-flex items-center justify-center whitespace-nowrap",
                     active
                       ? "bg-white text-primary font-semibold shadow-xs border border-slate-200/80"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
                   )}
                 >
                   {t(item.labelKey)}
@@ -620,6 +634,3 @@ export function Header({
     </>
   );
 }
-
-
-

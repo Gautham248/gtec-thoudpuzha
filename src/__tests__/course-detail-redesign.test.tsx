@@ -215,7 +215,7 @@ describe("Course Detail UI Components", () => {
   test("WhyChooseGtec renders 6 value cards", () => {
     const features = getWhyChooseGtecFeatures("en");
     render(<WhyChooseGtec features={features} locale="en" />);
-    expect(screen.getByText("Why Choose G-TEC Education?")).toBeDefined();
+    expect(screen.getByText("Why Choose G-TEC EDUCATION?")).toBeDefined();
     expect(screen.getByText("Industry-Aligned Curriculum")).toBeDefined();
   });
 

@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapPin, Navigation, ExternalLink, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  MapPin,
+  Navigation,
+  ExternalLink,
+  RefreshCw,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { siteConfig } from "@/lib/site";
 
 interface LeafletContactMapProps {
@@ -16,17 +23,30 @@ interface LeafletContactMapProps {
 declare global {
   interface Window {
     L: {
-      map: (element: HTMLElement, options?: Record<string, unknown>) => {
+      map: (
+        element: HTMLElement,
+        options?: Record<string, unknown>,
+      ) => {
         remove: () => void;
         zoomIn: () => void;
         zoomOut: () => void;
-        setView: (center: [number, number], zoom?: number, options?: { animate?: boolean }) => void;
+        setView: (
+          center: [number, number],
+          zoom?: number,
+          options?: { animate?: boolean },
+        ) => void;
       };
-      tileLayer: (url: string, options?: Record<string, unknown>) => {
+      tileLayer: (
+        url: string,
+        options?: Record<string, unknown>,
+      ) => {
         addTo: (map: unknown) => void;
       };
       divIcon: (options?: Record<string, unknown>) => unknown;
-      marker: (latlng: [number, number], options?: Record<string, unknown>) => {
+      marker: (
+        latlng: [number, number],
+        options?: Record<string, unknown>,
+      ) => {
         addTo: (map: unknown) => {
           bindPopup: (content: HTMLElement | string) => {
             openPopup: () => void;
@@ -40,8 +60,8 @@ declare global {
 export default function LeafletContactMap({
   lat = 9.8965,
   lng = 76.7185,
-  title = "G-TEC Computer Education",
-  address = "Near Municipal Office, Temple Bypass Road, Thodupuzha, Kerala - 685584",
+  title = "G-TEC EDUCATION",
+  address = "G-TEC EDUCATION, Near DePaul Public School, East End, Thodupuzha",
   mapsUrl,
   zoom = 16,
 }: LeafletContactMapProps) {
@@ -50,7 +70,11 @@ export default function LeafletContactMap({
     remove: () => void;
     zoomIn: () => void;
     zoomOut: () => void;
-    setView: (center: [number, number], zoom?: number, options?: { animate?: boolean }) => void;
+    setView: (
+      center: [number, number],
+      zoom?: number,
+      options?: { animate?: boolean },
+    ) => void;
   } | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -134,7 +158,8 @@ export default function LeafletContactMap({
 
         // OpenStreetMap base tile layer
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
           maxZoom: 19,
         }).addTo(map);
 
@@ -219,15 +244,23 @@ export default function LeafletContactMap({
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-slate-100 shadow-md group">
       {/* Map Container Element */}
-      <div ref={mapContainerRef} className="size-full z-0" data-testid="leaflet-map-container" />
+      <div
+        ref={mapContainerRef}
+        className="size-full z-0"
+        data-testid="leaflet-map-container"
+      />
 
       {/* Fallback Skeleton while loading */}
       {!mapReady && (
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-6 text-center text-muted-foreground animate-pulse">
           <div className="flex flex-col items-center gap-2">
             <MapPin className="size-8 text-primary/60" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Loading Campus Map...</p>
-            <p className="text-xs text-slate-500">OpenStreetMap Interactive View</p>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Loading Campus Map...
+            </p>
+            <p className="text-xs text-slate-500">
+              OpenStreetMap Interactive View
+            </p>
           </div>
         </div>
       )}
@@ -238,7 +271,9 @@ export default function LeafletContactMap({
           {/* Top Left: Location Badge */}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-xl bg-white/95 backdrop-blur-md px-3 py-1.5 shadow-md border border-slate-200/80 text-xs font-bold text-slate-800">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="truncate max-w-[180px] sm:max-w-[220px]">Live Campus Map</span>
+            <span className="truncate max-w-[180px] sm:max-w-[220px]">
+              Live Campus Map
+            </span>
           </div>
 
           {/* Top Right: Map Controls Stack */}
@@ -279,8 +314,12 @@ export default function LeafletContactMap({
                 <MapPin className="size-4" />
               </div>
               <div className="truncate">
-                <p className="text-xs font-bold text-slate-900 truncate">{title}</p>
-                <p className="text-[11px] text-slate-500 truncate">Thodupuzha, Idukki District</p>
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {title}
+                </p>
+                <p className="text-[11px] text-slate-500 truncate">
+                  Thodupuzha, Idukki District
+                </p>
               </div>
             </div>
 

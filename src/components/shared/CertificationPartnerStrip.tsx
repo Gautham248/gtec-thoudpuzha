@@ -30,10 +30,11 @@ export async function CertificationPartnerStrip({
             {heading}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground max-w-xl">
-            Globally recognized curriculum backed by multinational technology giants and certification bodies.
+            Globally recognized curriculum backed by multinational technology
+            giants and certification bodies.
           </p>
         </div>
-         
+
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 lg:gap-6">
           {partners.map((partner) => {
             const img = (
@@ -74,4 +75,3 @@ export async function CertificationPartnerStrip({
     </section>
   );
 }
-

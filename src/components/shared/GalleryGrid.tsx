@@ -22,9 +22,7 @@ function getVimeoEmbedUrl(url: string): string | null {
   const match = url.match(
     /(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/,
   );
-  return match
-    ? `https://player.vimeo.com/video/${match[1]}`
-    : null;
+  return match ? `https://player.vimeo.com/video/${match[1]}` : null;
 }
 
 function getEmbedUrl(url: string): string | null {
@@ -72,7 +70,12 @@ function Lightbox({
   locale?: "en" | "ml";
 }) {
   const item = items[currentIndex];
-  const itemCaption = item ? pickLocalizedText({ en: item.captionEn ?? "", ml: item.captionMl }, locale) : "";
+  const itemCaption = item
+    ? pickLocalizedText(
+        { en: item.captionEn ?? "", ml: item.captionMl },
+        locale,
+      )
+    : "";
   const containerRef = useFocusTrap(true);
 
   useEffect(() => {
@@ -248,9 +251,7 @@ export function GalleryGrid({
   }, []);
 
   const goToPrev = useCallback(() => {
-    setLightboxIndex((prev) =>
-      prev !== null && prev > 0 ? prev - 1 : prev,
-    );
+    setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev));
   }, []);
 
   const goToNext = useCallback(() => {
@@ -262,7 +263,9 @@ export function GalleryGrid({
   if (categories.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-12 text-center">
-        <p className="text-lg text-muted-foreground">No gallery categories yet.</p>
+        <p className="text-lg text-muted-foreground">
+          No gallery categories yet.
+        </p>
       </div>
     );
   }
@@ -299,63 +302,66 @@ export function GalleryGrid({
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {activeItems.map((item, index) => {
-            const itemCaption = pickLocalizedText({ en: item.captionEn ?? "", ml: item.captionMl }, locale);
+            const itemCaption = pickLocalizedText(
+              { en: item.captionEn ?? "", ml: item.captionMl },
+              locale,
+            );
             return (
-            <button
-              key={item.id}
-              onClick={() =>
-                item.mediaType === "IMAGE"
-                  ? openLightbox(index)
-                  : (() => {
-                      const embedUrl = getEmbedUrl(item.url);
-                      if (embedUrl) {
-                        openLightbox(index);
-                      } else {
-                        window.open(item.url, "_blank", "noopener");
-                      }
-                    })()
-              }
-              className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
-              aria-label={
-                item.mediaType === "VIDEO"
-                  ? `Play video: ${itemCaption || "Video"}`
-                  : `View image: ${itemCaption || "Gallery image"}`
-              }
-            >
-              <Image
-                src={
-                  item.mediaType === "VIDEO"
-                    ? (getVideoThumbnail(item.url) ?? getMediaUrl(item.url))
-                    : getMediaUrl(item.url)
+              <button
+                key={item.id}
+                onClick={() =>
+                  item.mediaType === "IMAGE"
+                    ? openLightbox(index)
+                    : (() => {
+                        const embedUrl = getEmbedUrl(item.url);
+                        if (embedUrl) {
+                          openLightbox(index);
+                        } else {
+                          window.open(item.url, "_blank", "noopener");
+                        }
+                      })()
                 }
-                alt={itemCaption || "Gallery image"}
-                fill
-                unoptimized
-                className="object-cover transition-transform duration-300 group-hover:scale-110"
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-              />
-              {item.mediaType === "VIDEO" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="ml-0.5 h-6 w-6 text-foreground"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
+                aria-label={
+                  item.mediaType === "VIDEO"
+                    ? `Play video: ${itemCaption || "Video"}`
+                    : `View image: ${itemCaption || "Gallery image"}`
+                }
+              >
+                <Image
+                  src={
+                    item.mediaType === "VIDEO"
+                      ? (getVideoThumbnail(item.url) ?? getMediaUrl(item.url))
+                      : getMediaUrl(item.url)
+                  }
+                  alt={itemCaption || "Gallery image"}
+                  fill
+                  unoptimized
+                  className="object-cover transition-transform duration-300 group-hover:scale-110"
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                />
+                {item.mediaType === "VIDEO" && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="ml-0.5 h-6 w-6 text-foreground"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-              )}
-              {itemCaption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                  <p className="truncate text-sm font-medium text-white">
-                    {itemCaption}
-                  </p>
-                </div>
-              )}
-            </button>
+                )}
+                {itemCaption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <p className="truncate text-sm font-medium text-white">
+                      {itemCaption}
+                    </p>
+                  </div>
+                )}
+              </button>
             );
           })}
         </div>

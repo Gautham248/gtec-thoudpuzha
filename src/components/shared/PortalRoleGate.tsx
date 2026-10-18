@@ -56,9 +56,7 @@ export async function PortalRoleGate({
       redirect("/account-setup-incomplete");
     }
 
-    const roleNames = allowedRoles
-      .map((r) => ROLE_LABELS[r])
-      .join(" / ");
+    const roleNames = allowedRoles.map((r) => ROLE_LABELS[r]).join(" / ");
     return <NotYourAccountType allowedRoleNames={roleNames} />;
   }
 

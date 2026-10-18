@@ -146,10 +146,11 @@ describe("HomeMainVideo", () => {
     return videos()[0];
   };
 
-  test("starts muted with controls when scrolled into view, pauses when scrolled away", () => {
+  test("plays muted and looping, with no controls overlay, while on screen", () => {
     const video = renderMain();
     expect(video.muted).toBe(true);
-    expect(video).toHaveAttribute("controls");
+    expect(video.loop).toBe(true);
+    expect(video).not.toHaveAttribute("controls");
     expect(play).not.toHaveBeenCalled();
 
     setVisible(video, true);

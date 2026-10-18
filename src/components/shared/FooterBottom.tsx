@@ -18,7 +18,7 @@ export function FooterBottom({
   instagramUrl = "https://www.instagram.com/gtec_thodupuzha/",
   youtubeUrl = "https://www.youtube.com/@gtecthodupuzha",
   whatsappUrl = "https://wa.me/919744221113",
-  googleReviewsUrl = "https://www.google.com/maps/search/?api=1&query=G-TEC+Computer+Education+Thodupuzha+reviews",
+  googleReviewsUrl = "https://www.google.com/maps/search/?api=1&query=G-TEC+EDUCATION+Thodupuzha+reviews",
   centreName = "THODUPUZHA",
 }: FooterBottomProps) {
   const effectiveFacebook = facebookUrl ?? null;
@@ -58,7 +58,7 @@ export function FooterBottom({
 
           {/* Center: Official Portal Note */}
           <div className="text-slate-400 text-xs hidden md:block">
-            <p>Official Digital Portal for G-TEC Education Centre, Thodupuzha</p>
+            <p>Official Digital Portal for G-TEC EDUCATION, Thodupuzha</p>
           </div>
 
           {/* Right: Circular Social Media Icons */}
@@ -180,7 +180,7 @@ export function FooterBottom({
 
         {/* Mobile notice */}
         <div className="mt-3 text-slate-400 text-xs text-center md:hidden">
-          <p>Official Digital Portal for G-TEC Education Centre, Thodupuzha</p>
+          <p>Official Digital Portal for G-TEC EDUCATION, Thodupuzha</p>
         </div>
       </div>
     </div>

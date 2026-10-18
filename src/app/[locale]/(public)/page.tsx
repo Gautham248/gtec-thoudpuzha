@@ -10,16 +10,15 @@ import { FeaturedCoursesSection } from "@/components/shared/FeaturedCoursesSecti
 import { CertificationPartnerStrip } from "@/components/shared/CertificationPartnerStrip";
 import { LegacyStatsSection } from "@/components/shared/LegacyStatsSection";
 import { AboutSection } from "@/components/shared/AboutSection";
-import { PlacementSupportSection } from "@/components/shared/PlacementSupportSection";
 import { PlacedStudentsSection } from "@/components/shared/PlacedStudentsSection";
 import { NewsTeaserSection } from "@/components/shared/NewsTeaserSection";
+import { DirectorMessage } from "@/components/shared/DirectorMessage";
 import { MotionProvider, RevealNoScript } from "@/components/motion/Reveal";
 import type { Locale } from "@/lib/site-settings";
 import {
   getCachedSiteSettings,
   getCachedPublishedCourses,
   getCachedHomepageTeaser,
-  getCachedPlacementGalleryData,
   getCachedPlacedStudentsPosters,
   getCachedCertificationPartners,
 } from "@/lib/data-cache";
@@ -42,29 +41,22 @@ export default async function HomePage({ params }: HomePageProps) {
   const { locale: localeStr } = await params;
   const locale = localeStr as Locale;
 
-  const [
-    settings,
-    courses,
-    teaser,
-    placementData,
-    placedPosters,
-    certPartners,
-  ] = await Promise.all([
-    getCachedSiteSettings(),
-    getCachedPublishedCourses(),
-    getCachedHomepageTeaser(),
-    getCachedPlacementGalleryData(),
-    getCachedPlacedStudentsPosters(),
-    getCachedCertificationPartners(),
-  ]);
+  const [settings, courses, teaser, placedPosters, certPartners] =
+    await Promise.all([
+      getCachedSiteSettings(),
+      getCachedPublishedCourses(),
+      getCachedHomepageTeaser(),
+      getCachedPlacedStudentsPosters(),
+      getCachedCertificationPartners(),
+    ]);
 
-  const [heroT, videoT, aboutT, placedT, placementT, newsT, certT] =
+  const [heroT, videoT, aboutT, aboutPageT, placedT, newsT, certT] =
     await Promise.all([
       getTranslations({ locale, namespace: "hero" }),
       getTranslations({ locale, namespace: "homeVideo" }),
       getTranslations({ locale, namespace: "about" }),
+      getTranslations({ locale, namespace: "aboutPage" }),
       getTranslations({ locale, namespace: "placedStudents" }),
-      getTranslations({ locale, namespace: "placementSupport" }),
       getTranslations({ locale, namespace: "newsTeaser" }),
       getTranslations({ locale, namespace: "certPartners" }),
     ]);
@@ -127,6 +119,16 @@ export default async function HomePage({ params }: HomePageProps) {
           heading={aboutT("heading")}
         />
 
+        {/* 7a. Director's message */}
+        <DirectorMessage
+          t={{
+            eyebrow: aboutPageT("directorEyebrow"),
+            quote: aboutPageT("directorQuote"),
+            name: aboutPageT("directorName"),
+            role: aboutPageT("directorRole"),
+          }}
+        />
+
         {/* 7b. Placed students posters (gallery category "placed-students") */}
         <PlacedStudentsSection
           data={placedPosters}
@@ -137,17 +139,6 @@ export default async function HomePage({ params }: HomePageProps) {
             subhead: placedT("subhead"),
             viewAll: placedT("viewAll"),
           }}
-        />
-
-        {/* 8. Placement Support & Gallery Data */}
-        <PlacementSupportSection
-          data={placementData}
-          heading={placementT("heading")}
-          viewFullGallery={placementT("viewFullGallery")}
-          ctaHeading={placementT("ctaHeading")}
-          ctaText={placementT("ctaText")}
-          viewVacancies={placementT("viewVacancies")}
-          hiringCta={placementT("hiringCta")}
         />
 
         {/* 9. News & Events Teaser */}

@@ -79,7 +79,7 @@ export function parseStatValue(val: string): ParsedStat {
 function formatNumber(
   current: number,
   hasCommas: boolean,
-  decimalPlaces: number
+  decimalPlaces: number,
 ): string {
   const rounded =
     decimalPlaces > 0
@@ -139,7 +139,7 @@ export function AnimatedCounter({
         const formatted = formatNumber(
           currentNum,
           parsed.hasCommas,
-          parsed.decimalPlaces
+          parsed.decimalPlaces,
         );
         setDisplayValue(`${parsed.prefix}${formatted}${parsed.suffix}`);
 
@@ -152,7 +152,11 @@ export function AnimatedCounter({
       };
 
       // Start from 0 immediately on viewport entrance
-      const initialFormatted = formatNumber(0, parsed.hasCommas, parsed.decimalPlaces);
+      const initialFormatted = formatNumber(
+        0,
+        parsed.hasCommas,
+        parsed.decimalPlaces,
+      );
       setDisplayValue(`${parsed.prefix}${initialFormatted}${parsed.suffix}`);
 
       animationFrameId = requestAnimationFrame(updateCounter);
@@ -172,7 +176,7 @@ export function AnimatedCounter({
             }
           });
         },
-        { threshold: 0.15 }
+        { threshold: 0.15 },
       );
       observer.observe(targetElement);
     } else {

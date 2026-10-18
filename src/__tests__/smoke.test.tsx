@@ -20,6 +20,7 @@ async function renderHomePage(): Promise<string> {
 
 vi.mock("@/lib/gallery", () => ({
   getPlacementGalleryData: vi.fn(() => Promise.resolve(null)),
+  getPlacedStudentsPosters: vi.fn(() => Promise.resolve(null)),
 }));
 
 vi.mock("@/lib/courses", () => ({
