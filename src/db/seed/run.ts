@@ -144,13 +144,13 @@ export async function runSeed(db: SeedDb) {
     affiliations: "100+",
     countries: "23",
     aboutBodyEn:
-      "G-TEC Education Thodupuzha is a premier training centre offering industry-relevant courses in IT, multimedia, accounting, language, and professional development. With a commitment to quality education and student success, we have trained thousands of professionals who now work across India and abroad.\n\nOur ISO 9001:2015 certified processes, experienced faculty, and state-of-the-art facilities ensure that every student receives the best possible learning experience. We combine theoretical knowledge with practical, hands-on training to prepare students for real-world challenges.\n\nLocated in the heart of Thodupuzha, our centre serves students from across Idukki district and beyond, providing accessible, affordable, and high-quality education that transforms careers.",
+      "G-TEC EDUCATION Thodupuzha is a premier training centre offering industry-relevant courses in IT, multimedia, accounting, language, and professional development. With a commitment to quality education and student success, we have trained thousands of professionals who now work across India and abroad.\n\nOur ISO 9001:2015 certified processes, experienced faculty, and state-of-the-art facilities ensure that every student receives the best possible learning experience. We combine theoretical knowledge with practical, hands-on training to prepare students for real-world challenges.\n\nLocated in the heart of Thodupuzha, our centre serves students from across Idukki district and beyond, providing accessible, affordable, and high-quality education that transforms careers.",
     aboutBodyMl:
       "ഐടി, മൾട്ടിമീഡിയ, അക്കൗണ്ടിംഗ്, ഭാഷ, പ്രൊഫഷണൽ ഡെവലപ്മെന്റ് എന്നീ മേഖലകളിൽ വ്യവസായത്തിന് അനുയോജ്യമായ കോഴ്സുകൾ വാഗ്ദാനം ചെയ്യുന്ന ഒരു മുൻനിര പരിശീലന കേന്ദ്രമാണ് ജി-ടെക് എജ്യുക്കേഷൻ തൊടുപുഴ.",
     address:
-      "G-TEC Education, Near Municipal Office, Thodupuzha, Idukki District, Kerala - 685584",
+      "G-TEC EDUCATION, Near DePaul Public School, East End, Thodupuzha",
     mapsUrl:
-      "https://maps.google.com/?q=G-TEC+Computer+Education,+East+End,+Thodupuzha-Udumbanoor+Rd,+near+De+Paul+Public+School,+Thodupuzha,+Kerala+685585",
+      "https://www.google.com/maps?cid=349989328925389439",
     whatsappNumber: "919744221113",
   };
 

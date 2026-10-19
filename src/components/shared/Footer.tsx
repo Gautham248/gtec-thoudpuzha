@@ -34,16 +34,9 @@ export async function Footer({
   }
 
   const liveAddress =
-    settings?.address ??
-    propAddress ??
-    siteConfig.locationAddress ??
-    "Near Municipal Office, Thodupuzha, Idukki District, Kerala – 685584";
+    settings?.address || propAddress || siteConfig.locationAddress;
 
-  const mapsUrl =
-    settings?.mapsUrl ||
-    (liveAddress
-      ? `https://maps.google.com/?q=${encodeURIComponent(liveAddress)}`
-      : siteConfig.mapsUrl);
+  const mapsUrl = settings?.mapsUrl || siteConfig.mapsUrl;
 
   const instagramUrl =
     settings?.instagramUrl !== undefined
@@ -71,7 +64,7 @@ export async function Footer({
       ? settings.googleReviewsUrl
       : siteConfig.googleReviewsUrl;
 
-  const mapEmbedUrl = settings?.mapEmbedUrl ?? null;
+  const mapEmbedUrl = settings?.mapEmbedUrl || siteConfig.mapEmbedUrl;
 
   // Build the dynamic list of Top of Footer quick link cards if explicitly configured
   const topFooterItems: {
@@ -272,8 +265,8 @@ export async function Footer({
             <FooterMap
               mapsUrl={mapsUrl}
               mapEmbedUrl={mapEmbedUrl}
-              address="Near Municipal Office, Thodupuzha, Idukki, Kerala – 685584"
-              title="G-TEC Computer Education"
+              address={liveAddress}
+              title={siteConfig.brandName}
             />
           </div>
         </div>

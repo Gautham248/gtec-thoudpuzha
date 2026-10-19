@@ -129,10 +129,7 @@ export function FooterLinks() {
         title="Popular Courses"
         links={defaultPopularCourses}
       />
-      <FooterLinksColumn
-        title="Student & Portal"
-        links={defaultPortalLinks}
-      />
+      <FooterLinksColumn title="Student & Portal" links={defaultPortalLinks} />
     </>
   );
 }

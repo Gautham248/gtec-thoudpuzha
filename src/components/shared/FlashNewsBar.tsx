@@ -2,7 +2,6 @@ import { getLocale } from "next-intl/server";
 import { getActiveFlashNews } from "@/lib/flash-news";
 import type { PublicFlashNewsItem } from "@/lib/flash-news";
 
-
 type Locale = "en" | "ml";
 
 export async function FlashNewsBar({
@@ -43,10 +42,15 @@ export async function FlashNewsBar({
                 )}
               </span>
             ))}
-            <span aria-hidden="true" className="opacity-40">•</span>
+            <span aria-hidden="true" className="opacity-40">
+              •
+            </span>
             <span aria-hidden="true">
               {items.map((item) => (
-                <span key={`dup-${item.id}`} className="inline-flex items-center gap-1.5 ml-8">
+                <span
+                  key={`dup-${item.id}`}
+                  className="inline-flex items-center gap-1.5 ml-8"
+                >
                   <span className="size-1.5 rounded-full bg-amber-300 shrink-0 inline-block animate-pulse" />
                   {item.link ? (
                     <a
@@ -69,4 +73,3 @@ export async function FlashNewsBar({
     </div>
   );
 }
-

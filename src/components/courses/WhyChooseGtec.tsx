@@ -16,7 +16,7 @@ interface WhyChooseGtecProps {
 
 export function WhyChooseGtec({ features, locale }: WhyChooseGtecProps) {
   const isMl = locale === "ml";
-  const title = isMl ? "എന്തുകൊണ്ട് ജി-ടെക് തൊടുപുഴ?" : "Why Choose G-TEC Education?";
+  const title = isMl ? "എന്തുകൊണ്ട് ജി-ടെക് തൊടുപുഴ?" : "Why Choose G-TEC EDUCATION?";
   const subtitle = isMl
     ? "25+ വർഷത്തെ വിശ്വാസ്യതയും 800+ കേന്ദ്രങ്ങളും അടങ്ങുന്ന ആഗോള ശൃംഖല"
     : "Kerala's trusted premier training institute with 25+ years of excellence, 800+ centres worldwide & 100% placement support";

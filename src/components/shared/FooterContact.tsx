@@ -1,7 +1,14 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Mail, MapPin, ShieldCheck, Sparkles, ExternalLink } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  ShieldCheck,
+  Sparkles,
+  ExternalLink,
+} from "lucide-react";
 import { siteConfig } from "@/lib/site";
 
 interface FooterContactProps {
@@ -15,15 +22,13 @@ interface FooterContactProps {
 export function FooterContact({
   phone = "+91 97442 21113",
   email = "thodupuzha.idk@gteceducation.com",
-  address = "Near Municipal Office, Thodupuzha, Idukki District, Kerala – 685584",
+  address = siteConfig.locationAddress,
   centreName = "THODUPUZHA",
 }: FooterContactProps) {
   const displayPhone = phone || "+91 97442 21113";
   const rawPhone = displayPhone.replace(/[^0-9+]/g, "");
   const displayEmail = email || "thodupuzha.idk@gteceducation.com";
-  const displayAddress =
-    address ||
-    "Near Municipal Office, Thodupuzha, Idukki District, Kerala – 685584";
+  const displayAddress = address || siteConfig.locationAddress;
 
   return (
     <div className="space-y-6 text-left">
@@ -32,7 +37,7 @@ export function FooterContact({
         <Link
           href="/"
           className="inline-flex items-center gap-3.5 group transition-transform duration-200"
-          aria-label="G-TEC Computer Education Thodupuzha"
+          aria-label="G-TEC EDUCATION Thodupuzha"
         >
           <div className="relative h-12 w-16 aspect-[1600/1094] shrink-0 overflow-hidden rounded-lg bg-white/95 p-1 transition-transform duration-300 group-hover:scale-105 shadow-sm">
             <Image
@@ -50,7 +55,7 @@ export function FooterContact({
               </span>
             </div>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-300">
-              Computer Education
+              Education
             </p>
           </div>
         </Link>
@@ -64,9 +69,9 @@ export function FooterContact({
 
       {/* Description */}
       <p className="text-sm leading-relaxed text-slate-300 max-w-sm">
-        G-TEC Computer Education, Thodupuzha is committed to delivering
-        industry-focused training and practical skills that help students build
-        successful careers.
+        G-TEC EDUCATION, Thodupuzha is committed to delivering industry-focused
+        training and practical skills that help students build successful
+        careers.
       </p>
 
       {/* Contact Details with Icons */}

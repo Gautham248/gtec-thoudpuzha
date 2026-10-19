@@ -12,7 +12,6 @@ import {
   Navigation,
   Phone,
   PhoneCall,
-  Quote,
   Users,
 } from "lucide-react";
 import type { WhyCardIcon } from "@/db/types";
@@ -28,6 +27,7 @@ import { getPublishedCourses } from "@/lib/courses";
 import { collectCategories } from "@/lib/course-filters";
 import { getMediaUrl } from "@/lib/media";
 import { siteConfig } from "@/lib/site";
+import { DirectorMessage } from "@/components/shared/DirectorMessage";
 import { Link } from "@/lib/i18n/navigation";
 import { CourseHeroBackdrop } from "@/components/courses/CourseHero";
 import { CertificationPartnerStrip } from "@/components/shared/CertificationPartnerStrip";
@@ -59,7 +59,7 @@ export async function generateMetadata({
     description:
       locale === "ml"
         ? "ജി-ടെക് എഡ്യൂക്കേഷൻ തൊടുപുഴയെക്കുറിച്ച് അറിയുക. 25-ൽ പരം വർഷത്തെ പാരമ്പര്യവും ലോകോത്തര കോഴ്സുകളും."
-        : "Learn more about G-TEC Education Thodupuzha. Over 25+ years of excellence in IT, Multimedia, Accounting, and Spoken English education.",
+        : "Learn more about G-TEC EDUCATION Thodupuzha. Over 25+ years of excellence in IT, Multimedia, Accounting, and Spoken English education.",
   };
 }
 
@@ -74,9 +74,6 @@ const whyIcons: Record<
   GLOBE: Globe,
   HEADPHONES: Headphones,
 };
-
-const FALLBACK_ADDRESS =
-  "G-TEC Education, Temple Bypass Road, Near Private Bus Stand, Thodupuzha, Idukki District, Kerala - 685584.";
 
 // Used when a category has no course with a cover image.
 const PROGRAMME_FALLBACK_IMAGES = [
@@ -110,8 +107,9 @@ export default async function AboutPage({ params }: AboutPageProps) {
     : DEFAULT_ABOUT_PHOTO;
   const stats = getAtAGlanceStats(settings).filter((s) => s.value);
   const whyCards = getLocalizedWhyCards(settings, locale);
-  const address = settings.address || FALLBACK_ADDRESS;
-  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const address = settings.address || siteConfig.locationAddress;
+  const directionsUrl = siteConfig.directionsUrl;
+  const mapEmbedUrl = settings.mapEmbedUrl || siteConfig.mapEmbedUrl;
 
   const programmes = collectCategories(courses)
     .slice(0, 3)
@@ -189,7 +187,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
               heading={isMl ? "ഞങ്ങൾ ആരാണ്" : "Who we are"}
               body={
                 about.body ||
-                "G-TEC Education Centre Thodupuzha delivers industry-certified career coaching, bridging academic skills with high-demand job market requirements."
+                "G-TEC EDUCATION Thodupuzha delivers industry-certified career coaching, bridging academic skills with high-demand job market requirements."
               }
               readMore={isMl ? "കൂടുതൽ വായിക്കുക" : "Read more"}
               showLess={isMl ? "കുറച്ച് കാണിക്കുക" : "Show less"}
@@ -201,48 +199,21 @@ export default async function AboutPage({ params }: AboutPageProps) {
               images={[
                 aboutPhoto,
                 "/images/figma/course-hero-photo.png",
-                "/images/figma/hero-person.png",
+                "/icons/gtec.png",
               ]}
             />
           </Reveal>
         </section>
 
         {/* ── Director's message ── */}
-        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24 lg:px-8">
-          <Reveal y={40}>
-            <figure className="relative overflow-hidden rounded-[32px] bg-linear-to-br from-[#1759CF] to-[#0A2B68] px-6 py-12 text-white shadow-2xl sm:px-12 sm:py-16 lg:rounded-[40px] lg:px-20 lg:py-20">
-              <div
-                className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full border-[28px] border-white/10"
-                aria-hidden="true"
-              />
-              <div
-                className="pointer-events-none absolute -bottom-24 -left-20 size-72 rounded-tr-[1457px] bg-[#2EB700]/20"
-                aria-hidden="true"
-              />
-              <Quote
-                className="relative size-12 fill-white/15 text-white/40 sm:size-16"
-                aria-hidden="true"
-              />
-              <p className="relative mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 sm:text-sm">
-                {aboutPageT("directorEyebrow")}
-              </p>
-              <blockquote className="relative mt-4 max-w-4xl text-xl font-medium leading-[1.45] tracking-[-0.02em] sm:text-2xl lg:text-[28px]">
-                {aboutPageT("directorQuote")}
-              </blockquote>
-              <figcaption className="relative mt-8 flex items-center gap-4">
-                <span className="h-px w-10 bg-[#2EB700]" aria-hidden="true" />
-                <span>
-                  <span className="block text-base font-bold tracking-tight sm:text-lg">
-                    {aboutPageT("directorName")}
-                  </span>
-                  <span className="block text-sm text-white/70">
-                    {aboutPageT("directorRole")}
-                  </span>
-                </span>
-              </figcaption>
-            </figure>
-          </Reveal>
-        </section>
+        <DirectorMessage
+          t={{
+            eyebrow: aboutPageT("directorEyebrow"),
+            quote: aboutPageT("directorQuote"),
+            name: aboutPageT("directorName"),
+            role: aboutPageT("directorRole"),
+          }}
+        />
 
         {/* ── At a glance ── */}
         {stats.length > 0 && (
@@ -491,18 +462,18 @@ export default async function AboutPage({ params }: AboutPageProps) {
             </div>
           </Reveal>
 
-          {settings.mapEmbedUrl && (
+          {mapEmbedUrl && (
             <Reveal className="mt-8">
               <div className="aspect-video w-full overflow-hidden rounded-[24px] border border-[#EAECF0] shadow-sm sm:aspect-21/9">
                 <iframe
-                  src={settings.mapEmbedUrl}
+                  src={mapEmbedUrl}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="G-TEC Education Thodupuzha location map"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  title="G-TEC EDUCATION Thodupuzha location map"
                 />
               </div>
             </Reveal>

@@ -112,8 +112,9 @@ export function AboutPillars({ pillars, images }: AboutPillarsProps) {
                     fill
                     sizes="(max-width: 1024px) 50vw, 340px"
                     className={
-                      src.includes("hero-person")
-                        ? "object-contain object-bottom"
+                      // The logo is shown whole on white; photos fill the tile.
+                      src.includes("/icons/")
+                        ? "bg-white object-contain p-8"
                         : "object-cover"
                     }
                   />

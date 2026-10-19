@@ -97,9 +97,10 @@ export function CoursesDropdown({
   const handleArrowKeys = useCallback(
     (e: React.KeyboardEvent) => {
       if (!open || courses.length === 0) return;
-      const items = containerRef.current?.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]',
-      );
+      const items =
+        containerRef.current?.querySelectorAll<HTMLElement>(
+          '[role="menuitem"]',
+        );
       if (!items || items.length === 0) return;
       const currentIndex = Array.from(items).indexOf(
         document.activeElement as HTMLElement,
@@ -111,7 +112,9 @@ export function CoursesDropdown({
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         const prev =
-          currentIndex < 0 ? 0 : (currentIndex - 1 + items.length) % items.length;
+          currentIndex < 0
+            ? 0
+            : (currentIndex - 1 + items.length) % items.length;
         items[prev]?.focus();
       }
     },
@@ -126,7 +129,7 @@ export function CoursesDropdown({
           "relative text-sm font-medium px-2.5 xl:px-3.5 py-1.5 rounded-full transition-all duration-200 inline-flex items-center justify-center whitespace-nowrap",
           isCoursesActive
             ? "bg-white text-primary font-semibold shadow-xs border border-slate-200/80"
-            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+            : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
         )}
       >
         {label}
@@ -138,7 +141,11 @@ export function CoursesDropdown({
   const hiddenCount = activeGroup.courses.length - visibleCourses.length;
 
   return (
-    <div ref={containerRef} className="relative inline-flex items-center" onKeyDown={handleArrowKeys}>
+    <div
+      ref={containerRef}
+      className="relative inline-flex items-center"
+      onKeyDown={handleArrowKeys}
+    >
       <button
         ref={buttonRef}
         type="button"
@@ -153,7 +160,7 @@ export function CoursesDropdown({
           "relative text-sm font-medium px-2.5 xl:px-3.5 py-1.5 rounded-full transition-all duration-200 inline-flex items-center justify-center gap-1 cursor-pointer select-none whitespace-nowrap",
           isCoursesActive || open
             ? "bg-white text-primary font-semibold shadow-xs border border-slate-200/80"
-            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+            : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
         )}
         aria-expanded={open}
         aria-haspopup="true"
@@ -162,7 +169,7 @@ export function CoursesDropdown({
         <ChevronDown
           className={cn(
             "size-3.5 transition-transform duration-200 shrink-0",
-            open ? "rotate-180 text-primary" : "text-slate-400"
+            open ? "rotate-180 text-primary" : "text-slate-400",
           )}
         />
       </button>
@@ -200,7 +207,7 @@ export function CoursesDropdown({
                             "group relative flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors focus:outline-none",
                             isActive
                               ? "bg-white text-primary shadow-xs ring-1 ring-slate-200/80"
-                              : "text-slate-600 hover:bg-white/70 hover:text-slate-900 focus:bg-white/70"
+                              : "text-slate-600 hover:bg-white/70 hover:text-slate-900 focus:bg-white/70",
                           )}
                         >
                           {isActive && (
@@ -209,13 +216,15 @@ export function CoursesDropdown({
                               className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-primary"
                             />
                           )}
-                          <span className="line-clamp-1">{groupName(group, locale)}</span>
+                          <span className="line-clamp-1">
+                            {groupName(group, locale)}
+                          </span>
                           <span
                             className={cn(
                               "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
                               isActive
                                 ? "bg-primary/10 text-primary"
-                                : "bg-slate-200/70 text-slate-500"
+                                : "bg-slate-200/70 text-slate-500",
                             )}
                           >
                             {group.courses.length}

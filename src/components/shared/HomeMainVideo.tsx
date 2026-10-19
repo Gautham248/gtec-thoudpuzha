@@ -6,9 +6,9 @@ import { imagekitUrl } from "@/lib/home-videos";
 import { useAutoplayInView } from "./useAutoplayInView";
 
 /**
- * The landscape intro video. Starts muted when scrolled into view (visitors
- * can unmute with the controls) and pauses when scrolled away; no autoplay
- * for visitors who prefer reduced motion.
+ * The landscape intro video. Plays muted on loop, with no controls overlay,
+ * while it is on screen and pauses when scrolled away. Visitors who prefer
+ * reduced motion get no autoplay, and controls instead.
  */
 export function HomeMainVideo({
   url,
@@ -24,8 +24,11 @@ export function HomeMainVideo({
   return (
     <video
       ref={ref}
-      controls
+      // No controls overlay while it autoplays; reduced-motion visitors
+      // (no autoplay) still get controls so they can start it themselves.
+      controls={reduceMotion}
       muted
+      loop
       playsInline
       preload="none"
       poster={imagekitUrl(url, "/ik-thumbnail.jpg?tr=so-3")}

@@ -40,7 +40,7 @@ const notoSansMalayalam = Noto_Sans_Malayalam({
 
 const APP_NAME = "GTEC Thodupuzha";
 const APP_DESCRIPTION =
-  "G-TEC Education Centre, Thodupuzha — IT, Multimedia, Accounting & Language courses";
+  "G-TEC EDUCATION, Thodupuzha — IT, Multimedia, Accounting & Language courses";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,

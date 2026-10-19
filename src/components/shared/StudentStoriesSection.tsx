@@ -23,15 +23,22 @@ export function StudentStoriesSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const prevStory = () => {
-    setCurrentIndex((prev) => (prev === 0 ? defaultStories.length - 1 : prev - 1));
+    setCurrentIndex((prev) =>
+      prev === 0 ? defaultStories.length - 1 : prev - 1,
+    );
   };
 
   const nextStory = () => {
-    setCurrentIndex((prev) => (prev === defaultStories.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) =>
+      prev === defaultStories.length - 1 ? 0 : prev + 1,
+    );
   };
 
   const current = defaultStories[currentIndex];
-  const prev = defaultStories[(currentIndex - 1 + defaultStories.length) % defaultStories.length];
+  const prev =
+    defaultStories[
+      (currentIndex - 1 + defaultStories.length) % defaultStories.length
+    ];
   const next = defaultStories[(currentIndex + 1) % defaultStories.length];
 
   return (
@@ -69,7 +76,9 @@ export function StudentStoriesSection() {
               />
             </div>
             <div className="absolute bottom-4 right-4 text-right">
-              <p className="text-xs font-semibold text-[#3E1515]">{prev.name}</p>
+              <p className="text-xs font-semibold text-[#3E1515]">
+                {prev.name}
+              </p>
               <p className="text-[10px] text-[#3E1515]/80">{prev.role}</p>
             </div>
           </div>
@@ -113,9 +122,7 @@ export function StudentStoriesSection() {
                 <p className="text-sm sm:text-base font-semibold text-[#3E1515]">
                   {current.name}
                 </p>
-                <p className="text-xs text-[#3E1515]/80">
-                  {current.role}
-                </p>
+                <p className="text-xs text-[#3E1515]/80">{current.role}</p>
               </div>
             </div>
           </div>
@@ -134,7 +141,9 @@ export function StudentStoriesSection() {
               />
             </div>
             <div className="absolute bottom-4 right-4 text-right">
-              <p className="text-xs font-semibold text-[#3E1515]">{next.name}</p>
+              <p className="text-xs font-semibold text-[#3E1515]">
+                {next.name}
+              </p>
               <p className="text-[10px] text-[#3E1515]/80">{next.role}</p>
             </div>
           </div>

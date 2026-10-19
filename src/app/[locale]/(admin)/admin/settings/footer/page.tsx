@@ -105,7 +105,7 @@ export default async function FooterSettingsPage({
                 id="address"
                 name="address"
                 rows={3}
-                placeholder="e.g. East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School, Thodupuzha, Kerala 685585"
+                placeholder="e.g. G-TEC EDUCATION, Near DePaul Public School, East End, Thodupuzha"
                 defaultValue={settings.address ?? ""}
                 className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
