@@ -244,7 +244,8 @@
     "filterLocation": "Location",
     "locationPlaceholder": "City or area...",
     "applyFilters": "Apply Filters",
-    "clear": "Clear"
+    "clear": "Clear",
+    "viewDetails": "View details"
   },
   "jobDetail": {
     "salary": "Salary",
@@ -257,7 +258,9 @@
     "applying": "Applying...",
     "completeProfileToApply": "Complete your profile to apply",
     "applied": "Applied ✓",
-    "salaryDisclosed": "Disclosed at interview"
+    "salaryDisclosed": "Disclosed at interview",
+    "closedBanner": "This job is no longer accepting applications.",
+    "yourStatus": "Your application status"
   },
   "industry": {
     "IT_SOFTWARE": "IT & Software",
@@ -312,7 +315,10 @@
     "location": "Location",
     "unknown": "Unknown",
     "applicantCount": "{count} applicant",
-    "applicantCount_plural": "{count} applicants"
+    "applicantCount_plural": "{count} applicants",
+    "viewProfile": "View profile",
+    "hideProfile": "Hide profile",
+    "careerObjective": "Career objective"
   },
   "candidateSearch": {
     "heading": "Candidate Search",
@@ -624,5 +630,21 @@
     "title": "Something went wrong",
     "description": "We encountered an unexpected error. Please try again or come back later.",
     "tryAgain": "Try again"
+  },
+  "applicationStatus": {
+    "APPLIED": "Applied",
+    "VIEWED": "Viewed",
+    "SHORTLISTED": "Shortlisted",
+    "REJECTED": "Rejected",
+    "HIRED": "Hired"
+  },
+  "applicationErrors": {
+    "UNAUTHENTICATED": "Please sign in again to continue.",
+    "FORBIDDEN": "You are not allowed to do this.",
+    "NOT_FOUND": "This application or job could not be found.",
+    "PROFILE_INCOMPLETE": "Complete your profile to apply",
+    "JOB_CLOSED": "This job is no longer accepting applications.",
+    "ALREADY_APPLIED": "You have already applied to this job.",
+    "INVALID_TRANSITION": "This status change is not allowed. Refresh to see the latest status."
   }
 }

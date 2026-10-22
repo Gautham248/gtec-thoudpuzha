@@ -123,6 +123,7 @@ describe("getJobDetail", () => {
     const detail = await getJobDetail(posting.id);
 
     expect(detail?.title).toBe("Dev");
+    expect(detail?.isOpen).toBe(true);
     expect(detail?.employer).toEqual({
       companyName: "Acme",
       companyAddress: "Kochi, Kerala",
@@ -141,6 +142,36 @@ describe("getJobDetail", () => {
 
     for (const id of [expired.id, pending.id, deleted.id, "missing"]) {
       expect(await getJobDetail(id)).toBeNull();
+    }
+  });
+
+  test("includeClosed returns closed and expired postings, marked not open", async () => {
+    const closed = await insertJobPosting(pg, { status: "CLOSED" });
+    const expired = await insertJobPosting(pg, {
+      applicationDeadline: daysFromNow(-1),
+    });
+    const open = await insertJobPosting(pg);
+
+    for (const id of [closed.id, expired.id]) {
+      expect(
+        (await getJobDetail(id, { includeClosed: true }))?.isOpen,
+      ).toBe(false);
+    }
+    expect((await getJobDetail(open.id, { includeClosed: true }))?.isOpen).toBe(
+      true,
+    );
+  });
+
+  test("includeClosed still hides pending, rejected and deleted postings", async () => {
+    const pending = await insertJobPosting(pg, { status: "PENDING" });
+    const rejected = await insertJobPosting(pg, { status: "REJECTED" });
+    const deleted = await insertJobPosting(pg, {
+      status: "CLOSED",
+      deletedAt: daysFromNow(-1),
+    });
+
+    for (const id of [pending.id, rejected.id, deleted.id]) {
+      expect(await getJobDetail(id, { includeClosed: true })).toBeNull();
     }
   });
 });

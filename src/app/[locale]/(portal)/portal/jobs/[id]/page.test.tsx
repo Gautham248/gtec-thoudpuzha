@@ -50,6 +50,7 @@ function makeJobDetail(overrides: Record<string, unknown> = {}) {
     applicationDeadline: new Date("2026-12-31"),
     description: "A great job opportunity.",
     createdAt: new Date("2026-06-01"),
+    isOpen: true,
     employer: {
       companyName: "Tech Corp",
       companyAddress: "Kochi, Kerala",
@@ -236,6 +237,93 @@ describe("Job detail page", () => {
     await expect(
       JobDetailPage({
         params: Promise.resolve({ locale: "en", id: "expired_job" }),
+      }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  test("a past applicant sees a closed job read-only with their status", async () => {
+    mockAuth.mockResolvedValue({
+      userId: "user_1",
+      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
+    });
+    mockFindFirst.mockResolvedValue(makeJobDetail({ isOpen: false }));
+    mockGetSkillsByIds.mockResolvedValue([]);
+    setMockRows(db, "candidateProfile", [
+      {
+        id: "cp_1",
+        userId: "user_1",
+        fullName: "John Doe",
+        dateOfBirth: new Date("2000-01-01"),
+        phone: "9999999999",
+        email: "john@example.com",
+        courseCompletedIds: [],
+        certificationIds: [],
+        educationalQualification: "GRADUATE",
+        yearOfPassing: 2022,
+        address: "Test",
+        languagesKnown: ["English"],
+        skillIds: [],
+        preferredJobLocation: "Kochi",
+        preferredJobType: "FULL_TIME",
+        profileVisible: true,
+      },
+    ]);
+    setMockRows(db, "application", [
+      {
+        id: "app_1",
+        jobPostingId: "jp_1",
+        candidateProfileId: "cp_1",
+        status: "SHORTLISTED",
+      },
+    ]);
+
+    render(
+      await JobDetailPage({
+        params: Promise.resolve({ locale: "en", id: "jp_1" }),
+      }),
+    );
+
+    expect(mockFindFirst).toHaveBeenCalledWith("jp_1", { includeClosed: true });
+    expect(screen.getByText("Software Engineer")).toBeDefined();
+    expect(
+      screen.getByText("This job is no longer accepting applications."),
+    ).toBeDefined();
+    expect(screen.getByText("Shortlisted")).toBeDefined();
+    expect(screen.queryByText("Apply Now")).toBeNull();
+  });
+
+  test("a closed job is a 404 for a candidate who never applied", async () => {
+    mockAuth.mockResolvedValue({
+      userId: "user_1",
+      sessionClaims: { metadata: { role: "JOB_SEEKER" } },
+    });
+    mockFindFirst.mockResolvedValue(makeJobDetail({ isOpen: false }));
+    mockGetSkillsByIds.mockResolvedValue([]);
+    setMockRows(db, "candidateProfile", [
+      {
+        id: "cp_1",
+        userId: "user_1",
+        fullName: "John Doe",
+        dateOfBirth: new Date("2000-01-01"),
+        phone: "9999999999",
+        email: "john@example.com",
+        courseCompletedIds: [],
+        certificationIds: [],
+        educationalQualification: "GRADUATE",
+        yearOfPassing: 2022,
+        address: "Test",
+        languagesKnown: ["English"],
+        skillIds: [],
+        preferredJobLocation: "Kochi",
+        preferredJobType: "FULL_TIME",
+        profileVisible: true,
+      },
+    ]);
+    setMockRows(db, "application", []);
+
+    await expect(
+      JobDetailPage({
+        params: Promise.resolve({ locale: "en", id: "jp_1" }),
       }),
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });

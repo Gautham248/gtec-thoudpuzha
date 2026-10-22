@@ -1,8 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { updateApplicationStatus } from "./actions";
+import { markApplicationViewed, updateApplicationStatus } from "./actions";
+import {
+  APPLICATION_STATUS_STYLES,
+  APPLICATION_TRANSITIONS,
+  type ApplicationErrorCode,
+} from "@/lib/application-status";
 import type { ApplicationStatus } from "@/db/types";
 
 interface Applicant {
@@ -23,115 +28,117 @@ interface Applicant {
   };
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  APPLIED: "bg-primary/10 text-primary",
-  VIEWED: "bg-purple-100 text-purple-800",
-  SHORTLISTED: "bg-accent/10 text-accent",
-  REJECTED: "bg-destructive/10 text-destructive",
-  HIRED: "bg-primary/10 text-primary",
-};
-
-const NEXT_TRANSITIONS: Record<string, ApplicationStatus[]> = {
-  APPLIED: ["SHORTLISTED", "REJECTED"],
-  VIEWED: ["SHORTLISTED", "REJECTED", "HIRED"],
-  SHORTLISTED: ["REJECTED", "HIRED"],
-  REJECTED: [],
-  HIRED: [],
-};
-
 function ApplicantRow({ applicant }: { applicant: Applicant }) {
   const t = useTranslations("employerApplicants");
-  const [_state, action, pending] = useActionState(
-    async (_prev: unknown, formData: FormData) => {
+  const st = useTranslations("applicationStatus");
+  const te = useTranslations("applicationErrors");
+  const [expanded, setExpanded] = useState(false);
+  const [viewError, setViewError] = useState<ApplicationErrorCode>();
+  const [, startViewing] = useTransition();
+  const [state, action, pending] = useActionState(
+    async (_prev: { error?: ApplicationErrorCode }, formData: FormData) => {
       const newStatus = formData.get("status") as ApplicationStatus;
-      await updateApplicationStatus(applicant.id, newStatus);
-      return {};
+      return updateApplicationStatus(applicant.id, newStatus);
     },
     {},
   );
 
-  const badgeStyle =
-    STATUS_BADGE[applicant.status] ?? "bg-muted text-foreground";
-  const transitions = NEXT_TRANSITIONS[applicant.status] ?? [];
+  const profile = applicant.candidateProfile;
+  const transitions = APPLICATION_TRANSITIONS[applicant.status];
+  const error = state?.error ?? viewError;
+
+  function toggleProfile() {
+    const opening = !expanded;
+    setExpanded(opening);
+    if (opening && applicant.status === "APPLIED") {
+      startViewing(async () => {
+        setViewError((await markApplicationViewed(applicant.id)).error);
+      });
+    }
+  }
 
   return (
     <div className="rounded-lg border p-4 transition-colors hover:bg-muted/50">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            {applicant.candidateProfile.photoUrl && (
+            {profile.photoUrl && (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
-                src={applicant.candidateProfile.photoUrl}
+                src={profile.photoUrl}
                 alt=""
                 className="h-10 w-10 rounded-full object-cover"
               />
             )}
             <div>
               <h3 className="font-medium">
-                {applicant.candidateProfile.fullName ?? t("unknown")}
+                {profile.fullName ?? t("unknown")}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {applicant.candidateProfile.preferredJobType?.replace(
-                  /_/g,
-                  " ",
-                ) ?? "—"}
+                {profile.preferredJobType?.replace(/_/g, " ") ?? "—"}
+                {profile.educationalQualification &&
+                  ` · ${profile.educationalQualification.replace(/_/g, " ")}`}
               </p>
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-            {applicant.candidateProfile.email && (
-              <div>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {t("email")}
-                </span>
-                <p>{applicant.candidateProfile.email}</p>
-              </div>
-            )}
-            {applicant.candidateProfile.phone && (
-              <div>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {t("phone")}
-                </span>
-                <p>{applicant.candidateProfile.phone}</p>
-              </div>
-            )}
-            {applicant.candidateProfile.educationalQualification && (
-              <div>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {t("qualification")}
-                </span>
-                <p>
-                  {applicant.candidateProfile.educationalQualification.replace(
-                    /_/g,
-                    " ",
-                  )}
-                </p>
-              </div>
-            )}
-            {applicant.candidateProfile.preferredJobLocation && (
-              <div>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {t("location")}
-                </span>
-                <p>{applicant.candidateProfile.preferredJobLocation}</p>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={toggleProfile}
+            aria-expanded={expanded}
+            className="mt-3 text-sm font-medium text-primary hover:underline"
+          >
+            {expanded ? t("hideProfile") : t("viewProfile")}
+          </button>
 
-          {applicant.candidateProfile.careerObjective && (
-            <p className="mt-2 text-sm italic text-muted-foreground">
-              &ldquo;{applicant.candidateProfile.careerObjective}&rdquo;
-            </p>
+          {expanded && (
+            <>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                {profile.email && (
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {t("email")}
+                    </span>
+                    <p>{profile.email}</p>
+                  </div>
+                )}
+                {profile.phone && (
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {t("phone")}
+                    </span>
+                    <p>{profile.phone}</p>
+                  </div>
+                )}
+                {profile.preferredJobLocation && (
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {t("location")}
+                    </span>
+                    <p>{profile.preferredJobLocation}</p>
+                  </div>
+                )}
+              </div>
+
+              {profile.careerObjective && (
+                <div className="mt-2 text-sm">
+                  <span className="font-medium text-muted-foreground">
+                    {t("careerObjective")}
+                  </span>
+                  <p className="italic text-muted-foreground">
+                    &ldquo;{profile.careerObjective}&rdquo;
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         <div className="flex flex-col items-end gap-3">
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${badgeStyle}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${APPLICATION_STATUS_STYLES[applicant.status]}`}
           >
-            {applicant.status}
+            {st(applicant.status)}
           </span>
 
           {transitions.length > 0 && (
@@ -147,11 +154,17 @@ function ApplicantRow({ applicant }: { applicant: Applicant }) {
                     disabled={pending}
                     className="rounded bg-muted px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                   >
-                    {nextStatus}
+                    {st(nextStatus)}
                   </button>
                 ))}
               </div>
             </form>
+          )}
+
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {te(error)}
+            </p>
           )}
         </div>
       </div>

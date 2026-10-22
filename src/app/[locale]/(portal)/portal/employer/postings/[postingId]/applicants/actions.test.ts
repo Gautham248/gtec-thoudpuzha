@@ -9,7 +9,7 @@ import {
   insertStudentProfile,
   insertUser,
 } from "@/__tests__/pg-fixtures";
-import { updateApplicationStatus } from "./actions";
+import { markApplicationViewed, updateApplicationStatus } from "./actions";
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
@@ -63,7 +63,10 @@ describe("updateApplicationStatus", () => {
       expect(app.statusUpdatedAt.getTime()).toBeGreaterThan(
         new Date("2026-01-01").getTime(),
       );
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/portal/employer");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/[locale]/portal/employer",
+        "layout",
+      );
     },
   );
 
@@ -77,7 +80,7 @@ describe("updateApplicationStatus", () => {
 
     const result = await updateApplicationStatus(applicationId, "HIRED");
 
-    expect(result).toEqual({ error: "Forbidden" });
+    expect(result).toEqual({ error: "FORBIDDEN" });
     expect((await current()).status).toBe("VIEWED");
   });
 
@@ -86,13 +89,71 @@ describe("updateApplicationStatus", () => {
 
     const result = await updateApplicationStatus(applicationId, "HIRED");
 
-    expect(result).toEqual({ error: "Forbidden" });
+    expect(result).toEqual({ error: "FORBIDDEN" });
     expect((await current()).status).toBe("VIEWED");
   });
 
   test("an unknown application is reported, not updated", async () => {
     expect(await updateApplicationStatus("missing", "HIRED")).toEqual({
-      error: "Application not found",
+      error: "NOT_FOUND",
     });
+  });
+
+  test.each([
+    ["HIRED", "SHORTLISTED"],
+    ["REJECTED", "HIRED"],
+    ["VIEWED", "APPLIED"],
+    ["VIEWED", "VIEWED"],
+    ["APPLIED", "HIRED"],
+  ] as const)(
+    "refuses the transition %s -> %s on the server",
+    async (from, to) => {
+      await pg.update(application).set({ status: from });
+
+      expect(await updateApplicationStatus(applicationId, to)).toEqual({
+        error: "INVALID_TRANSITION",
+      });
+      expect((await current()).status).toBe(from);
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("markApplicationViewed", () => {
+  test("moves an APPLIED application to VIEWED", async () => {
+    await pg.update(application).set({ status: "APPLIED" });
+
+    expect(await markApplicationViewed(applicationId)).toEqual({
+      success: true,
+    });
+    const app = await current();
+    expect(app.status).toBe("VIEWED");
+    expect(app.statusUpdatedAt.getTime()).toBeGreaterThan(
+      new Date("2026-01-01").getTime(),
+    );
+  });
+
+  test.each(["VIEWED", "SHORTLISTED", "REJECTED", "HIRED"] as const)(
+    "leaves a %s application alone",
+    async (status) => {
+      await pg.update(application).set({ status });
+
+      expect(await markApplicationViewed(applicationId)).toEqual({
+        success: true,
+      });
+      expect((await current()).status).toBe(status);
+    },
+  );
+
+  test("employer from another company cannot mark it viewed", async () => {
+    await pg.update(application).set({ status: "APPLIED" });
+    await insertUser(pg, { id: "user_emp_2", role: "EMPLOYER" });
+    await insertEmployer(pg, { userId: "user_emp_2", companyName: "Rival" });
+    signIn("user_emp_2", "EMPLOYER");
+
+    expect(await markApplicationViewed(applicationId)).toEqual({
+      error: "FORBIDDEN",
+    });
+    expect((await current()).status).toBe("APPLIED");
   });
 });

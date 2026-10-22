@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
 import { Role, getEffectiveRole } from "@/lib/auth";
+import { formatDate } from "@/lib/i18n-utils";
 import { getActiveJobPostings } from "@/lib/jobs";
 import { getApprovedSkills } from "@/lib/skills";
 import type { JobType } from "@/db/types";
@@ -24,7 +26,7 @@ export default async function JobsPage({
   const { jobType, skillId, location } = await searchParams;
 
   const session = await auth();
-  if (!session.userId) redirect("/sign-in");
+  if (!session.userId) redirect(`/${locale}/sign-in`);
 
   const role = await getEffectiveRole(session);
   if (role !== Role.STUDENT && role !== Role.JOB_SEEKER) {
@@ -74,9 +76,10 @@ export default async function JobsPage({
                 : t("salaryDisclosed");
 
             return (
-              <div
+              <Link
                 key={posting.id}
-                className="rounded-lg border p-5 transition-colors hover:bg-muted/50"
+                href={`/${locale}/portal/jobs/${posting.id}`}
+                className="block rounded-lg border p-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
@@ -100,14 +103,15 @@ export default async function JobsPage({
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {t("deadline", {
-                        date: new Date(
-                          posting.applicationDeadline,
-                        ).toLocaleDateString(),
+                        date: formatDate(posting.applicationDeadline, locale),
                       })}
                     </p>
                   </div>
+                  <span className="shrink-0 text-sm font-medium text-primary">
+                    {t("viewDetails")} →
+                  </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

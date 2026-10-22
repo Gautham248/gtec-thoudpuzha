@@ -101,35 +101,27 @@ describe("Employer Applicants Page — isolation & auto-transition", () => {
     await applicant(otherPostingId, "Someone Else", "APPLIED");
 
     await expect(render(otherPostingId)).rejects.toThrow(
-      "redirect:/portal/employer",
+      "redirect:/en/portal/employer",
     );
   });
 
-  test("4. viewing APPLIED applicants transitions them to VIEWED automatically", async () => {
+  test("4. opening the page does not change any application's status", async () => {
     const fresh = await applicant(myPostingId, "John Doe", "APPLIED");
-    const shortlisted = await applicant(
-      myPostingId,
-      "Jane Smith",
-      "SHORTLISTED",
-    );
-    const elsewhere = await applicant(
-      otherPostingId,
-      "Someone Else",
-      "APPLIED",
-    );
 
     const html = await render(myPostingId);
 
-    expect(html).toContain("VIEWED");
-    expect(html).not.toContain(">APPLIED<");
-    const byId = Object.fromEntries(
-      (await pg.select().from(application)).map((a) => [a.id, a]),
-    );
-    expect(byId[fresh.id].status).toBe("VIEWED");
-    expect(byId[fresh.id].statusUpdatedAt.getTime()).toBeGreaterThanOrEqual(
-      fresh.statusUpdatedAt.getTime(),
-    );
-    expect(byId[shortlisted.id].status).toBe("SHORTLISTED"); // only APPLIED moves
-    expect(byId[elsewhere.id].status).toBe("APPLIED"); // other postings untouched
+    expect(html).toContain(">Applied<");
+    const [row] = await pg.select().from(application);
+    expect(row.id).toBe(fresh.id);
+    expect(row.status).toBe("APPLIED");
+  });
+
+  test("contact details stay hidden until the profile is opened", async () => {
+    await applicant(myPostingId, "John Doe", "APPLIED");
+
+    const html = await render(myPostingId);
+
+    expect(html).toContain("View profile");
+    expect(html).not.toContain("John Doe@example.com");
   });
 });

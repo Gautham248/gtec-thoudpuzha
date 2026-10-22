@@ -90,16 +90,17 @@ describe("baseline", () => {
     const folder = mkdtempSync(join(tmpdir(), "gtec-migrations-"));
     cpSync(MIGRATIONS_FOLDER, folder, { recursive: true });
     writeFileSync(
-      join(folder, "0001_future.sql"),
+      join(folder, "9999_future.sql"),
       `ALTER TABLE "SiteSettings" ADD COLUMN "futureColumn" text;`,
     );
     const journalPath = join(folder, "meta", "_journal.json");
     const journal = JSON.parse(readFileSync(journalPath, "utf8"));
+    const last = journal.entries.at(-1);
     journal.entries.push({
-      idx: 1,
+      idx: last.idx + 1,
       version: "7",
-      when: baselineMigration.folderMillis + 1000,
-      tag: "0001_future",
+      when: last.when + 1000,
+      tag: "9999_future",
       breakpoints: true,
     });
     writeFileSync(journalPath, JSON.stringify(journal));
@@ -115,7 +116,8 @@ describe("baseline", () => {
     const tracked = await db.query(
       `select count(*)::int as n from drizzle.__drizzle_migrations`,
     );
-    expect(tracked.rows).toEqual([{ n: 2 }]);
+    // The baseline row, then every migration after it (incl. the future one).
+    expect(tracked.rows).toEqual([{ n: journal.entries.length }]);
   }, 60_000);
 
   test("refuses, writing nothing, when the live schema differs", async () => {
@@ -153,5 +155,44 @@ describe("baseline", () => {
       status: "empty-database",
     });
     expect(await trackingTable(db)).toBe(false);
+  }, 60_000);
+
+  test("production (Prisma, missing its last migration) can adopt drizzle/", async () => {
+    // Production's schema stopped one Prisma migration short of 0000_baseline:
+    // SiteSettings lacks mapsUrl and whatsappNumber (see
+    // docs/production-schema.prisma).
+    const db = await prismaCreatedDatabase();
+    await db.exec(
+      `ALTER TABLE "SiteSettings" DROP COLUMN "mapsUrl", DROP COLUMN "whatsappNumber"`,
+    );
+    await db.exec(
+      `INSERT INTO "SiteSettings" (id, "updatedAt") VALUES ('s1', now())`,
+    );
+
+    // 1. As-is, baselining is refused and names exactly the missing columns.
+    const refused = await baseline(executor(db), { apply: true });
+    expect(refused.status).toBe("schema-mismatch");
+    expect(
+      refused.status === "schema-mismatch" &&
+        refused.differences.map((d) => d.match(/"column_name":"(\w+)"/)?.[1]),
+    ).toEqual(["mapsUrl", "whatsappNumber"]);
+
+    // 2. Run 0001's SQL by hand, then baseline and migrate as the runbook says.
+    const [, sync] = migrations();
+    for (const statement of sync.sql) await db.exec(statement);
+    expect(await baseline(executor(db), { apply: true })).toMatchObject({
+      status: "baselined",
+    });
+    await migrate(drizzle({ client: db }), {
+      migrationsFolder: MIGRATIONS_FOLDER,
+    });
+
+    // 3. Data kept, columns present, and every migration recorded.
+    const row = await db.query(`select id, "mapsUrl" from "SiteSettings"`);
+    expect(row.rows).toEqual([{ id: "s1", mapsUrl: null }]);
+    const tracked = await db.query(
+      `select count(*)::int as n from drizzle.__drizzle_migrations`,
+    );
+    expect(tracked.rows).toEqual([{ n: migrations().length }]);
   }, 60_000);
 });

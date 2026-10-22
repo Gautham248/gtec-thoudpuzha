@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { application } from "@/db/schema";
+import { APPLICATION_STATUS_STYLES } from "@/lib/application-status";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import Link from "next/link";
 import { Briefcase, User, Search } from "lucide-react";
@@ -19,6 +20,7 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
   const role = await getEffectiveRole(session);
   const t = await getTranslations({ locale, namespace: "jobSeekerDashboard" });
   const rgt = await getTranslations({ locale, namespace: "roleGate" });
+  const st = await getTranslations({ locale, namespace: "applicationStatus" });
 
   if (role !== Role.JOB_SEEKER) {
     return (
@@ -69,14 +71,6 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
         },
       })
     : [];
-
-  const STATUS_STYLES: Record<string, string> = {
-    APPLIED: "bg-primary/10 text-primary",
-    VIEWED: "bg-purple-100 text-purple-800",
-    SHORTLISTED: "bg-accent/10 text-accent",
-    REJECTED: "bg-destructive/10 text-destructive",
-    HIRED: "bg-primary/10 text-primary",
-  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -149,8 +143,6 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
           </div>
           <div className="mt-4 space-y-3">
             {recentApplications.map((app) => {
-              const badgeStyle =
-                STATUS_STYLES[app.status] ?? "bg-muted text-foreground";
               return (
                 <div
                   key={app.id}
@@ -158,7 +150,7 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
                 >
                   <div>
                     <Link
-                      href={`/portal/jobs/${app.jobPosting.id}`}
+                      href={`/${locale}/portal/jobs/${app.jobPosting.id}`}
                       className="font-medium text-primary hover:underline"
                     >
                       {app.jobPosting.title}
@@ -168,9 +160,9 @@ export default async function JobSeekerDashboardPage({ params }: PageProps) {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${badgeStyle}`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${APPLICATION_STATUS_STYLES[app.status]}`}
                   >
-                    {app.status}
+                    {st(app.status)}
                   </span>
                 </div>
               );
