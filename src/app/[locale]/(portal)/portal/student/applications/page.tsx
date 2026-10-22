@@ -1,20 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
+import { APPLICATION_STATUS_STYLES } from "@/lib/application-status";
 import { Role, getEffectiveRole } from "@/lib/auth";
+import { formatDate } from "@/lib/i18n-utils";
 import Link from "next/link";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  APPLIED: "bg-primary/10 text-primary",
-  VIEWED: "bg-purple-100 text-purple-800",
-  SHORTLISTED: "bg-accent/10 text-accent",
-  REJECTED: "bg-destructive/10 text-destructive",
-  HIRED: "bg-primary/10 text-primary",
-};
 
 export default async function StudentApplicationsPage({ params }: PageProps) {
   const { locale } = await params;
@@ -27,6 +21,7 @@ export default async function StudentApplicationsPage({ params }: PageProps) {
     namespace: "studentApplications",
   });
   const rgt = await getTranslations({ locale, namespace: "roleGate" });
+  const st = await getTranslations({ locale, namespace: "applicationStatus" });
 
   if (role !== Role.STUDENT && role !== Role.JOB_SEEKER) {
     return (
@@ -103,8 +98,6 @@ export default async function StudentApplicationsPage({ params }: PageProps) {
       ) : (
         <div className="space-y-4">
           {applications.map((app) => {
-            const badgeStyle =
-              STATUS_STYLES[app.status] ?? "bg-muted text-foreground";
             return (
               <div
                 key={app.id}
@@ -113,7 +106,7 @@ export default async function StudentApplicationsPage({ params }: PageProps) {
                 <div className="flex items-start justify-between">
                   <div>
                     <Link
-                      href={`/portal/jobs/${app.jobPosting.id}`}
+                      href={`/${locale}/portal/jobs/${app.jobPosting.id}`}
                       className="font-medium text-primary hover:underline"
                     >
                       {app.jobPosting.title}
@@ -123,14 +116,14 @@ export default async function StudentApplicationsPage({ params }: PageProps) {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${badgeStyle}`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${APPLICATION_STATUS_STYLES[app.status]}`}
                   >
-                    {app.status}
+                    {st(app.status)}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {sa("applied", {
-                    date: new Date(app.appliedAt).toLocaleDateString(),
+                    date: formatDate(app.appliedAt, locale),
                   })}
                 </p>
               </div>

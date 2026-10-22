@@ -91,8 +91,9 @@ describe("Student Applications Page — isolation", () => {
     expect(html).toContain("DevOps Engineer");
     expect(html).toContain("Tech Corp");
     expect(html).toContain("Startup Inc");
-    expect(html).toContain("APPLIED");
-    expect(html).toContain("SHORTLISTED");
+    expect(html).toContain(">Applied<");
+    expect(html).toContain(">Shortlisted<");
+    expect(html).not.toContain("SHORTLISTED");
     expect(html).not.toContain("Secret Role");
     expect(html.indexOf("DevOps Engineer")).toBeLessThan(
       html.indexOf("Software Engineer"),

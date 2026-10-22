@@ -82,6 +82,13 @@ tables. If the live schema differs from the baseline in any way, it lists the
 differences and writes nothing. Running it again on a baselined database does
 nothing. Run it from a dev checkout (`npm install` with dev dependencies).
 
+**If the dry run reports missing columns:** the database stopped short of
+Prisma's last migration. Production is missing `SiteSettings.mapsUrl` and
+`whatsappNumber`; its schema is kept in `docs/production-schema.prisma`. Run
+the SQL in `drizzle/0001_sync_site_settings_footer_columns.sql` against that
+database (it only adds the two columns, if missing), then repeat steps 2–4.
+`db:migrate` then records 0001 as applied.
+
 **Rollback:** `DROP SCHEMA drizzle CASCADE;` removes only that bookkeeping
 table; app tables and Prisma's old `_prisma_migrations` history are untouched.
 

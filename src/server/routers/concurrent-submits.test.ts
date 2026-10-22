@@ -61,7 +61,7 @@ beforeEach(async () => {
 });
 
 describe("concurrent identical submits", () => {
-  test("applyToJob: one application, the other caller is told 'Already applied'", async () => {
+  test("applyToJob: one application, the other caller is told ALREADY_APPLIED", async () => {
     await insertUser(pg, { id: "user_1", role: "JOB_SEEKER" });
     await insertStudentProfile(pg, {
       userId: "user_1",
@@ -84,7 +84,7 @@ describe("concurrent identical submits", () => {
     );
 
     expect(results).toEqual(
-      expect.arrayContaining([{ applied: true }, { error: "Already applied" }]),
+      expect.arrayContaining([{ applied: true }, { error: "ALREADY_APPLIED" }]),
     );
     expect(await pg.$count(application)).toBe(1);
   });

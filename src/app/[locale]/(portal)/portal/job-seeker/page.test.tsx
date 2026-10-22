@@ -147,7 +147,7 @@ describe("Job Seeker Dashboard — /portal/job-seeker", () => {
     expect(html).toContain("Frontend Developer");
     expect(html).not.toContain("Oldest Role"); // only the 3 most recent
     expect(html).not.toContain("Not Mine");
-    expect(html).toContain("SHORTLISTED");
+    expect(html).toContain(">Shortlisted<");
     expect(html).toContain("View All");
   });
 

@@ -1,5 +1,7 @@
 import { arrayContains } from "drizzle-orm";
+import type * as drizzle from "drizzle-orm";
 import { db } from "@/db";
+import type { jobPosting } from "@/db/schema";
 import { logger } from "@/lib/logger";
 import type { JobPosting, JobType, EmployerProfile } from "@/db/types";
 
@@ -37,6 +39,8 @@ export type JobDetail = Pick<
   | "description"
   | "createdAt"
 > & {
+  /** Whether the posting is still accepting applications. */
+  isOpen: boolean;
   employer: Pick<
     EmployerProfile,
     | "companyName"
@@ -47,16 +51,44 @@ export type JobDetail = Pick<
   >;
 };
 
-/** Fetch a single active (approved, non-expired, non-deleted) job posting. */
-export async function getJobDetail(id: string): Promise<JobDetail | null> {
+type PostingColumns = (typeof jobPosting)["_"]["columns"];
+type Operators = Pick<typeof drizzle, "and" | "eq" | "gt" | "isNull">;
+
+/**
+ * A posting accepts applications while it is approved, not deleted and before
+ * its deadline. Listing, detail and apply all go through this one filter.
+ * Takes the query's own operators so it composes inside any `where` callback.
+ */
+export const acceptingApplications = (
+  p: PostingColumns,
+  { and, eq, gt, isNull }: Operators,
+) =>
+  and(
+    eq(p.status, "APPROVED"),
+    isNull(p.deletedAt),
+    gt(p.applicationDeadline, new Date()),
+  );
+
+/**
+ * Fetch a single active job posting. With `includeClosed`, also return an
+ * approved posting that has since closed or passed its deadline, so a past
+ * applicant can still read it; `isOpen` tells the two apart.
+ */
+export async function getJobDetail(
+  id: string,
+  { includeClosed = false }: { includeClosed?: boolean } = {},
+): Promise<JobDetail | null> {
   try {
     const posting = await db.query.jobPosting.findFirst({
-      where: (p, { and, eq, gt, isNull }) =>
-        and(
-          eq(p.id, id),
-          eq(p.status, "APPROVED"),
-          isNull(p.deletedAt),
-          gt(p.applicationDeadline, new Date()),
+      where: (p, ops) =>
+        ops.and(
+          ops.eq(p.id, id),
+          includeClosed
+            ? ops.and(
+                ops.inArray(p.status, ["APPROVED", "CLOSED"]),
+                ops.isNull(p.deletedAt),
+              )
+            : acceptingApplications(p, ops),
         ),
       columns: {
         id: true,
@@ -70,6 +102,7 @@ export async function getJobDetail(id: string): Promise<JobDetail | null> {
         applicationDeadline: true,
         description: true,
         createdAt: true,
+        status: true,
       },
       with: {
         employer: {
@@ -83,7 +116,13 @@ export async function getJobDetail(id: string): Promise<JobDetail | null> {
         },
       },
     });
-    return posting ?? null;
+    if (!posting) return null;
+    const { status, ...detail } = posting;
+    return {
+      ...detail,
+      isOpen:
+        status === "APPROVED" && posting.applicationDeadline > new Date(),
+    };
   } catch (err) {
     logger.exception("jobs", "Failed to fetch job detail", err);
     return null;
@@ -97,12 +136,10 @@ export async function getActiveJobPostings(filters?: {
 }): Promise<ActiveJobPosting[]> {
   const postings = await db.query.jobPosting
     .findMany({
-      where: (p, { and, eq, gt, isNull }) =>
-        and(
-          eq(p.status, "APPROVED"),
-          isNull(p.deletedAt),
-          gt(p.applicationDeadline, new Date()),
-          filters?.jobType ? eq(p.jobType, filters.jobType) : undefined,
+      where: (p, ops) =>
+        ops.and(
+          acceptingApplications(p, ops),
+          filters?.jobType ? ops.eq(p.jobType, filters.jobType) : undefined,
           filters?.skillId
             ? arrayContains(p.skillIds, [filters.skillId])
             : undefined,

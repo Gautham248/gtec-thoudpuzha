@@ -325,7 +325,8 @@
     "filterLocation": "സ്ഥലം",
     "locationPlaceholder": "നഗരം അല്ലെങ്കിൽ പ്രദേശം...",
     "applyFilters": "ഫിൽറ്ററുകൾ പ്രയോഗിക്കുക",
-    "clear": "മായ്ക്കുക"
+    "clear": "മായ്ക്കുക",
+    "viewDetails": "View details"
   },
   "jobDetail": {
     "salary": "ശമ്പളം",
@@ -338,7 +339,9 @@
     "applying": "അപേക്ഷിക്കുന്നു...",
     "completeProfileToApply": "അപേക്ഷിക്കാൻ നിങ്ങളുടെ പ്രൊഫൈൽ പൂർത്തിയാക്കുക",
     "applied": "അപേക്ഷിച്ചു ✓",
-    "salaryDisclosed": "അഭിമുഖത്തിൽ വെളിപ്പെടുത്തും"
+    "salaryDisclosed": "അഭിമുഖത്തിൽ വെളിപ്പെടുത്തും",
+    "closedBanner": "This job is no longer accepting applications.",
+    "yourStatus": "Your application status"
   },
   "industry": {
     "IT_SOFTWARE": "ഐടി & സോഫ്റ്റ്‌വെയർ",
@@ -393,7 +396,10 @@
     "location": "സ്ഥലം",
     "unknown": "അജ്ഞാതം",
     "applicantCount": "{count} അപേക്ഷകൻ",
-    "applicantCount_plural": "{count} അപേക്ഷകർ"
+    "applicantCount_plural": "{count} അപേക്ഷകർ",
+    "viewProfile": "View profile",
+    "hideProfile": "Hide profile",
+    "careerObjective": "Career objective"
   },
   "candidateSearch": {
     "heading": "ഉദ്യോഗാർത്ഥി തിരയൽ",
@@ -624,5 +630,21 @@
     "title": "എന്തോ തകരാറുണ്ടായി",
     "description": "അപ്രതീക്ഷിതമായ ഒരു തകരാർ സംഭവിച്ചു. ദയവായി വീണ്ടും ശ്രമിക്കുക.",
     "tryAgain": "വീണ്ടും ശ്രമിക്കുക"
+  },
+  "applicationStatus": {
+    "APPLIED": "Applied",
+    "VIEWED": "Viewed",
+    "SHORTLISTED": "Shortlisted",
+    "REJECTED": "Rejected",
+    "HIRED": "Hired"
+  },
+  "applicationErrors": {
+    "UNAUTHENTICATED": "Please sign in again to continue.",
+    "FORBIDDEN": "You are not allowed to do this.",
+    "NOT_FOUND": "This application or job could not be found.",
+    "PROFILE_INCOMPLETE": "Complete your profile to apply",
+    "JOB_CLOSED": "This job is no longer accepting applications.",
+    "ALREADY_APPLIED": "You have already applied to this job.",
+    "INVALID_TRANSITION": "This status change is not allowed. Refresh to see the latest status."
   }
 }

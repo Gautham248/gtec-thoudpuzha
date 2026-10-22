@@ -2,8 +2,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
-import { and, eq } from "drizzle-orm";
-import { application } from "@/db/schema";
 import { Role, getEffectiveRole } from "@/lib/auth";
 import { ApplicantsList } from "./applicants-list";
 
@@ -15,17 +13,17 @@ export default async function ApplicantsPage({ params }: PageProps) {
   const { postingId, locale } = await params;
 
   const session = await auth();
-  if (!session.userId) redirect("/sign-in");
+  if (!session.userId) redirect(`/${locale}/sign-in`);
 
   const role = await getEffectiveRole(session);
-  if (role !== Role.EMPLOYER) redirect("/forbidden");
+  if (role !== Role.EMPLOYER) redirect(`/${locale}/forbidden`);
 
   const profile = await db.query.employerProfile.findFirst({
     where: (e, { eq }) => eq(e.userId, session.userId!),
   });
-  if (!profile) redirect("/portal/employer/register");
+  if (!profile) redirect(`/${locale}/portal/employer/register`);
   if (profile.status === "PENDING" || profile.status === "REJECTED") {
-    redirect("/portal/employer/register/status");
+    redirect(`/${locale}/portal/employer/register/status`);
   }
 
   const posting = await db.query.jobPosting.findFirst({
@@ -37,20 +35,12 @@ export default async function ApplicantsPage({ params }: PageProps) {
       ),
     columns: { id: true, title: true, employerId: true },
   });
-  if (!posting) redirect("/portal/employer");
+  if (!posting) redirect(`/${locale}/portal/employer`);
 
   const t = await getTranslations({ locale, namespace: "employerApplicants" });
 
-  await db
-    .update(application)
-    .set({ status: "VIEWED", statusUpdatedAt: new Date() })
-    .where(
-      and(
-        eq(application.jobPostingId, postingId),
-        eq(application.status, "APPLIED"),
-      ),
-    );
-
+  // Rendering never changes statuses: an application becomes VIEWED only
+  // when the employer opens that applicant's profile (markApplicationViewed).
   const applicants = await db.query.application.findMany({
     where: (a, { eq }) => eq(a.jobPostingId, postingId),
     orderBy: (a, { desc }) => desc(a.appliedAt),
