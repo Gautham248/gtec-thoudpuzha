@@ -89,3 +89,28 @@ export function resolveCategory(
     }) ?? null
   );
 }
+
+export const COURSES_PER_PAGE = 50;
+
+/**
+ * One page of `items` for a `?page=` value. Missing, non-numeric or
+ * out-of-range values land on the nearest valid page (1-based).
+ */
+export function paginate<T>(
+  items: T[],
+  param: string | undefined,
+  pageSize = COURSES_PER_PAGE,
+) {
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const requested = Number.parseInt(param ?? "", 10);
+  const page = Number.isNaN(requested)
+    ? 1
+    : Math.min(Math.max(requested, 1), pageCount);
+  const start = (page - 1) * pageSize;
+  return {
+    page,
+    pageCount,
+    start,
+    items: items.slice(start, start + pageSize),
+  };
+}

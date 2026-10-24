@@ -31,7 +31,7 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   mapEmbedUrl: siteConfig.mapEmbedUrl,
   mapsUrl: siteConfig.mapsUrl,
   whatsappNumber: "919744221113",
-  facebookUrl: "https://www.facebook.com/gtectdpa",
+  facebookUrl: "https://www.facebook.com/share/1FLZXJZ7ux/",
   instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
   youtubeUrl: null,
   linkedinUrl: null,

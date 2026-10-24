@@ -18,7 +18,7 @@ export const siteConfig = {
   mapEmbedUrl:
     "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3930.4187348558335!2d76.71616127502988!3d9.899039590201266!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b07c408df2eaaab%3A0x4db6970b9c6727f!2sGTEC%20EDUCATION!5e0!3m2!1sen!2sin!4v1792343255436!5m2!1sen!2sin",
   instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
-  facebookUrl: "https://www.facebook.com/gtectdpa",
+  facebookUrl: "https://www.facebook.com/share/1FLZXJZ7ux/",
   googleReviewsUrl:
     "https://www.google.com/maps/search/?api=1&query=G-TEC+EDUCATION+Thodupuzha+reviews",
 };

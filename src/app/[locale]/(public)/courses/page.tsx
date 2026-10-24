@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { ArrowRight, GraduationCap, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, GraduationCap, Layers } from "lucide-react";
 import { getPublishedCourses } from "@/lib/courses";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { CourseHeroBackdrop } from "@/components/courses/CourseHero";
 import { CourseCtaBanner } from "@/components/courses/CourseCtaBanner";
 import { Link } from "@/lib/i18n/navigation";
-import { collectCategories, resolveCategory } from "@/lib/course-filters";
+import {
+  collectCategories,
+  paginate,
+  resolveCategory,
+} from "@/lib/course-filters";
 import {
   MotionProvider,
   Reveal,
@@ -17,7 +21,10 @@ import {
 
 interface CoursesPageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string | string[] }>;
+  searchParams: Promise<{
+    category?: string | string[];
+    page?: string | string[];
+  }>;
 }
 
 export async function generateMetadata({
@@ -35,25 +42,40 @@ const chipBase =
   "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold tracking-tight transition-colors";
 const chipActive = "bg-[#0B57D0] text-white shadow-md";
 const chipIdle = "bg-[#F2F4F7] text-[#111827] hover:bg-[#E4E7EC]";
+const pagerLink =
+  "group inline-flex items-center gap-2 rounded-full bg-[#F2F4F7] px-5 py-2.5 text-sm font-semibold text-[#111827] transition-colors hover:bg-[#E4E7EC]";
+
+const first = (v: string | string[] | undefined) =>
+  Array.isArray(v) ? v[0] : v;
 
 export default async function CoursesPage({
   params,
   searchParams,
 }: CoursesPageProps) {
   const { locale } = await params;
-  const { category: rawCategory } = await searchParams;
+  const { category: rawCategory, page: rawPage } = await searchParams;
   const isMl = locale === "ml";
   const t = await getTranslations({ locale, namespace: "nav" });
   const courses = await getPublishedCourses();
 
   const categories = collectCategories(courses);
-  const active = resolveCategory(
-    Array.isArray(rawCategory) ? rawCategory[0] : rawCategory,
-    categories,
-  );
+  const active = resolveCategory(first(rawCategory), categories);
   const visible = active
     ? courses.filter((c) => c.category?.id === active.id)
     : courses;
+  const {
+    page,
+    pageCount,
+    start,
+    items: pageCourses,
+  } = paginate(visible, first(rawPage));
+  const pageHref = (n: number) => {
+    const query = new URLSearchParams();
+    if (active) query.set("category", active.slug);
+    if (n > 1) query.set("page", String(n));
+    const qs = query.toString();
+    return `${qs ? `/courses?${qs}` : "/courses"}#course-grid`;
+  };
   const pick = (en: string, ml: string | null) => (isMl && ml ? ml : en);
 
   return (
@@ -149,10 +171,16 @@ export default async function CoursesPage({
         </section>
 
         {/* Course grid */}
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <section
+          id="course-grid"
+          className="mx-auto max-w-7xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+        >
           <Reveal className="mb-10 flex flex-col gap-1 sm:mb-14">
             <p className="text-base font-semibold tracking-[-0.05em] text-[#B4B4B4] sm:text-xl">
-              {isMl ? "കാണിക്കുന്നത്" : "Showing"} {visible.length}{" "}
+              {isMl ? "കാണിക്കുന്നത്" : "Showing"}{" "}
+              {pageCount > 1
+                ? `${start + 1}–${start + pageCourses.length} ${isMl ? "/" : "of"} ${visible.length}`
+                : visible.length}{" "}
               {isMl ? "കോഴ്സുകൾ" : visible.length === 1 ? "course" : "courses"}
             </p>
             <h2 className="text-3xl font-semibold tracking-[-0.05em] text-[#111827] sm:text-5xl">
@@ -191,30 +219,65 @@ export default async function CoursesPage({
               )}
             </Reveal>
           ) : (
-            <RevealGroup
-              key={active?.id ?? "all"}
-              stagger={0.08}
-              className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
-            >
-              {visible.map((course) => (
-                <RevealItem key={course.id} y={40} className="h-full">
-                  <CourseCard
-                    courseId={course.id}
-                    slug={course.slug}
-                    titleEn={course.titleEn}
-                    titleMl={course.titleMl}
-                    descriptionEn={course.descriptionEn}
-                    descriptionMl={course.descriptionMl}
-                    coverImageUrl={course.coverImageUrl}
-                    categoryNameEn={course.category?.nameEn}
-                    categoryNameMl={course.category?.nameMl}
-                    durationText={course.durationText}
-                    featured={course.featured}
-                    locale={locale}
-                  />
-                </RevealItem>
-              ))}
-            </RevealGroup>
+            <>
+              {/* No scroll reveal here: a staggered fade across a full page of
+                cards kept the last ones hidden for seconds. */}
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {pageCourses.map((course) => (
+                  <div key={course.id} className="h-full">
+                    <CourseCard
+                      courseId={course.id}
+                      slug={course.slug}
+                      titleEn={course.titleEn}
+                      titleMl={course.titleMl}
+                      descriptionEn={course.descriptionEn}
+                      descriptionMl={course.descriptionMl}
+                      coverImageUrl={course.coverImageUrl}
+                      categoryNameEn={course.category?.nameEn}
+                      categoryNameMl={course.category?.nameMl}
+                      durationText={course.durationText}
+                      featured={course.featured}
+                      locale={locale}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {pageCount > 1 && (
+                <nav
+                  aria-label={isMl ? "പേജുകൾ" : "Pagination"}
+                  className="mt-12 flex items-center justify-between gap-4"
+                >
+                  {page > 1 ? (
+                    <Link href={pageHref(page - 1)} className={pagerLink}>
+                      <ArrowLeft
+                        className="size-4 transition-transform group-hover:-translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                      {isMl ? "മുമ്പത്തെ" : "Previous"}
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                  <p className="text-sm font-semibold text-[#6B7280]">
+                    {isMl
+                      ? `പേജ് ${page} / ${pageCount}`
+                      : `Page ${page} of ${pageCount}`}
+                  </p>
+                  {page < pageCount ? (
+                    <Link href={pageHref(page + 1)} className={pagerLink}>
+                      {isMl ? "അടുത്തത്" : "Next"}
+                      <ArrowRight
+                        className="size-4 transition-transform group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                </nav>
+              )}
+            </>
           )}
         </section>
       </MotionProvider>

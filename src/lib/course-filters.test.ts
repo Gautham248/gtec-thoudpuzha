@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   collectCategories,
+  paginate,
   resolveCategory,
   slugifyCategory,
 } from "./course-filters";
@@ -59,5 +60,41 @@ describe("resolveCategory", () => {
 
   test("slugify strips ampersands and punctuation", () => {
     expect(slugifyCategory("Data Science & AI")).toBe("data-science-ai");
+  });
+});
+
+describe("paginate", () => {
+  const items = Array.from({ length: 120 }, (_, i) => i);
+
+  test("returns the requested page of 50", () => {
+    const result = paginate(items, "2");
+    expect(result.page).toBe(2);
+    expect(result.pageCount).toBe(3);
+    expect(result.start).toBe(50);
+    expect(result.items).toEqual(items.slice(50, 100));
+  });
+
+  test("the last page holds the remainder", () => {
+    expect(paginate(items, "3").items).toEqual(items.slice(100));
+  });
+
+  test.each([undefined, "", "abc", "0", "-4"])(
+    "falls back to page 1 for %j",
+    (param) => {
+      expect(paginate(items, param).page).toBe(1);
+    },
+  );
+
+  test("clamps a page past the end to the last page", () => {
+    expect(paginate(items, "99").page).toBe(3);
+  });
+
+  test("an empty list is a single empty page", () => {
+    expect(paginate([], "2")).toEqual({
+      page: 1,
+      pageCount: 1,
+      start: 0,
+      items: [],
+    });
   });
 });

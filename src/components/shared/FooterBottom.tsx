@@ -14,7 +14,7 @@ interface FooterBottomProps {
 
 export function FooterBottom({
   currentYear,
-  facebookUrl = "https://www.facebook.com/gtectdpa",
+  facebookUrl = "https://www.facebook.com/share/1FLZXJZ7ux/",
   instagramUrl = "https://www.instagram.com/gtec_thodupuzha/",
   youtubeUrl = "https://www.youtube.com/@gtecthodupuzha",
   whatsappUrl = "https://wa.me/919744221113",
