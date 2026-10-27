@@ -88,6 +88,7 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
           certificationName={(course.certifications ?? [])[0] ?? null}
           coverImageUrl={course.coverImageUrl}
           courseId={course.id}
+          locale={locale}
         />
       </MotionProvider>
 
@@ -99,7 +100,9 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
           courseLists={contentBlocks?.courseLists ?? []}
           benefits={contentBlocks?.benefits}
           durationText={course.durationText}
-          certificationSummary={(course.certifications ?? []).join(", ") || null}
+          certificationSummary={
+            (course.certifications ?? []).join(", ") || null
+          }
           careerOutcomes={
             locale === "ml" && course.careerOutcomesMl
               ? course.careerOutcomesMl
@@ -108,12 +111,12 @@ export default async function CourseDetailPage({ params }: CourseDetailProps) {
           locale={locale}
         />
       </div>
-
-      <StudentStoriesSection />
+      {/* Commented out the student stories section */}
+      {/* <StudentStoriesSection /> */}
 
       <CertificationPartnerStrip heading="Our Partners" />
 
-      <CourseCertifications certifications={(course.certifications ?? [])} />
+      <CourseCertifications certifications={course.certifications ?? []} />
 
       <CourseCtaBanner courseId={course.id} />
 

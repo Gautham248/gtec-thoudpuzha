@@ -646,5 +646,16 @@
     "JOB_CLOSED": "This job is no longer accepting applications.",
     "ALREADY_APPLIED": "You have already applied to this job.",
     "INVALID_TRANSITION": "This status change is not allowed. Refresh to see the latest status."
+  },
+  "courseHero": {
+    "breadcrumbCourses": "Courses",
+    "level": "Beginner to Advanced",
+    "handsOnLab": "Hands-On Lab",
+    "admissionsOpen": "Admissions Open 2026-27",
+    "enrollNow": "Enroll Now",
+    "whatsappUs": "WhatsApp Us",
+    "placementAssistance": "100% Placement Assistance",
+    "isoCertified": "ISO 9001:2015 Certified",
+    "flexibleTimings": "Flexible Batch Timings"
   }
 }

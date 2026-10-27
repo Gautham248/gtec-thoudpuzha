@@ -177,7 +177,7 @@ export function FeaturedCoursesSection({
                       aria-label={`View details for ${title}`}
                     >
                       <BookOpen className="size-3.5 text-muted-foreground" />
-                      <span className="hidden xs:inline">
+                      <span className="hidden sm:inline">
                         {isMl ? "വിശദാംശങ്ങൾ" : "Details"}
                       </span>
                     </Link>

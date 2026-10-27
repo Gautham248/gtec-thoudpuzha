@@ -40,7 +40,7 @@ export default async function PublicLayout({
         <div className="flex-1 w-full max-w-full overflow-x-hidden">
           {children}
         </div>
-        <Footer address={address} />
+        <Footer address={address} courses={courses} />
       </div>
     </EnquiryModalProvider>
   );

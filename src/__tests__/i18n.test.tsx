@@ -1,7 +1,10 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { NextRequest, NextFetchEvent } from "next/server";
 import { renderToString } from "react-dom/server";
-import { NextIntlClientProvider as _NextIntlClientProvider, useTranslations as _useTranslations } from "next-intl";
+import {
+  NextIntlClientProvider as _NextIntlClientProvider,
+  useTranslations as _useTranslations,
+} from "next-intl";
 import type { Mock } from "vitest";
 import middleware from "@/proxy";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
@@ -27,9 +30,9 @@ const mockClerkMiddleware = vi.hoisted(
         req: NextRequest,
       ) => Promise<Response | undefined>,
     ) =>
-      async (req: NextRequest, _evt?: unknown) => {
-        return handler(mockAuth, req);
-      },
+    async (req: NextRequest, _evt?: unknown) => {
+      return handler(mockAuth, req);
+    },
 );
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -117,6 +120,25 @@ describe("Dictionary content integrity", () => {
     expect(extraInMl).toEqual([]);
   });
 
+  // Key parity can't catch an ML entry that is just the English copied over.
+  test.each(["applicationStatus", "applicationErrors", "courseHero"])(
+    "ML %s values are translated, not copied from EN",
+    (namespace) => {
+      const en = (
+        enMessages as unknown as Record<string, Record<string, string>>
+      )[namespace];
+      const ml = (
+        mlMessages as unknown as Record<string, Record<string, string>>
+      )[namespace];
+      const copied = Object.keys(en).filter(
+        (key) =>
+          ml[key] === en[key] &&
+          /[a-z]{3}/i.test(en[key].replace(/ISO|WhatsApp/g, "")),
+      );
+      expect(copied).toEqual([]);
+    },
+  );
+
   test("ML dictionary covers sample user-facing strings with real translations", () => {
     expect(mlMessages.nav?.home).toBe("ഹോം");
     expect(mlMessages.hero?.headline).toContain("കരിയർ");
@@ -172,21 +194,14 @@ describe("No hardcoded English UI strings", () => {
   ];
 
   // Patterns that indicate this file uses translations
-  const TRANSLATION_IMPORT_PATTERNS = [
-    /useTranslations/,
-    /getTranslations/,
-  ];
+  const TRANSLATION_IMPORT_PATTERNS = [/useTranslations/, /getTranslations/];
 
   test("every .tsx file in (public) and (portal) has no hardcoded English UI strings", () => {
-    const appDir = path.resolve(
-      __dirname, "..", "app", "[locale]",
-    );
+    const appDir = path.resolve(__dirname, "..", "app", "[locale]");
 
     const allFiles: string[] = [];
     for (const group of ROUTE_GROUP_DIRS) {
-      allFiles.push(
-        ...getTsxFiles(path.join(appDir, group)),
-      );
+      allFiles.push(...getTsxFiles(path.join(appDir, group)));
     }
 
     const offenders: { file: string; matched: string }[] = [];
@@ -203,7 +218,13 @@ describe("No hardcoded English UI strings", () => {
 
       // Layout files and error files are structural — allow them
       const baseName = path.basename(file);
-      if (baseName === "layout.tsx" || baseName === "error.tsx" || baseName === "loading.tsx" || baseName === "not-found.tsx") continue;
+      if (
+        baseName === "layout.tsx" ||
+        baseName === "error.tsx" ||
+        baseName === "loading.tsx" ||
+        baseName === "not-found.tsx"
+      )
+        continue;
 
       // Check each pattern
       for (const pattern of HARDCODED_STRING_PATTERNS) {
@@ -247,7 +268,10 @@ describe("No hardcoded English UI strings", () => {
       const msg = realOffenders
         .map((o) => `  ${o.file.replace(appDir, "")}: matched "${o.matched}"`)
         .join("\n");
-      expect(realOffenders, `Found hardcoded English UI strings without t():\n${msg}`).toEqual([]);
+      expect(
+        realOffenders,
+        `Found hardcoded English UI strings without t():\n${msg}`,
+      ).toEqual([]);
     }
   });
 

@@ -6,6 +6,8 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { BiodataPdfDocument } from "@/components/shared/BiodataPdfDocument";
 import type { BiodataPdfData } from "@/components/shared/BiodataPdfDocument";
 import { withProfileLists } from "@/db/helpers";
+import type { CandidateProfile } from "@/db/types";
+import { isProfileComplete } from "@/lib/biodata";
 
 const QUALIFICATION_LABELS: Record<string, string> = {
   SSLC: "SSLC",
@@ -22,6 +24,28 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   INTERNSHIP: "Internship",
   WORK_FROM_HOME: "Work from Home",
 };
+
+async function isApprovedEmployer(userId: string) {
+  const employer = await db.query.employerProfile.findFirst({
+    where: (e, { eq }) => eq(e.userId, userId),
+    columns: { status: true },
+  });
+  return employer?.status === "APPROVED";
+}
+
+/** Mirrors getSearchableCandidates: visible and complete. */
+function isSearchable(
+  profile: ReturnType<typeof withProfileLists<CandidateProfile>>,
+) {
+  return (
+    profile.profileVisible &&
+    isProfileComplete({
+      ...profile,
+      isVerifiedStudent: profile.isVerifiedStudent,
+      studentRecordId: profile.studentRecordId,
+    })
+  );
+}
 
 export async function GET(
   _request: NextRequest,
@@ -49,11 +73,18 @@ export async function GET(
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // Access control: self OR EMPLOYER only
+  // Access control: the candidate themselves, or an APPROVED employer for a
+  // candidate they could find in search (visible and complete) — the same
+  // rule as the employer candidate page that links here. A Clerk role of
+  // EMPLOYER alone is not enough: anyone can give themselves that role.
   const isSelf = profile.userId === session.userId;
-  const isEmployer = role === Role.EMPLOYER;
+  const canEmployerView =
+    !isSelf &&
+    role === Role.EMPLOYER &&
+    (await isApprovedEmployer(session.userId)) &&
+    isSearchable(profile);
 
-  if (!isSelf && !isEmployer) {
+  if (!isSelf && !canEmployerView) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

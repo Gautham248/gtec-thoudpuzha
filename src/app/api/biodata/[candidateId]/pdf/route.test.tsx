@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { truncateAll, type TestDb } from "@/__tests__/pg-test-db";
 import {
   insertCourse,
+  insertEmployer,
   insertStudentProfile,
   insertUser,
 } from "@/__tests__/pg-fixtures";
@@ -79,9 +80,8 @@ describe("GET /api/biodata/[candidateId]/pdf — access control", () => {
     expect(response.headers.get("Content-Type")).toBe("application/pdf");
   });
 
-  test("employer CAN download another candidate's PDF", async () => {
-    await insertUser(pg, { id: "user_candidate", role: "STUDENT" });
-    const candidate = await insertStudentProfile(pg, {
+  const searchableCandidate = (overrides = {}) =>
+    insertStudentProfile(pg, {
       userId: "user_candidate",
       fullName: "Candidate Name",
       dateOfBirth: new Date("2001-06-15"),
@@ -94,13 +94,62 @@ describe("GET /api/biodata/[candidateId]/pdf — access control", () => {
       preferredJobLocation: "Kochi",
       preferredJobType: "FULL_TIME",
       careerObjective: "A career",
+      profileVisible: true,
+      ...overrides,
     });
+
+  beforeEach(async () => {
+    await insertUser(pg, { id: "user_candidate", role: "STUDENT" });
+    await insertUser(pg, { id: "user_employer", role: "EMPLOYER" });
+  });
+
+  test("an approved employer can download a searchable candidate's PDF", async () => {
+    const candidate = await searchableCandidate();
+    await insertEmployer(pg, { userId: "user_employer", status: "APPROVED" });
     signIn("user_employer", "EMPLOYER");
 
     const response = await download(candidate.id);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/pdf");
+  });
+
+  test("an EMPLOYER role with no employer profile is rejected", async () => {
+    const candidate = await searchableCandidate();
+    signIn("user_employer", "EMPLOYER");
+
+    const response = await download(candidate.id);
+
+    expect(response.status).toBe(403);
+    expect(mockRenderToBuffer).not.toHaveBeenCalled();
+  });
+
+  test.each(["PENDING", "REJECTED"] as const)(
+    "a %s employer is rejected",
+    async (status) => {
+      const candidate = await searchableCandidate();
+      await insertEmployer(pg, { userId: "user_employer", status });
+      signIn("user_employer", "EMPLOYER");
+
+      expect((await download(candidate.id)).status).toBe(403);
+      expect(mockRenderToBuffer).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an approved employer cannot download a hidden profile", async () => {
+    const candidate = await searchableCandidate({ profileVisible: false });
+    await insertEmployer(pg, { userId: "user_employer", status: "APPROVED" });
+    signIn("user_employer", "EMPLOYER");
+
+    expect((await download(candidate.id)).status).toBe(403);
+  });
+
+  test("an approved employer cannot download an incomplete profile", async () => {
+    const candidate = await searchableCandidate({ phone: null });
+    await insertEmployer(pg, { userId: "user_employer", status: "APPROVED" });
+    signIn("user_employer", "EMPLOYER");
+
+    expect((await download(candidate.id)).status).toBe(403);
   });
 
   test("an unknown candidate is a 404", async () => {

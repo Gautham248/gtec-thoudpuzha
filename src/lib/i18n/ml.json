@@ -326,7 +326,7 @@
     "locationPlaceholder": "നഗരം അല്ലെങ്കിൽ പ്രദേശം...",
     "applyFilters": "ഫിൽറ്ററുകൾ പ്രയോഗിക്കുക",
     "clear": "മായ്ക്കുക",
-    "viewDetails": "View details"
+    "viewDetails": "വിശദാംശങ്ങൾ കാണുക"
   },
   "jobDetail": {
     "salary": "ശമ്പളം",
@@ -340,8 +340,8 @@
     "completeProfileToApply": "അപേക്ഷിക്കാൻ നിങ്ങളുടെ പ്രൊഫൈൽ പൂർത്തിയാക്കുക",
     "applied": "അപേക്ഷിച്ചു ✓",
     "salaryDisclosed": "അഭിമുഖത്തിൽ വെളിപ്പെടുത്തും",
-    "closedBanner": "This job is no longer accepting applications.",
-    "yourStatus": "Your application status"
+    "closedBanner": "ഈ ജോലിക്ക് ഇനി അപേക്ഷകൾ സ്വീകരിക്കുന്നില്ല.",
+    "yourStatus": "നിങ്ങളുടെ അപേക്ഷയുടെ സ്റ്റാറ്റസ്"
   },
   "industry": {
     "IT_SOFTWARE": "ഐടി & സോഫ്റ്റ്‌വെയർ",
@@ -397,9 +397,9 @@
     "unknown": "അജ്ഞാതം",
     "applicantCount": "{count} അപേക്ഷകൻ",
     "applicantCount_plural": "{count} അപേക്ഷകർ",
-    "viewProfile": "View profile",
-    "hideProfile": "Hide profile",
-    "careerObjective": "Career objective"
+    "viewProfile": "പ്രൊഫൈൽ കാണുക",
+    "hideProfile": "പ്രൊഫൈൽ മറയ്ക്കുക",
+    "careerObjective": "കരിയർ ലക്ഷ്യം"
   },
   "candidateSearch": {
     "heading": "ഉദ്യോഗാർത്ഥി തിരയൽ",
@@ -632,19 +632,30 @@
     "tryAgain": "വീണ്ടും ശ്രമിക്കുക"
   },
   "applicationStatus": {
-    "APPLIED": "Applied",
-    "VIEWED": "Viewed",
-    "SHORTLISTED": "Shortlisted",
-    "REJECTED": "Rejected",
-    "HIRED": "Hired"
+    "APPLIED": "അപേക്ഷിച്ചു",
+    "VIEWED": "കണ്ടു",
+    "SHORTLISTED": "ഷോർട്ട്‌ലിസ്റ്റ് ചെയ്തു",
+    "REJECTED": "നിരസിച്ചു",
+    "HIRED": "നിയമിച്ചു"
   },
   "applicationErrors": {
-    "UNAUTHENTICATED": "Please sign in again to continue.",
-    "FORBIDDEN": "You are not allowed to do this.",
-    "NOT_FOUND": "This application or job could not be found.",
-    "PROFILE_INCOMPLETE": "Complete your profile to apply",
-    "JOB_CLOSED": "This job is no longer accepting applications.",
-    "ALREADY_APPLIED": "You have already applied to this job.",
-    "INVALID_TRANSITION": "This status change is not allowed. Refresh to see the latest status."
+    "UNAUTHENTICATED": "തുടരാൻ ദയവായി വീണ്ടും സൈൻ ഇൻ ചെയ്യുക.",
+    "FORBIDDEN": "ഇത് ചെയ്യാൻ നിങ്ങൾക്ക് അനുമതിയില്ല.",
+    "NOT_FOUND": "ഈ അപേക്ഷയോ ജോലിയോ കണ്ടെത്താനായില്ല.",
+    "PROFILE_INCOMPLETE": "അപേക്ഷിക്കാൻ നിങ്ങളുടെ പ്രൊഫൈൽ പൂർത്തിയാക്കുക",
+    "JOB_CLOSED": "ഈ ജോലിക്ക് ഇനി അപേക്ഷകൾ സ്വീകരിക്കുന്നില്ല.",
+    "ALREADY_APPLIED": "നിങ്ങൾ ഈ ജോലിക്ക് ഇതിനകം അപേക്ഷിച്ചിട്ടുണ്ട്.",
+    "INVALID_TRANSITION": "ഈ സ്റ്റാറ്റസ് മാറ്റം അനുവദനീയമല്ല. ഏറ്റവും പുതിയ സ്റ്റാറ്റസ് കാണാൻ പേജ് പുതുക്കുക."
+  },
+  "courseHero": {
+    "breadcrumbCourses": "കോഴ്സുകൾ",
+    "level": "തുടക്കം മുതൽ അഡ്വാൻസ്ഡ് വരെ",
+    "handsOnLab": "പ്രായോഗിക ലാബ്",
+    "admissionsOpen": "പ്രവേശനം ആരംഭിച്ചു 2026-27",
+    "enrollNow": "ഇപ്പോൾ ചേരൂ",
+    "whatsappUs": "വാട്ട്‌സ്ആപ്പ് ചെയ്യൂ",
+    "placementAssistance": "100% പ്ലേസ്‌മെന്റ് സഹായം",
+    "isoCertified": "ISO 9001:2015 സർട്ടിഫൈഡ്",
+    "flexibleTimings": "സൗകര്യപ്രദമായ ബാച്ച് സമയങ്ങൾ"
   }
 }

@@ -63,25 +63,29 @@ export function StudentStoriesSection() {
           className="relative mt-12 sm:mt-16 flex items-center justify-center min-h-[360px] sm:min-h-[440px]"
         >
           {/* Left Preview Card (Figma #1:159) */}
-          <div
+          <button
+            type="button"
             onClick={prevStory}
-            className="hidden lg:flex absolute left-0 w-[300px] xl:w-[380px] h-[260px] rounded-[25px] bg-[#F0F0F0] opacity-40 hover:opacity-75 transition-all cursor-pointer items-center justify-center p-6 -translate-x-12 scale-90 border border-zinc-200"
+            aria-label={`Previous story: ${prev.name}`}
+            className="hidden lg:flex absolute left-0 w-[300px] xl:w-[380px] h-[260px] rounded-[25px] bg-[#F0F0F0] opacity-40 hover:opacity-75 focus-visible:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#093EA0] transition-all cursor-pointer items-center justify-center p-6 -translate-x-12 scale-90 border border-zinc-200"
           >
-            <div className="-rotate-[12.34deg] h-[75px] w-[75px] relative shrink-0">
+            <span className="-rotate-[12.34deg] block h-[75px] w-[75px] relative shrink-0">
               <Image
                 src="/images/figma/testimonial-frame13.svg"
                 alt=""
                 fill
                 className="object-contain"
               />
-            </div>
-            <div className="absolute bottom-4 right-4 text-right">
-              <p className="text-xs font-semibold text-[#3E1515]">
+            </span>
+            <span className="absolute bottom-4 right-4 text-right">
+              <span className="block text-xs font-semibold text-[#3E1515]">
                 {prev.name}
-              </p>
-              <p className="text-[10px] text-[#3E1515]/80">{prev.role}</p>
-            </div>
-          </div>
+              </span>
+              <span className="block text-[10px] text-[#3E1515]/80">
+                {prev.role}
+              </span>
+            </span>
+          </button>
 
           {/* Center Main Card (Figma #1:151) */}
           <div className="relative z-10 w-full max-w-[770px] min-h-[320px] sm:min-h-[380px] rounded-[34px] bg-[#F0F0F0] p-6 sm:p-10 shadow-xl border border-transparent bg-clip-padding flex flex-col justify-between items-center text-center transition-all ring-1 ring-[#093EA0]/40">
@@ -128,25 +132,29 @@ export function StudentStoriesSection() {
           </div>
 
           {/* Right Preview Card (Figma #1:167) */}
-          <div
+          <button
+            type="button"
             onClick={nextStory}
-            className="hidden lg:flex absolute right-0 w-[300px] xl:w-[380px] h-[260px] rounded-[25px] bg-[#F0F0F0] opacity-40 hover:opacity-75 transition-all cursor-pointer items-center justify-center p-6 translate-x-12 scale-90 border border-zinc-200"
+            aria-label={`Next story: ${next.name}`}
+            className="hidden lg:flex absolute right-0 w-[300px] xl:w-[380px] h-[260px] rounded-[25px] bg-[#F0F0F0] opacity-40 hover:opacity-75 focus-visible:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#093EA0] transition-all cursor-pointer items-center justify-center p-6 translate-x-12 scale-90 border border-zinc-200"
           >
-            <div className="-rotate-[12.34deg] h-[75px] w-[75px] relative shrink-0">
+            <span className="-rotate-[12.34deg] block h-[75px] w-[75px] relative shrink-0">
               <Image
                 src="/images/figma/testimonial-frame13.svg"
                 alt=""
                 fill
                 className="object-contain"
               />
-            </div>
-            <div className="absolute bottom-4 right-4 text-right">
-              <p className="text-xs font-semibold text-[#3E1515]">
+            </span>
+            <span className="absolute bottom-4 right-4 text-right">
+              <span className="block text-xs font-semibold text-[#3E1515]">
                 {next.name}
-              </p>
-              <p className="text-[10px] text-[#3E1515]/80">{next.role}</p>
-            </div>
-          </div>
+              </span>
+              <span className="block text-[10px] text-[#3E1515]/80">
+                {next.role}
+              </span>
+            </span>
+          </button>
         </Reveal>
       </div>
     </section>

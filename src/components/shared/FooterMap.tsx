@@ -18,20 +18,19 @@ export function FooterMap({
   const listingUrl = mapsUrl || siteConfig.mapsUrl;
 
   return (
-    <div className="space-y-4 text-left">
-      <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-        <span className="size-1.5 rounded-full bg-sky-400 inline-block" />
+    <div className="space-y-5 text-left">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
         <a
           href={listingUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-sky-300 transition-colors"
+          className="transition-colors hover:text-sky-300"
         >
           Find Us On Google Maps
         </a>
       </h3>
 
-      <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-[#14283f] shadow-lg transition-all duration-300 hover:border-sky-400/40">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[#14283f]">
         <iframe
           src={mapEmbedUrl || siteConfig.mapEmbedUrl}
           width="100%"
@@ -50,9 +49,12 @@ export function FooterMap({
         href={listingUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex gap-2 text-xs leading-snug text-slate-300 hover:text-white"
+        className="flex gap-2 text-sm leading-snug text-white/70 transition-colors hover:text-white"
       >
-        <MapPin className="mt-0.5 size-3.5 shrink-0 text-sky-400" />
+        <MapPin
+          className="mt-0.5 size-3.5 shrink-0 text-sky-300"
+          aria-hidden="true"
+        />
         <span className="space-y-0.5">
           <span className="block font-bold text-white">{title}</span>
           <span className="block">{address || siteConfig.locationAddress}</span>
@@ -66,11 +68,11 @@ export function FooterMap({
         rel="noopener noreferrer"
         data-testid="footer-location-link"
         aria-label={`Get Directions to ${title} on Google Maps`}
-        className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-950 shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.99]"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-[#004282] transition-colors hover:bg-sky-100"
       >
-        <Navigation className="size-4 transition-transform duration-200 group-hover:rotate-12" />
+        <Navigation className="size-4" aria-hidden="true" />
         <span>Get Directions</span>
-        <ExternalLink className="size-3.5 opacity-70 group-hover:opacity-100 ml-1" />
+        <ExternalLink className="size-3.5 opacity-60" aria-hidden="true" />
       </a>
     </div>
   );
