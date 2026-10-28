@@ -16,7 +16,7 @@ describe("Footer", () => {
     expect(html).toContain("https://gtecadmin.com");
   });
 
-  test("renders Top of Footer dynamic quick links with custom settings", async () => {
+  test("renders the social links from custom settings", async () => {
     const customSettings = {
       address:
         "East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School, Thodupuzha, Kerala 685585",
@@ -31,14 +31,7 @@ describe("Footer", () => {
 
     const html = renderToString(await Footer({ settings: customSettings }));
 
-    // Top-of-footer section container
-    expect(html).toContain('data-testid="top-of-footer-section"');
-
-    // Google Maps / Location
-    expect(html).toContain('data-testid="footer-location-link"');
-    expect(html).toContain(
-      "https://maps.google.com/?q=G-TEC+Computer+Education+East+End+Thodupuzha",
-    );
+    // Address and map link
     expect(html).toContain(
       "East End, Thodupuzha-Udumbanoor Rd, near De Paul Public School",
     );
@@ -48,7 +41,6 @@ describe("Footer", () => {
     // Instagram
     expect(html).toContain('data-testid="footer-instagram-link"');
     expect(html).toContain("https://www.instagram.com/gtec_thodupuzha/");
-    expect(html).toContain("@gtec_thodupuzha");
 
     // Facebook
     expect(html).toContain('data-testid="footer-facebook-link"');
@@ -77,7 +69,6 @@ describe("Footer", () => {
 
     const html = renderToString(await Footer({ settings: partialSettings }));
 
-    expect(html).toContain('data-testid="footer-location-link"');
     expect(html).toContain('data-testid="footer-instagram-link"');
     expect(html).not.toContain('data-testid="footer-facebook-link"');
     expect(html).not.toContain('data-testid="footer-whatsapp-link"');

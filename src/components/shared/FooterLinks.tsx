@@ -1,5 +1,5 @@
 import React from "react";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { ArrowUpRight, Award } from "lucide-react";
 import type { NavCourse } from "@/lib/nav-courses";
 
