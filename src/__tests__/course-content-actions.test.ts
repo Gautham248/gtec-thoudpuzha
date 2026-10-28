@@ -7,6 +7,7 @@ import { insertCourse } from "@/__tests__/pg-fixtures";
 
 const mockLogAdminAction = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
+const mockRevalidateTag = vi.hoisted(() => vi.fn());
 
 vi.mock("@/db", async () => ({
   db: await (await import("@/__tests__/pg-test-db")).createTestDb(),
@@ -14,6 +15,7 @@ vi.mock("@/db", async () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mockRevalidatePath,
+  revalidateTag: mockRevalidateTag,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -92,6 +94,8 @@ describe("saveCourseContent", () => {
       }),
     );
     expect(mockRevalidatePath).toHaveBeenCalledWith("/en/courses/test-course");
+    // The cached course list carries contentBlocks, so the tag must be busted too.
+    expect(mockRevalidateTag).toHaveBeenCalledWith("published-courses", "max");
   });
 
   test("fails for an unknown course without auditing", async () => {

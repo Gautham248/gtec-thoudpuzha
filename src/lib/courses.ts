@@ -23,7 +23,13 @@ export type PublicCourse = Pick<
   contentBlocks: CourseContent | null;
 };
 
-export async function getPublishedCourses(): Promise<PublicCourse[]> {
+/**
+ * `strict` rethrows a query failure instead of returning an empty list. Cached
+ * callers must pass it, otherwise a transient outage would cache `[]`.
+ */
+export async function getPublishedCourses(
+  options: { strict?: boolean } = {},
+): Promise<PublicCourse[]> {
   const courses = await db.query.course.findMany({
     where: (c, { eq }) => eq(c.status, "PUBLISHED"),
     with: {
@@ -34,6 +40,7 @@ export async function getPublishedCourses(): Promise<PublicCourse[]> {
     orderBy: (c, { desc }) => [desc(c.featured), desc(c.createdAt)],
   }).catch((err) => {
     logger.exception("courses", "Failed to fetch published courses", err);
+    if (options.strict) throw err;
     return [];
   });
 

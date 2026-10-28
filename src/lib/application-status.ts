@@ -3,13 +3,15 @@ import type { ApplicationStatus } from "@/db/types";
 /**
  * Statuses an employer may move an application to from each status.
  * VIEWED is never a target here: it is set only by `markViewed`, when the
- * employer opens the applicant's profile. REJECTED and HIRED are final.
+ * employer opens the applicant's profile. An unviewed application can only be
+ * rejected, so shortlisting and hiring both require the profile to have been
+ * opened first. REJECTED and HIRED are final.
  */
 export const APPLICATION_TRANSITIONS: Record<
   ApplicationStatus,
   readonly ApplicationStatus[]
 > = {
-  APPLIED: ["SHORTLISTED", "REJECTED"],
+  APPLIED: ["REJECTED"],
   VIEWED: ["SHORTLISTED", "REJECTED", "HIRED"],
   SHORTLISTED: ["REJECTED", "HIRED"],
   REJECTED: [],

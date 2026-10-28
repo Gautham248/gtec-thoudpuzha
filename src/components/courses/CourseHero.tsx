@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import {
   PhoneCall,
   ArrowUpRight,
@@ -23,9 +24,10 @@ interface CourseHeroProps {
   coverImageUrl: string | null;
   /** Preselects this course in the enquiry modal. */
   courseId?: string;
+  locale: string;
 }
 
-export function CourseHero({
+export async function CourseHero({
   title,
   description,
   categoryName,
@@ -33,7 +35,9 @@ export function CourseHero({
   certificationName,
   coverImageUrl,
   courseId,
+  locale,
 }: CourseHeroProps) {
+  const t = await getTranslations({ locale, namespace: "courseHero" });
   const image = coverImageUrl
     ? getMediaUrl(coverImageUrl)
     : "/images/figma/legacy-students-62c433.png";
@@ -55,7 +59,7 @@ export function CourseHero({
                 href="/courses"
                 className="transition-colors hover:text-white"
               >
-                Courses
+                {t("breadcrumbCourses")}
               </Link>
               {categoryName && (
                 <>
@@ -119,11 +123,11 @@ export function CourseHero({
                     className="size-[18px]"
                     aria-hidden="true"
                   />
-                  Beginner to Advanced
+                  {t("level")}
                 </span>
                 <span className="flex items-center gap-2">
                   <Monitor className="size-[18px]" aria-hidden="true" />
-                  Hands-On Lab
+                  {t("handsOnLab")}
                 </span>
                 {certificationName && (
                   <span className="flex items-center gap-2 uppercase">
@@ -146,7 +150,7 @@ export function CourseHero({
                   priority
                 />
                 <span className="absolute left-4 top-4 inline-flex items-center rounded-[18px] bg-linear-to-r from-[#D1D1D1] via-[#8D8D8D] to-[#DFDFDF] px-3.5 py-2 text-xs font-bold tracking-[-0.02em] text-black">
-                  Admissions Open 2026-27
+                  {t("admissionsOpen")}
                 </span>
               </div>
             </Reveal>
@@ -164,7 +168,7 @@ export function CourseHero({
                 source="course-hero"
                 className="group flex items-center justify-between gap-2.5 rounded-full bg-[#0B1220] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-black active:scale-[0.98] sm:justify-center sm:text-lg"
               >
-                <span>Enroll Now</span>
+                <span>{t("enrollNow")}</span>
                 <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-full bg-[#1753DA] transition-transform group-hover:scale-105">
                   <ArrowUpRight className="size-5" aria-hidden="true" />
                 </span>
@@ -175,7 +179,7 @@ export function CourseHero({
                 rel="noopener noreferrer"
                 className="group flex items-center justify-between gap-2.5 rounded-full bg-[#2EB700] py-[13px] pl-7 pr-5 text-base font-semibold tracking-[-0.06em] text-white transition-all hover:bg-[#28a100] active:scale-[0.98] sm:justify-center sm:text-lg"
               >
-                <span>WhatsApp Us</span>
+                <span>{t("whatsappUs")}</span>
                 <span className="flex h-8 w-10 shrink-0 items-center justify-center rounded-full bg-[#067914] transition-transform group-hover:scale-105">
                   <PhoneCall className="size-5" aria-hidden="true" />
                 </span>
@@ -189,18 +193,18 @@ export function CourseHero({
                   className="size-5 text-[#1753DA]"
                   aria-hidden="true"
                 />
-                100% Placement Assistance
+                {t("placementAssistance")}
               </li>
               <li className="flex items-center gap-2">
                 <ShieldCheck
                   className="size-5 text-[#1753DA]"
                   aria-hidden="true"
                 />
-                ISO 9001:2015 Certified
+                {t("isoCertified")}
               </li>
               <li className="flex items-center gap-2">
                 <Clock className="size-5 text-[#1753DA]" aria-hidden="true" />
-                Flexible Batch Timings
+                {t("flexibleTimings")}
               </li>
             </ul>
           </div>

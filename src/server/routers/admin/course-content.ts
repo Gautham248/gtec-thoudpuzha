@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
@@ -45,6 +45,9 @@ export const courseContentRouter = router({
         metadata: { titleEn: course?.titleEn },
       });
 
+      // The cached course list carries `contentBlocks` (see src/lib/data-cache.ts).
+      revalidateTag("published-courses", "max");
+      revalidateTag("courses", "max");
       revalidatePath(`/${locale}/admin/courses/${courseId}/content`);
       revalidatePath(`/${locale}/courses`);
       if (course?.slug) {

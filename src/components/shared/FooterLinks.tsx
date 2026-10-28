@@ -1,6 +1,7 @@
 import React from "react";
-import Link from "next/link";
-import { ChevronRight, ArrowUpRight, Award } from "lucide-react";
+import { Link } from "@/lib/i18n/navigation";
+import { ArrowUpRight, Award } from "lucide-react";
+import type { NavCourse } from "@/lib/nav-courses";
 
 export interface FooterLinkItem {
   label: string;
@@ -20,19 +21,32 @@ export const defaultQuickLinks: FooterLinkItem[] = [
   { label: "Contact Us", href: "/contact" },
 ];
 
-export const defaultPopularCourses: FooterLinkItem[] = [
-  { label: "Python Full Stack", href: "/courses" },
-  { label: "MERN Stack Development", href: "/courses" },
-  { label: "Python Programming", href: "/courses" },
-  { label: "Data Analytics", href: "/courses" },
-  {
-    label: "Artificial Intelligence & ML",
-    href: "/courses",
-  },
-  { label: "UI/UX Design", href: "/courses" },
-  { label: "Graphic Design", href: "/courses" },
-  { label: "Tally Prime", href: "/courses" },
-];
+/** At most this many courses in the footer's Popular Courses column. */
+export const FOOTER_COURSE_LIMIT = 8;
+
+/**
+ * Popular Courses links from the published course list the header also uses
+ * (already featured first, then newest). Falls back to a single link to the
+ * course list when there are none.
+ */
+export function popularCourseLinks(
+  courses: NavCourse[],
+  locale: string,
+): FooterLinkItem[] {
+  const isMl = locale === "ml";
+  if (courses.length === 0) {
+    return [
+      {
+        label: isMl ? "എല്ലാ കോഴ്സുകളും കാണുക" : "View all courses",
+        href: "/courses",
+      },
+    ];
+  }
+  return courses.slice(0, FOOTER_COURSE_LIMIT).map((course) => ({
+    label: isMl && course.titleMl ? course.titleMl : course.titleEn,
+    href: `/courses/${course.slug}`,
+  }));
+}
 
 export const defaultPortalLinks: FooterLinkItem[] = [
   { label: "Student Login", href: "/portal/sign-in" },
@@ -57,29 +71,26 @@ interface FooterLinksColumnProps {
 
 export function FooterLinksColumn({ title, links }: FooterLinksColumnProps) {
   return (
-    <div className="space-y-4 text-left">
-      <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-        <span className="size-1.5 rounded-full bg-sky-400 inline-block" />
-        <span>{title}</span>
+    <div className="text-left">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
+        {title}
       </h3>
 
-      <ul className="space-y-2.5">
+      <ul className="mt-5 space-y-3">
         {links.map((link) => {
           if (link.highlight) {
             return (
-              <li key={link.label} className="pt-1.5">
+              <li key={link.label} className="pt-2">
                 <a
                   href={link.href}
                   target={link.external ? "_blank" : undefined}
                   rel={link.external ? "noopener noreferrer" : undefined}
                   data-testid={link.testId}
-                  className="group inline-flex items-center justify-between gap-2.5 rounded-xl border border-sky-400/40 bg-sky-500/10 px-3.5 py-2 text-xs sm:text-sm font-bold text-sky-300 shadow-sm transition-all duration-200 hover:bg-sky-500/20 hover:border-sky-400 hover:text-white hover:shadow-md"
+                  className="inline-flex items-center gap-2 text-[15px] font-semibold text-sky-300 transition-colors hover:text-white"
                 >
-                  <div className="flex items-center gap-2">
-                    <Award className="size-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
-                    <span>{link.label}</span>
-                  </div>
-                  <ArrowUpRight className="size-3.5 text-sky-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <Award className="size-4" aria-hidden="true" />
+                  <span>{link.label}</span>
+                  <ArrowUpRight className="size-3.5" aria-hidden="true" />
                 </a>
               </li>
             );
@@ -93,11 +104,13 @@ export function FooterLinksColumn({ title, links }: FooterLinksColumnProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid={link.testId}
-                  className="group flex items-center gap-2 text-xs sm:text-sm text-slate-300 transition-all duration-200 hover:text-sky-300 hover:translate-x-1"
+                  className="inline-flex items-center gap-1 text-[15px] text-white/70 transition-colors hover:text-white"
                 >
-                  <ChevronRight className="size-3.5 text-slate-400 transition-transform duration-200 group-hover:text-sky-400 group-hover:translate-x-0.5" />
-                  <span className="font-normal">{link.label}</span>
-                  <ArrowUpRight className="size-3 text-slate-400 opacity-70 group-hover:opacity-100" />
+                  <span>{link.label}</span>
+                  <ArrowUpRight
+                    className="size-3 opacity-60"
+                    aria-hidden="true"
+                  />
                 </a>
               </li>
             );
@@ -108,28 +121,14 @@ export function FooterLinksColumn({ title, links }: FooterLinksColumnProps) {
               <Link
                 href={link.href}
                 data-testid={link.testId}
-                className="group flex items-center gap-2 text-xs sm:text-sm text-slate-300 transition-all duration-200 hover:text-sky-300 hover:translate-x-1"
+                className="text-[15px] text-white/70 transition-colors hover:text-white"
               >
-                <ChevronRight className="size-3.5 text-slate-400 transition-transform duration-200 group-hover:text-sky-400 group-hover:translate-x-0.5" />
-                <span className="font-normal">{link.label}</span>
+                {link.label}
               </Link>
             </li>
           );
         })}
       </ul>
     </div>
-  );
-}
-
-export function FooterLinks() {
-  return (
-    <>
-      <FooterLinksColumn title="Quick Links" links={defaultQuickLinks} />
-      <FooterLinksColumn
-        title="Popular Courses"
-        links={defaultPopularCourses}
-      />
-      <FooterLinksColumn title="Student & Portal" links={defaultPortalLinks} />
-    </>
   );
 }

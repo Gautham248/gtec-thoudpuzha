@@ -105,6 +105,7 @@ describe("updateApplicationStatus", () => {
     ["VIEWED", "APPLIED"],
     ["VIEWED", "VIEWED"],
     ["APPLIED", "HIRED"],
+    ["APPLIED", "SHORTLISTED"],
   ] as const)(
     "refuses the transition %s -> %s on the server",
     async (from, to) => {

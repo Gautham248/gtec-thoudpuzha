@@ -28,7 +28,7 @@ This will automatically:
 
 ## 🪟 Windows Developer Setup
 
-Developing on Windows? Check out the dedicated **[Windows Developer Guide & Instruction Manual](file:///Users/gauthamkrishna/Code/leedsdigital/gtec-thoudpuzha/docs/WINDOWS_DEVELOPMENT_GUIDE.md)** (`docs/WINDOWS_DEVELOPMENT_GUIDE.md`) for WSL 2 recommendations, PowerShell commands, and troubleshooting tips.
+Developing on Windows? Check out the dedicated **[Windows Developer Guide & Instruction Manual](docs/WINDOWS_DEVELOPMENT_GUIDE.md)** (`docs/WINDOWS_DEVELOPMENT_GUIDE.md`) for WSL 2 recommendations, PowerShell commands, and troubleshooting tips.
 
 ---
 
@@ -84,7 +84,7 @@ nothing. Run it from a dev checkout (`npm install` with dev dependencies).
 
 **If the dry run reports missing columns:** the database stopped short of
 Prisma's last migration. Production is missing `SiteSettings.mapsUrl` and
-`whatsappNumber`; its schema is kept in `docs/production-schema.prisma`. Run
+`whatsappNumber`, and the dry run names exactly these two columns. Run
 the SQL in `drizzle/0001_sync_site_settings_footer_columns.sql` against that
 database (it only adds the two columns, if missing), then repeat steps 2–4.
 `db:migrate` then records 0001 as applied.

@@ -14,7 +14,7 @@ interface FooterBottomProps {
 
 export function FooterBottom({
   currentYear,
-  facebookUrl = "https://www.facebook.com/gtectdpa",
+  facebookUrl = "https://www.facebook.com/share/1FLZXJZ7ux/",
   instagramUrl = "https://www.instagram.com/gtec_thodupuzha/",
   youtubeUrl = "https://www.youtube.com/@gtecthodupuzha",
   whatsappUrl = "https://wa.me/919744221113",
@@ -28,20 +28,20 @@ export function FooterBottom({
   const effectiveGoogleReviews = googleReviewsUrl ?? null;
 
   return (
-    <div className="border-t border-white/10 bg-black/25 text-slate-400 py-6 text-xs sm:text-sm">
+    <div className="border-t border-white/10 py-6 text-sm text-white/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 text-center lg:text-left">
           {/* Left: Copyright & Legal */}
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-slate-300 font-medium">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <p>
               &copy; {currentYear} G-TEC {centreName}. All Rights Reserved.
             </p>
-            <div className="hidden sm:inline-block text-slate-600">|</div>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
+            <div className="hidden sm:inline-block text-white/20">|</div>
+            <div className="flex items-center gap-3">
               <Link
                 href="/privacy"
                 data-testid="footer-privacy-link"
-                className="hover:text-sky-400 transition-colors"
+                className="transition-colors hover:text-white"
               >
                 Privacy Policy
               </Link>
@@ -49,7 +49,7 @@ export function FooterBottom({
               <Link
                 href="/terms"
                 data-testid="footer-terms-link"
-                className="hover:text-sky-400 transition-colors"
+                className="transition-colors hover:text-white"
               >
                 Terms of Service
               </Link>
@@ -57,12 +57,12 @@ export function FooterBottom({
           </div>
 
           {/* Center: Official Portal Note */}
-          <div className="text-slate-400 text-xs hidden md:block">
+          <div className="hidden text-xs text-white/40 md:block">
             <p>Official Digital Portal for G-TEC EDUCATION, Thodupuzha</p>
           </div>
 
           {/* Right: Circular Social Media Icons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1">
             {/* Facebook */}
             {effectiveFacebook && (
               <a
@@ -71,7 +71,7 @@ export function FooterBottom({
                 rel="noopener noreferrer"
                 data-testid="footer-facebook-link"
                 aria-label="Visit G-TEC Thodupuzha on Facebook"
-                className="flex size-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-300 transition-all duration-200 hover:scale-110 hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2] shadow-xs"
+                className="flex size-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -95,7 +95,7 @@ export function FooterBottom({
                 rel="noopener noreferrer"
                 data-testid="footer-instagram-link"
                 aria-label="Follow G-TEC Thodupuzha on Instagram"
-                className="flex size-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-300 transition-all duration-200 hover:scale-110 hover:bg-gradient-to-tr hover:from-amber-500 hover:via-pink-500 hover:to-purple-600 hover:text-white hover:border-pink-500 shadow-xs"
+                className="flex size-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -121,7 +121,7 @@ export function FooterBottom({
                 rel="noopener noreferrer"
                 data-testid="footer-youtube-link"
                 aria-label="Subscribe to G-TEC Thodupuzha YouTube Channel"
-                className="flex size-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-300 transition-all duration-200 hover:scale-110 hover:bg-[#FF0000] hover:text-white hover:border-[#FF0000] shadow-xs"
+                className="flex size-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -146,7 +146,7 @@ export function FooterBottom({
                 rel="noopener noreferrer"
                 data-testid="footer-whatsapp-link"
                 aria-label="Chat with G-TEC Thodupuzha on WhatsApp"
-                className="flex size-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-300 transition-all duration-200 hover:scale-110 hover:bg-[#25D366] hover:text-white hover:border-[#25D366] shadow-xs"
+                className="flex size-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -170,7 +170,7 @@ export function FooterBottom({
                 rel="noopener noreferrer"
                 data-testid="footer-google-reviews-link"
                 aria-label="Read G-TEC Thodupuzha Google Reviews and Ratings"
-                className="flex size-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-300 transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:text-white hover:border-amber-500 shadow-xs"
+                className="flex size-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <Star className="size-4 fill-current" />
               </a>
@@ -179,7 +179,7 @@ export function FooterBottom({
         </div>
 
         {/* Mobile notice */}
-        <div className="mt-3 text-slate-400 text-xs text-center md:hidden">
+        <div className="mt-3 text-center text-xs text-white/40 md:hidden">
           <p>Official Digital Portal for G-TEC EDUCATION, Thodupuzha</p>
         </div>
       </div>

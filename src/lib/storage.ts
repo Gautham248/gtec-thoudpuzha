@@ -27,6 +27,12 @@ export async function uploadFile(
   const buffer = Buffer.from(await file.arrayBuffer());
   const key = `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
+  if (!(bucket && accessKey) && process.env.NODE_ENV === "production") {
+    // The local fallback would write to an ephemeral or read-only filesystem and
+    // lose the file, so a misconfigured deployment must fail loudly instead.
+    throw new Error("R2 storage is not configured (R2_BUCKET_NAME / R2_ACCESS_KEY_ID)");
+  }
+
   if (bucket && accessKey) {
     await getS3Client().send(
       new PutObjectCommand({

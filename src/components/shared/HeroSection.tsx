@@ -279,7 +279,7 @@ export function HeroSection({ t, years, reviewsUrl }: HeroSectionProps) {
         </div>
         {/* Years + Google rating card, bottom-right over the photo */}
         <motion.div
-          className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2 text-right sm:bottom-10 sm:right-10 lg-right-14 lg:bottom-14"
+          className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2 text-right sm:bottom-10 sm:right-10 lg:right-14 lg:bottom-14"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.5, ease: EASE_OUT }}

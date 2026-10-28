@@ -31,7 +31,7 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   mapEmbedUrl: siteConfig.mapEmbedUrl,
   mapsUrl: siteConfig.mapsUrl,
   whatsappNumber: "919744221113",
-  facebookUrl: "https://www.facebook.com/gtectdpa",
+  facebookUrl: "https://www.facebook.com/share/1FLZXJZ7ux/",
   instagramUrl: "https://www.instagram.com/gtec_thodupuzha/",
   youtubeUrl: null,
   linkedinUrl: null,
@@ -40,7 +40,13 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsWithCards = {
   whyChooseUsCards: [],
 };
 
-export async function getSiteSettings(): Promise<SiteSettingsWithCards> {
+/**
+ * `strict` rethrows a real failure instead of returning defaults. Cached callers
+ * must pass it, otherwise a transient outage would cache the defaults.
+ */
+export async function getSiteSettings(
+  options: { strict?: boolean } = {},
+): Promise<SiteSettingsWithCards> {
   try {
     const settings = await db.query.siteSettings.findFirst({
       with: {
@@ -60,6 +66,7 @@ export async function getSiteSettings(): Promise<SiteSettingsWithCards> {
     // is a real failure (connection dropped, schema mismatch), so it must be
     // reported — otherwise an outage renders fabricated stats with no signal.
     logger.exception("site-settings", "Failed to load site settings", err);
+    if (options.strict) throw err;
     return DEFAULT_SITE_SETTINGS;
   }
 }
