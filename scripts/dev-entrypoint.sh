@@ -23,17 +23,23 @@ echo "✅ PostgreSQL is ready!"
 # psql rejects Prisma-style query params such as ?schema=public.
 PSQL_URL="${DATABASE_URL%%\?*}"
 HAS_SCHEMA=$(psql "$PSQL_URL" -tAc "select to_regclass('public.\"User\"') is not null")
+HAS_DRIZZLE=$(psql "$PSQL_URL" -tAc "select to_regclass('drizzle.__drizzle_migrations') is not null")
 
-if [ "$HAS_SCHEMA" = "t" ]; then
-  # An existing database (possibly created by Prisma) is left exactly as it is.
-  echo "ℹ️ Database already has the schema; skipping migrations and seed."
-  echo "   If it predates Drizzle, adopt it once with: npm run db:baseline (see README)."
+if [ "$HAS_SCHEMA" = "t" ] && [ "$HAS_DRIZZLE" != "t" ]; then
+  # Created by Prisma and never adopted by Drizzle: migrating would try to
+  # recreate existing tables, so leave it exactly as it is.
+  echo "ℹ️ Database predates Drizzle; skipping migrations and seed."
+  echo "   Adopt it once with: npm run db:baseline (see README)."
 else
-  echo "🚀 Creating the database schema (drizzle-kit migrate)..."
+  # Fresh, or already managed by Drizzle. Migrating is idempotent, so new
+  # migrations on a kept pgdata volume are applied rather than skipped.
+  echo "🚀 Applying database migrations (drizzle-kit migrate)..."
   npm run db:migrate
 
-  echo "🌱 Seeding initial database records..."
-  npm run db:seed || echo "⚠️ Seeding finished with warnings."
+  if [ "$HAS_SCHEMA" != "t" ]; then
+    echo "🌱 Seeding initial database records..."
+    npm run db:seed || echo "⚠️ Seeding finished with warnings."
+  fi
 fi
 
 echo "🎉 Environment ready! Starting Next.js dev server on http://localhost:3000..."
