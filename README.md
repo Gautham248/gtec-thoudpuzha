@@ -28,7 +28,7 @@ This will automatically:
 
 ## 🪟 Windows Developer Setup
 
-Developing on Windows? Check out the dedicated **[Windows Developer Guide & Instruction Manual](file:///Users/gauthamkrishna/Code/leedsdigital/gtec-thoudpuzha/docs/WINDOWS_DEVELOPMENT_GUIDE.md)** (`docs/WINDOWS_DEVELOPMENT_GUIDE.md`) for WSL 2 recommendations, PowerShell commands, and troubleshooting tips.
+Developing on Windows? Check out the dedicated **[Windows Developer Guide & Instruction Manual](docs/WINDOWS_DEVELOPMENT_GUIDE.md)** (`docs/WINDOWS_DEVELOPMENT_GUIDE.md`) for WSL 2 recommendations, PowerShell commands, and troubleshooting tips.
 
 ---
 
