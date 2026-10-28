@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { logger } from "@/lib/logger";
 
 let s3Client: S3Client | null = null;
 
@@ -28,6 +29,8 @@ export async function GET(
   const objectKey = key.join("/");
   const bucket = process.env.R2_BUCKET_NAME;
 
+  let r2Failed = false;
+
   // 1. If R2 is configured, attempt to fetch from R2
   if (bucket && process.env.R2_ACCESS_KEY_ID) {
     try {
@@ -49,8 +52,13 @@ export async function GET(
           },
         });
       }
-    } catch {
-      // Fall through to local check / fallback
+    } catch (err) {
+      // A missing key is an ordinary miss; anything else is an outage or a bad
+      // credential and must not be mistaken for one (or cached as one).
+      if ((err as { name?: string }).name !== "NoSuchKey") {
+        r2Failed = true;
+        logger.exception("media", `R2 fetch failed for ${objectKey}`, err);
+      }
     }
   }
 
@@ -100,15 +108,9 @@ export async function GET(
     // Ignore filesystem errors and return fallback
   }
 
-  // 3. Return a 1×1 transparent PNG as a silent fallback for missing images
-  const FALLBACK_PNG = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-    "base64",
-  );
-  return new NextResponse(FALLBACK_PNG, {
-    headers: {
-      "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=3600",
-    },
+  // 3. Nothing found. Never cache a miss or an upstream failure.
+  return new NextResponse(null, {
+    status: r2Failed ? 502 : 404,
+    headers: { "Cache-Control": "no-store" },
   });
 }
