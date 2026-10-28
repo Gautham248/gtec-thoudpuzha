@@ -9,7 +9,7 @@ export const getCachedSiteSettings = unstable_cache(
   async (): Promise<SiteSettingsWithCards> => {
     const { getSiteSettings } = await import("@/lib/site-settings");
     try {
-      return await getSiteSettings();
+      return await getSiteSettings({ strict: true });
     } catch (err) {
       logger.exception("cache", "Failed to load site settings", err);
       throw err;
@@ -23,7 +23,7 @@ export const getCachedPublishedCourses = unstable_cache(
   async (): Promise<PublicCourse[]> => {
     const { getPublishedCourses } = await import("@/lib/courses");
     try {
-      return await getPublishedCourses();
+      return await getPublishedCourses({ strict: true });
     } catch (err) {
       logger.exception("cache", "Failed to load published courses", err);
       throw err;
@@ -37,7 +37,7 @@ export const getCachedHomepageTeaser = unstable_cache(
   async () => {
     const { getHomepageTeaser } = await import("@/lib/news-events");
     try {
-      return await getHomepageTeaser();
+      return await getHomepageTeaser({ strict: true });
     } catch (err) {
       logger.exception("cache", "Failed to load homepage teaser", err);
       throw err;
@@ -105,7 +105,7 @@ export const getCachedUpcomingEvents = unstable_cache(
   async (limit: number = 3) => {
     const { getUpcomingEvents } = await import("@/lib/news-events");
     try {
-      return await getUpcomingEvents(limit);
+      return await getUpcomingEvents(limit, { strict: true });
     } catch (err) {
       logger.exception("cache", "Failed to load upcoming events", err);
       throw err;

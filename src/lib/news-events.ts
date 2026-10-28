@@ -48,7 +48,8 @@ export async function getNewsEventBySlug(
   return item ?? null;
 }
 
-export async function getHomepageTeaser() {
+/** `strict` rethrows a query failure so cached callers don't store an empty teaser. */
+export async function getHomepageTeaser(options: { strict?: boolean } = {}) {
   try {
     const [newsItems, nextEvent] = await Promise.all([
       db.query.newsEvent.findMany({
@@ -71,12 +72,16 @@ export async function getHomepageTeaser() {
     ]);
 
     return { newsItems, nextEvent: nextEvent ?? null };
-  } catch {
+  } catch (err) {
+    if (options.strict) throw err;
     return { newsItems: [], nextEvent: null };
   }
 }
 
-export async function getUpcomingEvents(limit: number = 3): Promise<PublicNewsEvent[]> {
+export async function getUpcomingEvents(
+  limit: number = 3,
+  options: { strict?: boolean } = {},
+): Promise<PublicNewsEvent[]> {
   try {
     return await db.query.newsEvent.findMany({
       where: (n, { and, eq, gte, isNotNull }) =>
@@ -89,7 +94,8 @@ export async function getUpcomingEvents(limit: number = 3): Promise<PublicNewsEv
       limit,
       columns: PUBLIC_COLUMNS,
     });
-  } catch {
+  } catch (err) {
+    if (options.strict) throw err;
     return [];
   }
 }
