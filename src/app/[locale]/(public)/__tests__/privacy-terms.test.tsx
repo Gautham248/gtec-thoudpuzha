@@ -1,9 +1,22 @@
+import React from "react";
 import { describe, expect, test, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import { render, screen } from "@testing-library/react";
 import { Footer } from "@/components/shared/Footer";
 import { BiodataForm } from "@/components/shared/BiodataForm";
 import { RegistrationForm } from "@/app/[locale]/(portal)/portal/employer/register/registration-form";
+
+// The real Link reads the next-intl locale context, which isn't mounted here.
+vi.mock("@/lib/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => React.createElement("a", { href, ...rest }, children),
+}));
 
 // --- Helper: resolve the Privacy page component via dynamic import ---
 // We test the rendered HTML of the server components since they're async.

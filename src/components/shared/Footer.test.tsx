@@ -1,7 +1,20 @@
-import { describe, expect, test } from "vitest";
+import React from "react";
+import { describe, expect, test, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import type { NavCourse } from "@/lib/nav-courses";
 import { Footer } from "./Footer";
+
+// The real Link reads the next-intl locale context, which isn't mounted here.
+vi.mock("@/lib/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => React.createElement("a", { href, ...rest }, children),
+}));
 
 describe("Footer", () => {
   test("copyright year is computed from the current date, not hardcoded", async () => {
